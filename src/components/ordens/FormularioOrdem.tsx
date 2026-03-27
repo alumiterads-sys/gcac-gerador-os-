@@ -162,7 +162,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
   const adicionarServico = (servico: string) => {
     const atual = form.servico.trim();
-    atualizar('servico', atual ? atual + '\n' + servico : servico);
+    const textoServico = `. ${servico}:\n`;
+    atualizar('servico', atual ? atual + '\n\n' + textoServico : textoServico);
   };
 
   const validar = (): boolean => {
