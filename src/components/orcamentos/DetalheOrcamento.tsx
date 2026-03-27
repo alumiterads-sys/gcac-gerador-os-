@@ -8,6 +8,7 @@ import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../ut
 import { baixarPdfOrcamento } from '../../services/geradorPdfOrcamento';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
+import { useClientes } from '../../context/ClientesContext';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 interface DetalheOrcamentoProps {
@@ -18,6 +19,7 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
   const navigate = useNavigate();
   const { criarOrdem } = useOrdens();
   const { atualizarOrcamento } = useOrcamentos();
+  const { clientes, criarCliente } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [convertendo, setConvertendo] = useState(false);
 
@@ -58,12 +60,31 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
     
     setConvertendo(true);
     try {
+      // Verifica se o cliente já existe na base (pelo CPF ou Nome)
+      const nomeClienteFormatado = String(orcamento.nomeCliente).toUpperCase();
+      const clienteExistente = clientes.find(c => 
+        (orcamento.cpf && c.cpf === orcamento.cpf) || 
+        c.nome.toUpperCase() === nomeClienteFormatado
+      );
+
+      // Se o cliente não existir, cria-lo de forma transparente
+      if (!clienteExistente) {
+        await criarCliente({
+          nome: nomeClienteFormatado,
+          cpf: orcamento.cpf,
+          contato: orcamento.contato,
+          senhaGov: orcamento.senhaGov || '',
+          filiadoProTiro: false,
+          clubeFiliado: 'NÃO RELATADO'
+        });
+      }
+
       // Cria a O.S. usando os dados do orçamento
       const osId = await criarOrdem({
-        nomeCliente: orcamento.nomeCliente,
+        nomeCliente: nomeClienteFormatado,
         contato: orcamento.contato,
         cpf: orcamento.cpf,
-        senhaGov: '', // Precisará ser preenchido na O.S
+        senhaGov: orcamento.senhaGov || '', // Repassa a senha gov
         filiadoProTiro: false,
         clubeFiliado: '',
         servicos: orcamento.servicos.map(s => ({

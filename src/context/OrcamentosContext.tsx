@@ -19,6 +19,7 @@ const mapFromDB = (row: any): Orcamento => ({
   nomeCliente: row.nome_cliente,
   contato: row.contato,
   cpf: row.cpf || '',
+  senhaGov: row.senha_gov || '',
   servicos: row.servicos || [],
   valorTotal: row.valor_total,
   observacoes: row.observacoes || '',
@@ -32,6 +33,7 @@ const mapToDB = (dados: any) => {
   if (dados.nomeCliente !== undefined) payload.nome_cliente = String(dados.nomeCliente).toUpperCase();
   if (dados.contato !== undefined) payload.contato = dados.contato;
   if (dados.cpf !== undefined) payload.cpf = dados.cpf;
+  if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;
   if (dados.servicos !== undefined) payload.servicos = dados.servicos;
   if (dados.valorTotal !== undefined) payload.valor_total = dados.valorTotal;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;

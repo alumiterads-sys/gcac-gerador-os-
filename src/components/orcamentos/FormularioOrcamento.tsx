@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Save, X, Users, CheckCircle, ChevronDown, List, Trash2
+  Save, X, Users, CheckCircle, ChevronDown, List, Trash2, Eye, EyeOff
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Orcamento, StatusOrcamento, ATALHOS_SERVICO } from '../../types';
@@ -72,11 +72,13 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [salvando, setSalvando] = useState(false);
   const [focoNome, setFocoNome] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const [form, setForm] = useState({
     nomeCliente:       orcamentoExistente?.nomeCliente       ?? '',
     contato:           orcamentoExistente?.contato           ?? '',
     cpf:               orcamentoExistente?.cpf               ?? '',
+    senhaGov:          orcamentoExistente?.senhaGov          ?? '',
     servicos:          orcamentoExistente?.servicos          ?? [],
     valorTotal:        orcamentoExistente?.valorTotal        ?? 0,
     status:            (orcamentoExistente?.status           ?? 'Pendente') as StatusOrcamento,
@@ -95,7 +97,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
       ...f,
       nomeCliente: c.nome,
       cpf: c.cpf,
-      contato: c.contato
+      contato: c.contato,
+      senhaGov: c.senhaGov || f.senhaGov
     }));
     setFocoNome(false);
   };
@@ -163,6 +166,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     const e: Record<string, string> = {};
     if (!form.nomeCliente.trim()) e.nomeCliente = 'Nome é obrigatório';
     if (!form.contato.trim())     e.contato     = 'Contato é obrigatório';
+    if (!form.cpf.trim())         e.cpf         = 'CPF é obrigatório';
     if (form.servicos.length === 0) e.servicos  = 'Adicione pelo menos um serviço';
     
     setErros(e);
@@ -179,6 +183,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         nomeCliente:       form.nomeCliente.trim(),
         contato:           form.contato.trim(),
         cpf:               form.cpf.trim(),
+        senhaGov:          form.senhaGov.trim(),
         servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valorTotal:        form.valorTotal,
         status:            form.status,
@@ -249,11 +254,28 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
                 onChange={e => handleTelefone(e.target.value)} />
               {erros.contato && <p className="text-red-400 text-xs mt-1">{erros.contato}</p>}
             </div>
-            <div>
-              <label className="label">CPF <span className="text-xs text-gray-500 font-normal">(Opcional)</span></label>
-              <input type="text" className="input"
-                placeholder="000.000.000-00" value={form.cpf}
-                onChange={e => handleCPF(e.target.value)} />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label label-required">CPF</label>
+                <input type="text" className={`input ${erros.cpf ? 'input-error' : ''}`}
+                  placeholder="000.000.000-00" value={form.cpf}
+                  onChange={e => handleCPF(e.target.value)} />
+                {erros.cpf && <p className="text-red-400 text-xs mt-1">{erros.cpf}</p>}
+              </div>
+              
+              <div>
+                <label className="label">Senha GOV.br</label>
+                <div className="relative">
+                  <input type={mostrarSenha ? 'text' : 'password'} className="input pr-10"
+                    placeholder="Senha Gov"
+                    value={form.senhaGov} onChange={e => atualizar('senhaGov', e.target.value)} />
+                  <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

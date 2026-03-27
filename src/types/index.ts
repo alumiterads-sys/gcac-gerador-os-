@@ -90,6 +90,7 @@ export interface Orcamento {
   nomeCliente: string;
   contato: string;
   cpf: string;
+  senhaGov?: string;
   
   // Serviço
   servicos: ServicoOrcamento[];
