@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo.png', 'favicon.ico'],
+      includeAssets: ['logo.jpg', 'favicon.svg'],
       manifest: {
         name: 'GCAC Gerador de O.S.',
         short_name: 'GCAC OS',
@@ -19,14 +19,14 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'logo.png',
+            src: 'logo.jpg',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/jpeg',
           },
           {
-            src: 'logo.png',
+            src: 'logo.jpg',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/jpeg',
           },
         ],
       },
