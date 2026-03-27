@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-brand-dark text-gray-100 antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-brand-dark-3;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-dark-5 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-brand-metal;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+  }
+}
+
+@layer components {
+  /* ── Cards ── */
+  .card {
+    @apply bg-brand-dark-3 border border-brand-dark-5 rounded-xl p-5 shadow-lg;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200 hover:border-brand-blue/40 hover:shadow-glow-blue hover:-translate-y-0.5 cursor-pointer;
+  }
+
+  /* ── Botões ── */
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-dark;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-blue hover:bg-brand-blue-light text-white focus:ring-brand-blue
+           shadow-md hover:shadow-glow-blue active:scale-95;
+  }
+
+  .btn-success {
+    @apply btn bg-brand-green hover:bg-brand-green-light text-white focus:ring-brand-green
+           shadow-md hover:shadow-glow active:scale-95;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 hover:bg-red-500 text-white focus:ring-red-500 active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-brand-dark-5 text-gray-300 hover:text-white
+           focus:ring-brand-metal border border-brand-dark-5 hover:border-brand-metal;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  /* ── Inputs ── */
+  .input {
+    @apply w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-4 py-2.5
+           text-gray-100 placeholder-gray-500 text-sm
+           focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue
+           transition-colors duration-200;
+  }
+
+  .input-error {
+    @apply border-red-500 focus:ring-red-500/50 focus:border-red-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-300 mb-1.5;
+  }
+
+  .label-required::after {
+    content: ' *';
+    @apply text-red-400;
+  }
+
+  /* ── Select ── */
+  .select {
+    @apply input appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    padding-right: 2.5rem;
+  }
+
+  /* ── Badges de Status ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .badge-pendente {
+    @apply badge bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+  }
+
+  .badge-andamento {
+    @apply badge bg-brand-blue/20 text-brand-blue-light border border-brand-blue/30;
+  }
+
+  .badge-concluido {
+    @apply badge bg-brand-green/20 text-brand-green-light border border-brand-green/30;
+  }
+
+  .badge-cancelado {
+    @apply badge bg-red-500/20 text-red-400 border border-red-500/30;
+  }
+
+  /* ── Sidebar ── */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-gray-400 hover:text-white hover:bg-brand-dark-4
+           transition-all duration-200 cursor-pointer;
+  }
+
+  .nav-link-active {
+    @apply nav-link text-white bg-brand-blue/20 border border-brand-blue/30 text-brand-blue-light;
+  }
+
+  /* ── Tabela ── */
+  .table-header {
+    @apply text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3
+           bg-brand-dark-4 border-b border-brand-dark-5;
+  }
+
+  .table-cell {
+    @apply px-4 py-3 text-sm text-gray-300 border-b border-brand-dark-5/50;
+  }
+
+  /* ── Divisor ── */
+  .divider {
+    @apply border-t border-brand-dark-5 my-4;
+  }
+
+  /* ── Animação de pulso online ── */
+  .dot-online {
+    @apply w-2 h-2 rounded-full bg-brand-green animate-pulse;
+  }
+
+  .dot-offline {
+    @apply w-2 h-2 rounded-full bg-red-500;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
