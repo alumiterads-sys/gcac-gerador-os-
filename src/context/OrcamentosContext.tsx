@@ -43,7 +43,7 @@ const mapToDB = (dados: any) => {
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.status !== undefined) payload.status = dados.status;
   if (dados.convertidoOsId !== undefined) payload.convertido_os_id = dados.convertidoOsId;
-  if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
+  // taxa_pf_total calculada dinamicamente no frontend (evita conflito de schema cache)
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   
