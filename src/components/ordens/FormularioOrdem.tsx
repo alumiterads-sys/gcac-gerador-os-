@@ -188,11 +188,11 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
     const novosServicos = [
       ...form.servicos,
-      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF }
+      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado }
     ];
     
-    // Auto-preenchimento: soma o valor escolhido ao valor atual
-    const novoValor = form.valor + valorAplicado;
+    // Auto-preenchimento: recalcula o total somando todos os valores individuais
+    const novoValor = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
     
     setForm(f => ({
       ...f,
@@ -210,10 +210,26 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     }));
   };
 
-  const removerServico = (id: string) => {
+  const atualizarValorServico = (id: string, novoValor: number) => {
+    const novosServicos = form.servicos.map(s => s.id === id ? { ...s, valor: novoValor } : s);
+    const totalNovo = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
     setForm(f => ({
       ...f,
-      servicos: f.servicos.filter(s => s.id !== id)
+      servicos: novosServicos,
+      valor: totalNovo,
+      valorTexto: totalNovo.toFixed(2).replace('.', ',')
+    }));
+    setErros(e => { const n = { ...e }; delete n['valor']; return n; });
+  };
+
+  const removerServico = (id: string) => {
+    const novosServicos = form.servicos.filter(s => s.id !== id);
+    const totalNovo = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
+    setForm(f => ({
+      ...f,
+      servicos: novosServicos,
+      valor: totalNovo,
+      valorTexto: totalNovo > 0 ? totalNovo.toFixed(2).replace('.', ',') : ''
     }));
   };
 
@@ -454,10 +470,25 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 >
                   <Trash2 size={16} />
                 </button>
-                <h4 className="text-sm font-bold text-white mb-2 pr-6 flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold">{index + 1}</span>
-                  {serv.nome}
-                </h4>
+
+                {/* Cabeçalho do card: nome + valor editável */}
+                <div className="flex items-center gap-3 mb-3 pr-8">
+                  <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold flex-shrink-0">{index + 1}</span>
+                  <h4 className="text-sm font-bold text-white flex-1 min-w-0 truncate">{serv.nome}</h4>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-xs text-gray-500 font-medium">R$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="w-24 text-right bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2 py-1 text-sm font-bold text-brand-green-light outline-none transition-colors"
+                      value={serv.valor ?? 0}
+                      onChange={e => atualizarValorServico(serv.id, parseFloat(e.target.value) || 0)}
+                      title="Editar valor deste serviço"
+                    />
+                  </div>
+                </div>
+
                 <textarea
                   className="input resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30"
                   placeholder="Detalhes adicionais (opcional)... ex: num. de série, endereço..."
