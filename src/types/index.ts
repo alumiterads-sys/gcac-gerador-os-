@@ -141,6 +141,7 @@ export const ATALHOS_SERVICO = [
   'Transferência entre acervos (mudança de acervo)',
   'Progressão de nível',
   'Transferência CAC x CAC',
+  'Pasta de documentos personalizada',
   'Outros',
 ] as const;
 
