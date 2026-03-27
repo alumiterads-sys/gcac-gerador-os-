@@ -87,11 +87,11 @@ export function Configuracoes() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
+            <table className="w-full text-left text-sm">
               <thead className="text-gray-500 text-xs uppercase bg-brand-dark-3/50">
                 <tr>
                   <th className="px-3 py-2 font-bold">Serviço</th>
-                  <th className="px-3 py-2 font-bold">Venda</th>
+                  <th className="px-3 py-2 font-bold whitespace-nowrap">Preço Padrão</th>
                   <th className="px-3 py-2 font-bold text-brand-blue-light">Filiado</th>
                   <th className="px-3 py-2 font-bold text-yellow-500/80">Taxa PF</th>
                   <th className="px-3 py-2 font-bold text-brand-blue-light/80">Lucro Real</th>
@@ -101,7 +101,7 @@ export function Configuracoes() {
               <tbody className="divide-y divide-brand-dark-5">
                 {servicos.map(s => (
                   <tr key={s.id} className="hover:bg-brand-dark-4 transition-colors">
-                    <td className="px-3 py-3 font-medium text-white max-w-[200px] truncate">{s.nome}</td>
+                    <td className="px-3 py-3 font-medium text-white min-w-[180px] leading-tight py-4">{s.nome}</td>
                     <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
                     <td className="px-3 py-3 text-brand-blue-light font-bold">{formatarMoeda(s.valorFiliado || 0)}</td>
                     <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>
