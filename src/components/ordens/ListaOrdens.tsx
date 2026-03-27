@@ -19,7 +19,7 @@ export function ListaOrdens() {
   const [filtroStatus, setFiltroStatus] = useState<StatusOS | 'Todos'>('Todos');
 
   const ordensFiltradas = ordens.filter(o => {
-    const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servico, String(o.numero)]
+    const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, String(o.numero)]
       .some(v => v.toLowerCase().includes(busca.toLowerCase()));
     const matchStatus = filtroStatus === 'Todos' || o.status === filtroStatus;
     return matchBusca && matchStatus;
@@ -112,7 +112,7 @@ export function ListaOrdens() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white truncate">{ordem.nomeCliente}</p>
-                <p className="text-xs text-gray-400 truncate mt-0.5">{ordem.servico}</p>
+                <p className="text-xs text-gray-400 truncate mt-0.5">{ordem.servicos ? ordem.servicos.map(s => s.nome).join(', ') : (ordem as any).servico}</p>
               </div>
 
               {/* Valor e Status */}

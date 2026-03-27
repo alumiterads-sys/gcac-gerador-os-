@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Save, X, Eye, EyeOff, MessageCircle, Users, Phone,
-  Mail, HelpCircle, CheckCircle, ChevronDown, List,
+  Mail, HelpCircle, CheckCircle, ChevronDown, List, Trash2
 } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
   ATALHOS_SERVICO, FormaPagamento, StatusOS, CanalAtendimento,
@@ -47,7 +48,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
 
   const handleSelecionar = (servico: string) => {
     onSelecionar(servico);
-    setAberto(false);
+    // setAberto(false); -> Agora ele não fecha sozinho, permitindo múltiplos cliques consecutivos.
   };
 
   return (
@@ -102,7 +103,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     senhaGov:          ordemExistente?.senhaGov          ?? '',
     filiadoProTiro:    ordemExistente?.filiadoProTiro     ?? true,
     clubeFiliado:      ordemExistente?.clubeFiliado       ?? '',
-    servico:           ordemExistente?.servico           ?? '',
+    servicos:          ordemExistente?.servicos          ?? [],
     valor:             ordemExistente?.valor             ?? 0,
     valorTexto:        ordemExistente ? String(ordemExistente.valor).replace('.', ',') : '',
     formaPagamento:    (ordemExistente?.formaPagamento   ?? 'PIX') as FormaPagamento,
@@ -160,10 +161,29 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     atualizar('valor', parseFloat(limpo) || 0);
   };
 
-  const adicionarServico = (servico: string) => {
-    const atual = form.servico.trim();
-    const textoServico = `. ${servico}:\n`;
-    atualizar('servico', atual ? atual + '\n\n' + textoServico : textoServico);
+  const adicionarServico = (nomeServico: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: [
+        ...f.servicos,
+        { id: uuidv4(), nome: nomeServico, detalhes: '' }
+      ]
+    }));
+    setErros(e => { const n = { ...e }; delete n['servicos']; return n; });
+  };
+
+  const atualizarDetalhesServico = (id: string, texto: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: f.servicos.map(s => s.id === id ? { ...s, detalhes: texto } : s)
+    }));
+  };
+
+  const removerServico = (id: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: f.servicos.filter(s => s.id !== id)
+    }));
   };
 
   const validar = (): boolean => {
@@ -171,7 +191,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     if (!form.nomeCliente.trim()) e.nomeCliente = 'Nome é obrigatório';
     if (!form.contato.trim())     e.contato     = 'Contato é obrigatório';
     if (!form.cpf.trim())         e.cpf         = 'CPF é obrigatório';
-    if (!form.servico.trim())     e.servico     = 'Descrição do serviço é obrigatória';
+    if (form.servicos.length === 0) e.servicos  = 'Adicione pelo menos um serviço';
     if (form.valor <= 0 && form.status !== 'Gratuidade')
                                   e.valor       = 'Informe o valor ou selecione "Gratuidade"';
     if (!form.filiadoProTiro && !form.clubeFiliado.trim())
@@ -192,7 +212,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         senhaGov:          form.senhaGov.trim(),
         filiadoProTiro:    form.filiadoProTiro,
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
-        servico:           form.servico.trim(),
+        servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valor:             form.valor,
         formaPagamento:    form.formaPagamento,
         status:            form.status,
@@ -378,23 +398,44 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         </h3>
 
         {/* Dropdown de serviços */}
-        <div className="mb-3">
+        <div className="mb-4">
           <SeletorServico onSelecionar={adicionarServico} />
-          <p className="text-xs text-gray-500 mt-1.5">Selecione um ou mais serviços para adicionar à descrição abaixo</p>
+          <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1.5">💡 Clique para puxar o bloquinho (aceita múltiplos cliques seguidos)</p>
+          {erros.servicos && <p className="text-red-400 text-xs mt-1">{erros.servicos}</p>}
         </div>
 
-        <div>
-          <label className="label label-required">Descrição Completa do Serviço</label>
-          <textarea id="campo-servico" className={`input resize-none ${erros.servico ? 'input-error' : ''}`}
-            placeholder="Use a lista acima para selecionar serviços, ou descreva livremente aqui..."
-            rows={8} value={form.servico}
-            onChange={e => atualizar('servico', e.target.value)} />
-          <div className="flex justify-between items-center mt-1">
-            {erros.servico
-              ? <p className="text-red-400 text-xs">{erros.servico}</p>
-              : <span className="text-xs text-gray-500">Campo expansível — pode ter múltiplos serviços</span>}
-            <span className="text-xs text-gray-600">{form.servico.length} caracteres</span>
-          </div>
+        {/* Lista de Blocos de Serviço */}
+        <div className="space-y-4">
+          {form.servicos.length === 0 ? (
+            <div className="text-center py-6 border-2 border-dashed border-brand-dark-5 rounded-xl">
+              <List size={24} className="text-brand-dark-5 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">Nenhum serviço adicionado ainda.</p>
+            </div>
+          ) : (
+            form.servicos.map((serv, index) => (
+              <div key={serv.id} className="relative bg-brand-dark-4 border border-brand-dark-5 p-4 rounded-xl animate-scale-up">
+                <button
+                  type="button"
+                  onClick={() => removerServico(serv.id)}
+                  className="absolute top-4 right-4 text-gray-500 hover:text-red-400 transition-colors"
+                  title="Remover Serviço"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <h4 className="text-sm font-bold text-white mb-2 pr-6 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold">{index + 1}</span>
+                  {serv.nome}
+                </h4>
+                <textarea
+                  className="input resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30"
+                  placeholder="Detalhes adicionais (opcional)... ex: num. de série, endereço..."
+                  rows={2}
+                  value={serv.detalhes}
+                  onChange={e => atualizarDetalhesServico(serv.id, e.target.value)}
+                />
+              </div>
+            ))
+          )}
         </div>
       </div>
 

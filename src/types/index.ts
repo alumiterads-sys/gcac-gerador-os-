@@ -45,7 +45,11 @@ export interface OrdemDeServico {
   clubeFiliado: string;  // preenchido se filiadoProTiro === false
 
   // Serviço
-  servico: string;
+  servicos: {
+    id: string;
+    nome: string;
+    detalhes: string;
+  }[];
   valor: number;
   formaPagamento: FormaPagamento;
 

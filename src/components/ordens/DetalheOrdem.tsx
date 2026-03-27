@@ -158,9 +158,26 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       {/* ── Serviço ── */}
       <div className="card">
         <h3 className="text-sm font-bold text-brand-green-light uppercase tracking-wider mb-4">Descrição do Serviço</h3>
-        <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
-          {ordem.servico}
-        </p>
+        
+        {ordem.servicos && ordem.servicos.length > 0 ? (
+          <div className="space-y-3">
+            {ordem.servicos.map((serv) => (
+              <div key={serv.id} className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
+                <p className="font-bold text-white text-base mb-1">• {serv.nome}</p>
+                {serv.detalhes.trim() && (
+                  <p className="text-sm text-gray-300 whitespace-pre-wrap pl-4 border-l-2 border-brand-dark-5 mt-2">
+                    {serv.detalhes}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
+            {/* Fallback caso antiga O.S. tenha texto legado */}
+            {(ordem as any).servico || 'Nenhum serviço registrado.'}
+          </p>
+        )}
       </div>
 
       {/* ── Valor e Pagamento ── */}

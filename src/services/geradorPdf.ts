@@ -83,23 +83,49 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
 
   y += 4;
 
-  // ── Descrição do Serviço ─────────────────────────────────────────────────
-  y = secaoTitulo(doc, 'DESCRICAO DO SERVICO', y, AZUL);
+  // ── Descrição dos Serviços (Múltiplos) ───────────────────────────────────
+  y = secaoTitulo(doc, 'DESCRICAO DOS SERVICOS', y, AZUL);
   y += 2;
 
-  doc.setFillColor('#F8F9FA');
-  const alturaServico = Math.max(28, Math.ceil(ordem.servico.length / 90) * 7 + 10);
-  doc.roundedRect(12, y, largura - 24, alturaServico, 2, 2, 'F');
-  doc.setDrawColor(LINHA);
-  doc.roundedRect(12, y, largura - 24, alturaServico, 2, 2, 'S');
+  const arrayServicos = (ordem.servicos && ordem.servicos.length > 0)
+    ? ordem.servicos
+    : [{ id: 'legacy', nome: 'SERVICO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum servico informado.' }];
 
-  doc.setTextColor(ESCURO);
-  doc.setFontSize(9.5);
-  doc.setFont('helvetica', 'normal');
-  const linhasServico = doc.splitTextToSize(ordem.servico, largura - 34);
-  doc.text(linhasServico, 17, y + 7);
-  y += alturaServico + 5;
+  arrayServicos.forEach((serv) => {
+    // Quebra de página caso ultrapasse muito do limite folha
+    if (y > 270) {
+      doc.addPage();
+      y = 15;
+    }
 
+    // Calcula linhas do bloco de detalhe e altura final
+    doc.setFontSize(9.5);
+    const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
+    const alturaBloco = serv.detalhes ? (12 + (linhasDetalhe.length * 5.5)) : 14;
+
+    doc.setFillColor('#F8F9FA');
+    doc.setDrawColor(LINHA);
+    doc.roundedRect(12, y, largura - 24, alturaBloco, 2, 2, 'F');
+    doc.roundedRect(12, y, largura - 24, alturaBloco, 2, 2, 'S');
+
+    // Imprimir Nome do Serviço em NEGRITO
+    doc.setTextColor(ESCURO);
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text(serv.nome.toUpperCase(), 17, y + 7);
+
+    // Imprimir Detalhes em NORMAL, alinhados sutilmente
+    if (serv.detalhes && serv.detalhes.trim()) {
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor('#444444');
+      doc.text(linhasDetalhe, 17, y + 13);
+    }
+    
+    y += alturaBloco + 3; // espaçamento de um card pro outro
+  });
+
+  y += 2;
   // ── Valores e Pagamento ──────────────────────────────────────────────────
   y = secaoTitulo(doc, 'VALORES E PAGAMENTO', y, AZUL);
   y += 2;
