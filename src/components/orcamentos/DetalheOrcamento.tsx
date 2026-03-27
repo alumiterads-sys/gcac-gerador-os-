@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, MessageCircle, FileDown, ArrowLeft, Edit2, CheckCircle, Smartphone, User, DollarSign, Calendar, ChevronRight
+  FileText, MessageCircle, FileDown, ArrowLeft, Edit2, CheckCircle, Smartphone, User, DollarSign, Calendar, ChevronRight, Printer, ExternalLink
 } from 'lucide-react';
 import { Orcamento } from '../../types';
 import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../utils/formatters';
-import { baixarPdfOrcamento } from '../../services/geradorPdfOrcamento';
+import { baixarPdfOrcamento, imprimirPdfOrcamento } from '../../services/geradorPdfOrcamento';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useClientes } from '../../context/ClientesContext';
@@ -100,8 +100,11 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
         observacoes: orcamento.observacoes || ''
       });
 
-      // Atualiza o status do orçamento para "Aprovado"
-      await atualizarOrcamento(orcamento.id, { status: 'Aprovado' });
+      // Atualiza o status do orçamento para "Aprovado" e vincula a O.S.
+      await atualizarOrcamento(orcamento.id, { 
+        status: 'Aprovado',
+        convertidoOsId: osId 
+      });
 
       mostrar('sucesso', 'Sucesso! Orçamento convertido em O.S.');
       
@@ -257,32 +260,52 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
                 Baixar PDF
               </button>
 
+              {/* Botão Imprimir */}
+              <button 
+                onClick={() => imprimirPdfOrcamento(orcamento)}
+                className="btn-ghost w-full justify-start border-gray-700 hover:border-brand-blue hover:text-brand-blue-light"
+              >
+                <Printer size={18} />
+                Imprimir Orçamento
+              </button>
+
               <hr className="border-brand-dark-5 my-4" />
 
               {/* Botão Converter OS */}
               <div className="pt-2">
-                <p className="text-xs text-center text-gray-400 mb-2">Cliente aprovou o serviço?</p>
-                <button 
-                  onClick={converterEmOS}
-                  disabled={convertendo || orcamento.status === 'Aprovado'}
-                  className={`btn w-full justify-center transition-all ${
-                    orcamento.status === 'Aprovado' 
-                    ? 'opacity-50 cursor-not-allowed bg-brand-dark-4 text-gray-500'
-                    : 'bg-brand-blue text-white hover:bg-brand-blue-light shadow-[0_0_15px_rgba(45,141,224,0.3)]'
-                  }`}
-                >
-                  {convertendo ? (
-                    <>
-                      <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
-                      Convertendo...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={16} />
-                      {orcamento.status === 'Aprovado' ? 'Já Convertido' : 'Converter em Ordem de Serviço'}
-                    </>
-                  )}
-                </button>
+                {orcamento.convertidoOsId ? (
+                  <>
+                    <p className="text-xs text-center text-brand-green mb-2">Este orçamento já possui uma O.S.</p>
+                    <button 
+                      onClick={() => navigate(`/ordens/${orcamento.convertidoOsId}/editar`)}
+                      className="btn w-full justify-center bg-brand-green/20 text-brand-green border-brand-green/30 hover:bg-brand-green hover:text-white transition-all"
+                    >
+                      <ExternalLink size={16} />
+                      Ver O.S. Vinculada
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-center text-gray-400 mb-2">Cliente aprovou o serviço?</p>
+                    <button 
+                      onClick={converterEmOS}
+                      disabled={convertendo}
+                      className="btn w-full justify-center transition-all bg-brand-blue text-white hover:bg-brand-blue-light shadow-[0_0_15px_rgba(45,141,224,0.3)]"
+                    >
+                      {convertendo ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                          Convertendo...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={16} />
+                          Converter em Ordem de Serviço
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

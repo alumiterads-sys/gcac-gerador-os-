@@ -99,6 +99,7 @@ export interface Orcamento {
   // Controle
   status: StatusOrcamento;
   observacoes: string;
+  convertidoOsId?: string;
   
   // Datas
   criadoEm: string;

@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Orcamento, StatusOrcamento, ATALHOS_SERVICO } from '../../types';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useClientes } from '../../context/ClientesContext';
+import { useOrdens } from '../../context/OrdensContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { formatarMoeda } from '../../utils/formatters';
@@ -68,7 +69,8 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
 export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoProps) {
   const navigate = useNavigate();
   const { criarOrcamento, atualizarOrcamento } = useOrcamentos();
-  const { clientes } = useClientes();
+  const { clientes, criarCliente } = useClientes();
+  const { criarOrdem } = useOrdens();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [salvando, setSalvando] = useState(false);
   const [focoNome, setFocoNome] = useState(false);
@@ -173,6 +175,66 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     return Object.keys(e).length === 0;
   };
 
+  const realizarConversao = async (orcId: string, dados: any) => {
+    try {
+      setSalvando(true);
+      
+      // 1. Garantir que o cliente existe
+      const nomeClienteFormatado = dados.nomeCliente.toUpperCase();
+      const clienteExistente = clientes.find(c => 
+        (dados.cpf && c.cpf === dados.cpf) || 
+        c.nome.toUpperCase() === nomeClienteFormatado
+      );
+
+      if (!clienteExistente) {
+        await criarCliente({
+          nome: nomeClienteFormatado,
+          cpf: dados.cpf,
+          contato: dados.contato,
+          senhaGov: dados.senhaGov || '',
+          filiadoProTiro: false,
+          clubeFiliado: 'NÃO RELATADO'
+        });
+      }
+
+      // 2. Criar a O.S.
+      const osId = await criarOrdem({
+        nomeCliente: nomeClienteFormatado,
+        contato: dados.contato,
+        cpf: dados.cpf,
+        senhaGov: dados.senhaGov || '',
+        filiadoProTiro: false,
+        clubeFiliado: '',
+        servicos: dados.servicos.map((s: any) => ({
+          id: s.id,
+          nome: s.nome,
+          detalhes: s.detalhes
+        })),
+        valor: dados.valorTotal,
+        formaPagamento: 'PIX',
+        status: 'Aguardando Pagamento',
+        canalAtendimento: 'WhatsApp',
+        observacaoContato: 'Convertido automaticamente no salvamento',
+        observacoes: dados.observacoes || ''
+      });
+
+      // 3. Vincular O.S. ao orçamento
+      await atualizarOrcamento(orcId, { 
+        status: 'Aprovado',
+        convertidoOsId: osId 
+      });
+
+      mostrar('sucesso', 'Sucesso! Orçamento convertido em O.S.');
+      setTimeout(() => navigate(`/ordens/${osId}/editar`), 1500);
+    } catch (err) {
+      console.error(err);
+      mostrar('erro', 'Orçamento salvo, mas houve erro ao converter em O.S.');
+      setTimeout(() => navigate(`/orcamentos/${orcId}`), 1500);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) { mostrar('erro', 'Corrija os campos destacados antes de salvar.'); return; }
@@ -193,10 +255,28 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
       if (orcamentoExistente) {
         await atualizarOrcamento(orcamentoExistente.id, dados);
         mostrar('sucesso', 'Orçamento atualizado com sucesso!');
+        
+        // Verifica se deve converter em O.S. (apenas se for aprovado agora e não foi antes)
+        if (dados.status === 'Aprovado' && !orcamentoExistente.convertidoOsId) {
+          if (window.confirm('Este orçamento está APROVADO. Deseja gerar a Ordem de Serviço agora?')) {
+             await realizarConversao(orcamentoExistente.id, dados);
+             return; 
+          }
+        }
+
         setTimeout(() => navigate(`/orcamentos/${orcamentoExistente.id}`), 1200);
       } else {
         const id = await criarOrcamento(dados);
         mostrar('sucesso', 'Orçamento criado com sucesso!');
+        
+        // Verifica se deve converter em O.S.
+        if (dados.status === 'Aprovado') {
+          if (window.confirm('Este orçamento está APROVADO. Deseja gerar a Ordem de Serviço agora?')) {
+             await realizarConversao(id, dados);
+             return; // O realizarConversao já vai navegar
+          }
+        }
+
         setTimeout(() => navigate(`/orcamentos/${id}`), 1200);
       }
     } catch (err: any) {

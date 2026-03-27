@@ -24,6 +24,7 @@ const mapFromDB = (row: any): Orcamento => ({
   valorTotal: row.valor_total,
   observacoes: row.observacoes || '',
   status: row.status as StatusOrcamento,
+  convertidoOsId: row.convertido_os_id || undefined,
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -38,6 +39,7 @@ const mapToDB = (dados: any) => {
   if (dados.valorTotal !== undefined) payload.valor_total = dados.valorTotal;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.status !== undefined) payload.status = dados.status;
+  if (dados.convertidoOsId !== undefined) payload.convertido_os_id = dados.convertidoOsId;
   
   return payload;
 };

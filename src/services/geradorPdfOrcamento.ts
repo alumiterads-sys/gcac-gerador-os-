@@ -196,6 +196,20 @@ export async function baixarPdfOrcamento(orcamento: Orcamento): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+export async function imprimirPdfOrcamento(orcamento: Orcamento): Promise<void> {
+  const blob = await gerarPdfOrcamentoBlob(orcamento);
+  const url = URL.createObjectURL(blob);
+  const janela = window.open(url, '_blank');
+  if (janela) {
+    // Para funcionar em navegadores modernos, damos um tempo para carregar
+    setTimeout(() => {
+      janela.print();
+    }, 500);
+  }
+  // Limpamos o objeto da memória após 1 minuto
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────
 
 function secaoTitulo(doc: jsPDF, titulo: string, y: number, cor: string): number {
