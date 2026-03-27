@@ -34,6 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const info = await res.json();
 
+      // Cadeado de segurança: apenas este email pode usar o sistema
+      const EMAILS_PERMITIDOS = ['gui.gomesassis@gmail.com'];
+      if (!EMAILS_PERMITIDOS.includes(info.email.toLowerCase())) {
+        throw new Error('ACESSO_REJEITADO');
+      }
+
       const novoUsuario: UsuarioGoogle = {
         id: info.sub,
         nome: info.name,

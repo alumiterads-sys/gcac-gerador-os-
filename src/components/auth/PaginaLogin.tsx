@@ -16,8 +16,12 @@ export function PaginaLogin() {
       setCarregando(true);
       try {
         await login(tokenResponse);
-      } catch {
-        setErro('Erro ao fazer login. Tente novamente.');
+      } catch (err: any) {
+        if (err.message === 'ACESSO_REJEITADO') {
+          setErro('Acesso Negado: Este aplicativo é restrito para uso oficial.');
+        } else {
+          setErro('Erro ao fazer login. Tente novamente.');
+        }
       } finally {
         setCarregando(false);
       }
