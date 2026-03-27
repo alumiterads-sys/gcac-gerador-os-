@@ -1,8 +1,6 @@
-import React, { createContext, useContext, useCallback, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { v4 as uuidv4 } from 'uuid';
-import { OrdemDeServico, StatusOS, FormaPagamento } from '../types';
-import { db, proximoNumeroOS, adicionarNaFilaSync } from '../db/database';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
+import { OrdemDeServico, StatusOS, FormaPagamento, CanalAtendimento } from '../types';
+import { supabase } from '../db/supabase';
 import { sincronizarOrdem } from '../services/driveSync';
 import { useAuth } from './AuthContext';
 import { useStatusConexao } from '../hooks/useStatusConexao';
@@ -14,87 +12,149 @@ interface OrdensContextType {
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
-  itensFila: number;
+  itensFila: number; // Temporary kept out as 0
 }
 
 const OrdensContext = createContext<OrdensContextType | null>(null);
 
+const mapFromDB = (row: any): OrdemDeServico => ({
+  id: row.id,
+  numero: parseInt(row.numero, 10), // BigSerial vem como texto no JS
+  nomeCliente: row.nome_cliente,
+  contato: row.contato,
+  cpf: row.cpf,
+  senhaGov: row.senha_gov || '',
+  filiadoProTiro: row.filiado_pro_tiro,
+  clubeFiliado: row.clube_filiado || '',
+  servicos: row.servicos || [],
+  valor: row.valor,
+  formaPagamento: row.forma_pagamento as FormaPagamento,
+  status: row.status as StatusOS,
+  canalAtendimento: row.canal_atendimento as CanalAtendimento | null,
+  observacaoContato: row.observacao_contato || '',
+  observacoes: row.observacoes || '',
+  driveArquivoJsonId: row.drive_arquivo_json_id || null,
+  drivePdfId: row.drive_pdf_id || null,
+  ultimaSincronizacao: row.ultima_sincronizacao || null,
+  pendenteSincronizacao: row.pendente_sincronizacao,
+  criadoEm: row.criado_em,
+  atualizadoEm: row.atualizado_em,
+});
+
+const mapToDB = (dados: any) => {
+  const payload: any = {};
+  if (dados.nomeCliente !== undefined) payload.nome_cliente = dados.nomeCliente;
+  if (dados.contato !== undefined) payload.contato = dados.contato;
+  if (dados.cpf !== undefined) payload.cpf = dados.cpf;
+  if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;
+  if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
+  if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
+  if (dados.servicos !== undefined) payload.servicos = dados.servicos;
+  if (dados.valor !== undefined) payload.valor = dados.valor;
+  if (dados.formaPagamento !== undefined) payload.forma_pagamento = dados.formaPagamento;
+  if (dados.status !== undefined) payload.status = dados.status;
+  if (dados.canalAtendimento !== undefined) payload.canal_atendimento = dados.canalAtendimento;
+  if (dados.observacaoContato !== undefined) payload.observacao_contato = dados.observacaoContato;
+  if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
+  
+  if (dados.driveArquivoJsonId !== undefined) payload.drive_arquivo_json_id = dados.driveArquivoJsonId;
+  if (dados.drivePdfId !== undefined) payload.drive_pdf_id = dados.drivePdfId;
+  if (dados.ultimaSincronizacao !== undefined) payload.ultima_sincronizacao = dados.ultimaSincronizacao;
+  if (dados.pendenteSincronizacao !== undefined) payload.pendente_sincronizacao = dados.pendenteSincronizacao;
+  
+  return payload;
+};
+
 export function OrdensProvider({ children }: { children: React.ReactNode }) {
   const { estaAutenticado } = useAuth();
   const online = useStatusConexao();
-  const [itensFila, setItensFila] = useState(0);
+  const [ordens, setOrdens] = useState<OrdemDeServico[]>([]);
 
-  const ordens = useLiveQuery(
-    () => db.ordensDeServico.orderBy('numero').reverse().toArray(),
-    [],
-    []
-  ) ?? [];
+  const carregarOrdens = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('ordens')
+      .select('*')
+      .order('numero', { ascending: false });
+    
+    if (!error && data) {
+      setOrdens(data.map(mapFromDB));
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarOrdens();
+  }, [carregarOrdens]);
 
   const totalPendentes = ordens.filter(o => o.status === 'Aguardando Pagamento').length;
-
-  // Atualizar contagem da fila
-  useLiveQuery(async () => {
-    const count = await db.filaDeSincronizacao.count();
-    setItensFila(count);
-  }, []);
 
   const criarOrdem = useCallback(async (
     dados: Omit<OrdemDeServico, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm' | 'driveArquivoJsonId' | 'drivePdfId' | 'ultimaSincronizacao' | 'pendenteSincronizacao'>
   ): Promise<string> => {
-    const id = uuidv4();
-    const numero = await proximoNumeroOS();
-    const agora = new Date().toISOString();
-
-    const novaOrdem: OrdemDeServico = {
-      ...dados,
-      id,
-      numero,
-      driveArquivoJsonId: null,
-      drivePdfId: null,
-      ultimaSincronizacao: null,
-      pendenteSincronizacao: true,
-      criadoEm: agora,
-      atualizadoEm: agora,
+    
+    const payloadNovo = {
+      ...mapToDB(dados),
+      pendente_sincronizacao: true
     };
 
-    await db.ordensDeServico.add(novaOrdem);
+    const { data, error } = await supabase
+      .from('ordens')
+      .insert([payloadNovo])
+      .select()
+      .single();
+
+    if (error || !data) throw error || new Error('Falha ao criar OS');
+    const ordemCriada = mapFromDB(data);
+
+    await carregarOrdens();
 
     if (online && estaAutenticado) {
-      sincronizarOrdem(novaOrdem).catch(() => {
-        adicionarNaFilaSync(id, 'criar');
-      });
-    } else {
-      await adicionarNaFilaSync(id, 'criar');
+      // Dispara backup do Drive silenciosamente no background (assincrono sem travar)
+      sincronizarOrdem(ordemCriada).catch(console.error);
     }
 
-    return id;
-  }, [online, estaAutenticado]);
+    return ordemCriada.id;
+  }, [online, estaAutenticado, carregarOrdens]);
 
   const atualizarOrdem = useCallback(async (id: string, dados: Partial<OrdemDeServico>) => {
-    await db.ordensDeServico.update(id, {
-      ...dados,
-      pendenteSincronizacao: true,
-      atualizadoEm: new Date().toISOString(),
-    });
+    const { data, error } = await supabase
+      .from('ordens')
+      .update({
+        ...mapToDB(dados),
+        pendente_sincronizacao: true,
+        atualizado_em: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-    const ordemAtualizada = await db.ordensDeServico.get(id);
+    if (error) throw error;
+    
+    await carregarOrdens();
 
-    if (online && estaAutenticado && ordemAtualizada) {
-      sincronizarOrdem(ordemAtualizada).catch(() => {
-        adicionarNaFilaSync(id, 'atualizar');
-      });
-    } else {
-      await adicionarNaFilaSync(id, 'atualizar');
+    if (online && estaAutenticado && data) {
+      sincronizarOrdem(mapFromDB(data)).catch(console.error);
     }
-  }, [online, estaAutenticado]);
+  }, [online, estaAutenticado, carregarOrdens]);
 
   const deletarOrdem = useCallback(async (id: string) => {
-    await db.ordensDeServico.delete(id);
-    await db.filaDeSincronizacao.where('ordemId').equals(id).delete();
-  }, []);
+    const { error } = await supabase
+      .from('ordens')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarOrdens();
+  }, [carregarOrdens]);
 
   const buscarOrdem = useCallback(async (id: string) => {
-    return db.ordensDeServico.get(id);
+    const { data, error } = await supabase
+      .from('ordens')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return undefined;
+    return mapFromDB(data);
   }, []);
 
   return (
@@ -105,7 +165,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       atualizarOrdem,
       deletarOrdem,
       buscarOrdem,
-      itensFila,
+      itensFila: 0, // Fila depreciada pela arquitetura real-time
     }}>
       {children}
     </OrdensContext.Provider>

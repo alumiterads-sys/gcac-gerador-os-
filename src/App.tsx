@@ -13,16 +13,15 @@ import { DetalheOrdem } from './components/ordens/DetalheOrdem';
 import { Configuracoes } from './components/config/Configuracoes';
 import { ClientesProvider } from './context/ClientesContext';
 import { ListaClientes } from './components/clientes/ListaClientes';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './db/database';
-
+import { useOrdens } from './context/OrdensContext';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // ── Páginas de Ordens ────────────────────────────────────────────────────
 
 function PaginaDetalheOrdem() {
   const { id } = useParams<{ id: string }>();
-  const ordem = useLiveQuery(() => id ? db.ordensDeServico.get(id) : undefined, [id]);
+  const { ordens } = useOrdens();
+  const ordem = ordens.find(o => o.id === id);
   const navigate = useNavigate();
 
   if (ordem === undefined) return <div className="text-center py-20 text-gray-400">Carregando...</div>;
@@ -39,9 +38,9 @@ function PaginaDetalheOrdem() {
 
 function PaginaEditarOrdem() {
   const { id } = useParams<{ id: string }>();
-  const ordem = useLiveQuery(() => id ? db.ordensDeServico.get(id) : undefined, [id]);
+  const { ordens } = useOrdens();
+  const ordem = ordens.find(o => o.id === id);
 
-  if (ordem === undefined) return <div className="text-center py-20 text-gray-400">Carregando...</div>;
   if (!ordem) return <Navigate to="/ordens" replace />;
   return (
     <div>

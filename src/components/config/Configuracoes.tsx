@@ -3,19 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { useOrdens } from '../../context/OrdensContext';
-import { sincronizarPendentes, deletarArquivosDrive } from '../../services/driveSync';
-import { db } from '../../db/database';
-import { LogOut, Cloud, Trash2, RefreshCw, User, Database, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
-import { DialogConfirmacao } from '../common/DialogConfirmacao';
+import { sincronizarPendentes } from '../../services/driveSync';
+import { LogOut, Cloud, RefreshCw, User, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 export function Configuracoes() {
   const { usuario, logout } = useAuth();
-  const { ordens, itensFila } = useOrdens();
+  const { ordens } = useOrdens();
+  const itensFila = ordens.filter(o => o.pendenteSincronizacao).length;
+  
   const online = useStatusConexao();
   const navigate = useNavigate();
   const { estado: notif, mostrar, fechar } = useNotificacao();
-  const [confirmandoLimpar, setConfirmandoLimpar] = React.useState(false);
   const [sincronizando, setSincronizando] = React.useState(false);
 
   const handleSincronizarTudo = async () => {
@@ -27,7 +26,7 @@ export function Configuracoes() {
     try {
       const { ok, erro } = await sincronizarPendentes();
       if (erro === 0) {
-        mostrar('sucesso', `${ok} OS sincronizadas com sucesso!`);
+        mostrar('sucesso', `${ok} OS enviadas pro Google Drive com sucesso!`);
       } else {
         mostrar('aviso', `${ok} sincronizadas, ${erro} com falha.`);
       }
@@ -36,16 +35,9 @@ export function Configuracoes() {
     }
   };
 
-  const handleLimparDados = async () => {
-    await db.ordensDeServico.clear();
-    await db.filaDeSincronizacao.clear();
-    mostrar('sucesso', 'Dados locais limpos com sucesso.');
-    setConfirmandoLimpar(false);
-  };
-
   return (
     <div className="max-w-lg mx-auto space-y-5 animate-fade-in">
-      <h1 className="text-2xl font-bold text-white">Configurações</h1>
+      <h1 className="text-2xl font-bold text-white">Configurações (Nuvem)</h1>
 
       {/* ── Conta Google ── */}
       <div className="card space-y-4">
@@ -92,7 +84,7 @@ export function Configuracoes() {
       <div className="card space-y-4">
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
           <Cloud size={14} />
-          Google Drive
+          Google Drive (Backup Automático)
         </h2>
 
         <div className="grid grid-cols-3 gap-3 text-center">
@@ -101,8 +93,8 @@ export function Configuracoes() {
             <p className="text-xs text-gray-500 mt-1">Total de OS</p>
           </div>
           <div className="bg-brand-dark-4 rounded-lg p-3">
-            <p className="text-2xl font-black text-brand-green">{ordens.filter(o => o.ultimaSincronizacao).length}</p>
-            <p className="text-xs text-gray-500 mt-1">Sincronizadas</p>
+            <p className="text-2xl font-black text-brand-green">{ordens.filter(o => !o.pendenteSincronizacao).length}</p>
+            <p className="text-xs text-gray-500 mt-1">G.Drive OK</p>
           </div>
           <div className="bg-brand-dark-4 rounded-lg p-3">
             <p className="text-2xl font-black text-yellow-400">{itensFila}</p>
@@ -112,7 +104,7 @@ export function Configuracoes() {
 
         <p className="text-xs text-gray-500 flex items-start gap-2">
           <ShieldCheck size={12} className="text-brand-green flex-shrink-0 mt-0.5" />
-          Os arquivos são salvos em <strong className="text-gray-300">GCAC_OS_Sync/</strong> no seu Google Drive. Apenas este app acessa essa pasta.
+          O banco central está na nuvem segura. Os PDF's e Notas são salvos na pasta <strong className="text-gray-300">GCAC_OS_Sync/</strong> do seu Drive como cópia.
         </p>
 
         <button
@@ -121,44 +113,18 @@ export function Configuracoes() {
           className="btn-primary w-full justify-center"
         >
           <RefreshCw size={14} className={sincronizando ? 'animate-spin' : ''} />
-          {sincronizando ? 'Sincronizando...'
-            : itensFila === 0 ? 'Tudo sincronizado ✓'
-            : `Sincronizar ${itensFila} OS pendente${itensFila > 1 ? 's' : ''}`}
-        </button>
-      </div>
-
-      {/* ── Dados Locais ── */}
-      <div className="card space-y-4">
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-          <Database size={14} />
-          Dados Locais
-        </h2>
-        <p className="text-xs text-gray-500">
-          O banco local armazena apenas metadados leves (ID, nome, status). Dados pesados são removidos após sincronização com o Drive.
-        </p>
-        <button
-          onClick={() => setConfirmandoLimpar(true)}
-          className="btn btn-sm bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-600/30 w-full justify-center"
-        >
-          <Trash2 size={14} />
-          Limpar todos os dados locais
+          {sincronizando ? 'Fazendo backup...'
+            : itensFila === 0 ? 'Backups em dia ✓'
+            : `Fazer backup de ${itensFila} pendente${itensFila > 1 ? 's' : ''}`}
         </button>
       </div>
 
       {/* ── Versão ── */}
       <div className="text-center text-xs text-gray-600 pb-4">
-        GCAC Gerador de O.S. v1.0 — Uso pessoal
+        GCAC Gerador de O.S. (Cloud Edition) v2.0
       </div>
 
       <Notificacao {...notif} onFechar={fechar} />
-      <DialogConfirmacao
-        aberto={confirmandoLimpar}
-        titulo="Limpar dados locais"
-        mensagem="Isso irá excluir todos os dados armazenados localmente. Dados já sincronizados no Drive não serão afetados. Continuar?"
-        textoBotaoConfirmar="Sim, limpar"
-        onConfirmar={handleLimparDados}
-        onCancelar={() => setConfirmandoLimpar(false)}
-      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { OrdemDeServico } from '../types';
 import { getAccessToken } from '../context/AuthContext';
-import { db, adicionarNaFilaSync, limparDadosPesadosAposSyncOK } from '../db/database';
 import { gerarPdfBlob } from './geradorPdf';
+import { supabase } from '../db/supabase';
 
 const NOME_PASTA = 'GCAC_OS_Sync';
 let idPastaCached: string | null = null;
@@ -19,7 +19,6 @@ function headers(token: string, contentType?: string) {
 async function garantirPastaSync(token: string): Promise<string> {
   if (idPastaCached) return idPastaCached;
 
-  // Buscar pasta existente
   const query = encodeURIComponent(
     `name='${NOME_PASTA}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
   );
@@ -34,7 +33,6 @@ async function garantirPastaSync(token: string): Promise<string> {
     return idPastaCached!;
   }
 
-  // Criar pasta
   const criar = await fetch('https://www.googleapis.com/drive/v3/files', {
     method: 'POST',
     headers: headers(token, 'application/json'),
@@ -60,7 +58,6 @@ async function uploadJson(
   const blob = new Blob([conteudo], { type: 'application/json' });
 
   if (ordem.driveArquivoJsonId) {
-    // Atualizar arquivo existente
     await fetch(
       `https://www.googleapis.com/upload/drive/v3/files/${ordem.driveArquivoJsonId}?uploadType=media`,
       { method: 'PATCH', headers: headers(token, 'application/json'), body: blob }
@@ -68,7 +65,6 @@ async function uploadJson(
     return ordem.driveArquivoJsonId;
   }
 
-  // Criar novo arquivo (multipart)
   const metadata = JSON.stringify({ name: nomeArquivo, parents: [pastaId] });
   const form = new FormData();
   form.append('metadata', new Blob([metadata], { type: 'application/json' }));
@@ -128,15 +124,19 @@ export async function sincronizarOrdem(ordem: OrdemDeServico): Promise<boolean> 
       uploadPdf(token, pastaId, ordem, pdfBlob),
     ]);
 
-    await db.ordensDeServico.update(ordem.id, {
-      driveArquivoJsonId: jsonId,
-      drivePdfId: pdfId,
-    });
+    await supabase
+      .from('ordens')
+      .update({
+        drive_arquivo_json_id: jsonId,
+        drive_pdf_id: pdfId,
+        pendente_sincronizacao: false,
+        ultima_sincronizacao: new Date().toISOString()
+      })
+      .eq('id', ordem.id);
 
-    await limparDadosPesadosAposSyncOK(ordem.id);
     return true;
   } catch (err) {
-    console.error('Erro ao sincronizar OS:', err);
+    console.error('Erro ao sincronizar OS no Drive:', err);
     return false;
   }
 }
@@ -144,36 +144,51 @@ export async function sincronizarOrdem(ordem: OrdemDeServico): Promise<boolean> 
 // ─── Sincronizar todos os pendentes ──────────────────────────────────────
 
 export async function sincronizarPendentes(): Promise<{ ok: number; erro: number }> {
+  /*
+   Com o Supabase, o banco central é online. Isso aqui faz o envio atrasado de arquivos pro 
+   Google Drive (se der erro de internet durante a criação da OS).
+  */
   const token = getAccessToken();
   if (!token) return { ok: 0, erro: 0 };
 
-  const fila = await db.filaDeSincronizacao.toArray();
+  const { data: pendentes } = await supabase
+    .from('ordens')
+    .select('*')
+    .eq('pendente_sincronizacao', true);
+
+  if (!pendentes || pendentes.length === 0) return { ok: 0, erro: 0 };
+
   let ok = 0;
   let erro = 0;
 
-  for (const item of fila) {
-    if (item.operacao === 'deletar') {
-      // Já foi deletado localmente — remove da fila
-      await db.filaDeSincronizacao.delete(item.id!);
-      ok++;
-      continue;
-    }
-
-    const ordem = await db.ordensDeServico.get(item.ordemId);
-    if (!ordem) {
-      await db.filaDeSincronizacao.delete(item.id!);
-      continue;
-    }
+  for (const row of pendentes) {
+    const ordem: OrdemDeServico = {
+      id: row.id,
+      numero: parseInt(row.numero, 10),
+      nomeCliente: row.nome_cliente,
+      contato: row.contato,
+      cpf: row.cpf,
+      senhaGov: row.senha_gov || '',
+      filiadoProTiro: row.filiado_pro_tiro,
+      clubeFiliado: row.clube_filiado || '',
+      servicos: row.servicos || [],
+      valor: row.valor,
+      formaPagamento: row.forma_pagamento as any,
+      status: row.status as any,
+      canalAtendimento: row.canal_atendimento as any,
+      observacaoContato: row.observacao_contato || '',
+      observacoes: row.observacoes || '',
+      driveArquivoJsonId: row.drive_arquivo_json_id || null,
+      drivePdfId: row.drive_pdf_id || null,
+      ultimaSincronizacao: row.ultima_sincronizacao || null,
+      pendenteSincronizacao: row.pendente_sincronizacao,
+      criadoEm: row.criado_em,
+      atualizadoEm: row.atualizado_em,
+    };
 
     const sucesso = await sincronizarOrdem(ordem);
-    if (sucesso) {
-      ok++;
-    } else {
-      await db.filaDeSincronizacao.update(item.id!, {
-        tentativas: item.tentativas + 1,
-      });
-      erro++;
-    }
+    if (sucesso) ok++;
+    else erro++;
   }
 
   return { ok, erro };

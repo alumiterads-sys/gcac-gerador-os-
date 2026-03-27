@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Cliente } from '../types';
-import { db } from '../db/database';
+import { supabase } from '../db/supabase';
 
 interface ClientesContextType {
   clientes: Cliente[];
@@ -15,48 +14,105 @@ interface ClientesContextType {
 
 const ClientesContext = createContext<ClientesContextType | null>(null);
 
+const mapFromDB = (row: any): Cliente => ({
+  id: row.id,
+  nome: row.nome,
+  cpf: row.cpf,
+  contato: row.contato,
+  senhaGov: row.senha_gov || '',
+  filiadoProTiro: row.filiado_pro_tiro,
+  clubeFiliado: row.clube_filiado || '',
+  criadoEm: row.criado_em,
+  atualizadoEm: row.atualizado_em,
+});
+
+const mapToDB = (dados: any) => {
+  const payload: any = {};
+  if (dados.nome !== undefined) payload.nome = dados.nome;
+  if (dados.cpf !== undefined) payload.cpf = dados.cpf;
+  if (dados.contato !== undefined) payload.contato = dados.contato;
+  if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;
+  if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
+  if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
+  return payload;
+};
+
 export function ClientesProvider({ children }: { children: React.ReactNode }) {
-  const clientes = useLiveQuery(
-    () => db.clientes.orderBy('nome').toArray(),
-    [],
-    []
-  ) ?? [];
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+
+  const carregarClientes = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .order('nome', { ascending: true });
+    
+    if (error) {
+      console.error('Erro ao buscar clientes no supabase:', error);
+      return;
+    }
+    
+    setClientes(data.map(mapFromDB));
+  }, []);
+
+  useEffect(() => {
+    carregarClientes();
+  }, [carregarClientes]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>
   ): Promise<string> => {
-    const id = uuidv4();
-    const agora = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([mapToDB(dados)])
+      .select()
+      .single();
 
-    const novoCliente: Cliente = {
-      ...dados,
-      id,
-      criadoEm: agora,
-      atualizadoEm: agora,
-    };
-
-    await db.clientes.add(novoCliente);
-    return id;
-  }, []);
+    if (error) throw error;
+    await carregarClientes();
+    return data.id;
+  }, [carregarClientes]);
 
   const atualizarCliente = useCallback(async (id: string, dados: Partial<Cliente>) => {
-    await db.clientes.update(id, {
-      ...dados,
-      atualizadoEm: new Date().toISOString(),
-    });
-  }, []);
+    const { error } = await supabase
+      .from('clientes')
+      .update({ ...mapToDB(dados), atualizado_em: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarClientes();
+  }, [carregarClientes]);
 
   const deletarCliente = useCallback(async (id: string) => {
-    await db.clientes.delete(id);
-  }, []);
+    const { error } = await supabase
+      .from('clientes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarClientes();
+  }, [carregarClientes]);
 
   const buscarCliente = useCallback(async (id: string) => {
-    return await db.clientes.get(id);
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return undefined;
+    return mapFromDB(data);
   }, []);
 
   const buscarClientePorNomeExato = useCallback(async (nome: string) => {
-    const todos = await db.clientes.toArray();
-    return todos.find(c => c.nome.toLowerCase() === nome.toLowerCase());
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .ilike('nome', nome)
+      .limit(1)
+      .single();
+
+    if (error || !data) return undefined;
+    return mapFromDB(data);
   }, []);
 
   return (
