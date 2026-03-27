@@ -33,7 +33,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text('GCAC Despachante Belico', 46, 11);
+  doc.text('GCAC Despachante Bélico', 46, 11);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -77,19 +77,19 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   y = linhaInfo(doc, 'Senha GOV.br:', ordem.senhaGov, y, largura);
 
   const textoFiliacao = ordem.filiadoProTiro
-    ? 'Filiado Pro-Tiro (Clube de Tiro e Caca Pro-Tiro, Jatai-GO)'
-    : 'Nao filiado ao Pro-Tiro' + (ordem.clubeFiliado ? ' | Clube: ' + ordem.clubeFiliado : '');
-  y = linhaInfo(doc, 'Filiacao:', textoFiliacao, y, largura);
+    ? 'Filiado Pró-Tiro (Clube de Tiro e Caça Pró-Tiro, Jataí-GO)'
+    : 'Não filiado ao Pró-Tiro' + (ordem.clubeFiliado ? ' | Clube: ' + ordem.clubeFiliado : '');
+  y = linhaInfo(doc, 'Filiação:', textoFiliacao, y, largura);
 
   y += 4;
 
   // ── Descrição dos Serviços (Múltiplos) ───────────────────────────────────
-  y = secaoTitulo(doc, 'DESCRICAO DOS SERVICOS', y, AZUL);
+  y = secaoTitulo(doc, 'DESCRIÇÃO DOS SERVIÇOS', y, AZUL);
   y += 2;
 
   const arrayServicos = (ordem.servicos && ordem.servicos.length > 0)
     ? ordem.servicos
-    : [{ id: 'legacy', nome: 'SERVICO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum servico informado.' }];
+    : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.' }];
 
   arrayServicos.forEach((serv) => {
     // Quebra de página caso ultrapasse muito do limite folha
@@ -138,7 +138,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   doc.setTextColor(CINZA);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('VALOR DO SERVICO', 17, y + 5);
+  doc.text('VALOR DO SERVIÇO', 17, y + 5);
   doc.setTextColor(AZUL);
   doc.setFontSize(15);
   doc.text(formatarMoeda(ordem.valor), 17, y + 13);
@@ -169,7 +169,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (ordem.observacoes && ordem.observacoes.trim()) {
-    y = secaoTitulo(doc, 'OBSERVACOES', y, CINZA);
+    y = secaoTitulo(doc, 'OBSERVAÇÕES', y, CINZA);
     y += 2;
     doc.setTextColor('#333333');
     doc.setFontSize(9.5);
@@ -188,7 +188,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
       y = linhaInfo(doc, 'Canal:', ordem.canalAtendimento, y, largura);
     }
     if (ordem.observacaoContato && ordem.observacaoContato.trim()) {
-      y = linhaInfo(doc, 'Observacao:', ordem.observacaoContato, y, largura);
+      y = linhaInfo(doc, 'Observação:', ordem.observacaoContato, y, largura);
     }
     y += 2;
   }
@@ -203,7 +203,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   doc.setTextColor('#AAAAAA');
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('GCAC Despachante Belico — Documento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
+  doc.text('GCAC Despachante Bélico — Documento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
   doc.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), largura / 2, altura - 4, { align: 'center' });
 
   return doc.output('blob');

@@ -32,7 +32,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text('GCAC Despachante Belico', 46, 11);
+  doc.text('GCAC Despachante Bélico', 46, 11);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -61,7 +61,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('ORCAMENTO DE SERVICO', 71, 38.5, { align: 'center' });
+  doc.text('ORÇAMENTO DE SERVIÇO', 71, 38.5, { align: 'center' });
 
 
   y = 50;
@@ -77,7 +77,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   y += 4;
 
   // ── Descrição dos Serviços (Múltiplos) ───────────────────────────────────
-  y = secaoTitulo(doc, 'DESCRICAO DOS SERVICOS E VALORES', y, VERDE);
+  y = secaoTitulo(doc, 'DESCRIÇÃO DOS SERVIÇOS E VALORES', y, VERDE);
   y += 2;
 
   const arrayServicos = (orcamento.servicos && orcamento.servicos.length > 0)
@@ -87,7 +87,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   if (arrayServicos.length === 0) {
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(CINZA);
-    doc.text('Nenhum servico informado.', 14, y + 2);
+    doc.text('Nenhum serviço informado.', 14, y + 2);
     y += 10;
   } else {
     arrayServicos.forEach((serv) => {
@@ -160,7 +160,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (orcamento.observacoes && orcamento.observacoes.trim()) {
-    y = secaoTitulo(doc, 'OBSERVACOES E CONDICOES', y, CINZA);
+    y = secaoTitulo(doc, 'OBSERVAÇÕES E CONDIÇÕES', y, CINZA);
     y += 2;
     doc.setTextColor('#333333');
     doc.setFontSize(9.5);
@@ -180,8 +180,8 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setTextColor('#AAAAAA');
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('GCAC Despachante Belico — Orcamento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
-  doc.text('Aprovacao sujeita a analise de documentos.', largura / 2, altura - 4, { align: 'center' });
+  doc.text('GCAC Despachante Bélico — Orçamento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
+  doc.text('Aprovação sujeita a análise de documentos.', largura / 2, altura - 4, { align: 'center' });
 
   return doc.output('blob');
 }
