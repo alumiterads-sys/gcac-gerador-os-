@@ -29,7 +29,7 @@ const mapFromDB = (row: any): Orcamento => ({
 
 const mapToDB = (dados: any) => {
   const payload: any = {};
-  if (dados.nomeCliente !== undefined) payload.nome_cliente = dados.nomeCliente;
+  if (dados.nomeCliente !== undefined) payload.nome_cliente = String(dados.nomeCliente).toUpperCase();
   if (dados.contato !== undefined) payload.contato = dados.contato;
   if (dados.cpf !== undefined) payload.cpf = dados.cpf;
   if (dados.servicos !== undefined) payload.servicos = dados.servicos;

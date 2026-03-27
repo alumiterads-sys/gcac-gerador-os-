@@ -28,7 +28,7 @@ const mapFromDB = (row: any): Cliente => ({
 
 const mapToDB = (dados: any) => {
   const payload: any = {};
-  if (dados.nome !== undefined) payload.nome = dados.nome;
+  if (dados.nome !== undefined) payload.nome = String(dados.nome).toUpperCase();
   if (dados.cpf !== undefined) payload.cpf = dados.cpf;
   if (dados.contato !== undefined) payload.contato = dados.contato;
   if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;

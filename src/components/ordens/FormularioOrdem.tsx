@@ -271,9 +271,9 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           {/* Nome */}
           <div className="relative">
             <label className="label label-required">Nome Completo</label>
-            <input id="campo-nome" type="text" className={`input ${erros.nomeCliente ? 'input-error' : ''}`}
+            <input id="campo-nome" type="text" className={`input uppercase ${erros.nomeCliente ? 'input-error' : ''}`}
               placeholder="Nome completo do cliente" value={form.nomeCliente}
-              onChange={e => atualizar('nomeCliente', e.target.value)}
+              onChange={e => atualizar('nomeCliente', e.target.value.toUpperCase())}
               onFocus={() => setFocoNome(true)}
               onBlur={() => setTimeout(() => setFocoNome(false), 200)}
             />

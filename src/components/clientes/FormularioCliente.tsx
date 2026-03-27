@@ -90,8 +90,8 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="label label-required">Nome Completo</label>
-            <input type="text" className="input" autoFocus
-              value={form.nome} onChange={e => atualizar('nome', e.target.value)} />
+            <input type="text" className="input uppercase" autoFocus
+              value={form.nome} onChange={e => atualizar('nome', e.target.value.toUpperCase())} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
