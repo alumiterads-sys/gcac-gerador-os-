@@ -9,6 +9,8 @@ import {
   ATALHOS_SERVICO, FormaPagamento, StatusOS, CanalAtendimento,
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
+import { useClientes } from '../../context/ClientesContext';
+import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 interface FormularioOrdemProps {
@@ -87,9 +89,11 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
 export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const navigate = useNavigate();
   const { criarOrdem, atualizarOrdem } = useOrdens();
+  const { clientes, criarCliente, atualizarCliente, buscarClientePorNomeExato } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [salvando, setSalvando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [focoNome, setFocoNome] = useState(false);
 
   const [form, setForm] = useState({
     nomeCliente:       ordemExistente?.nomeCliente       ?? '',
@@ -114,6 +118,25 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     setForm(f => ({ ...f, [campo]: valor }));
     setErros(e => { const novo = { ...e }; delete novo[campo]; return novo; });
   };
+
+  const selecionarCliente = (c: Cliente) => {
+    setForm(f => ({
+      ...f,
+      nomeCliente: c.nome,
+      cpf: c.cpf,
+      contato: c.contato,
+      senhaGov: c.senhaGov,
+      filiadoProTiro: c.filiadoProTiro,
+      clubeFiliado: c.clubeFiliado
+    }));
+    setFocoNome(false);
+  };
+
+  const clientesSugeridos = clientes.filter(c => 
+    c.nome.toLowerCase().includes(form.nomeCliente.toLowerCase()) && 
+    form.nomeCliente.length > 0 && 
+    c.nome.toLowerCase() !== form.nomeCliente.toLowerCase()
+  );
 
   const handleCPF = (v: string) => {
     const n = v.replace(/\D/g, '').slice(0, 11);
@@ -176,6 +199,27 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         observacaoContato: form.observacaoContato.trim(),
         observacoes:       form.observacoes.trim(),
       };
+
+      // Salvamento silencioso do Cliente na agenda
+      try {
+        const clienteExistente = await buscarClientePorNomeExato(dados.nomeCliente);
+        const payloadCli = {
+          nome: dados.nomeCliente,
+          cpf: dados.cpf,
+          contato: dados.contato,
+          senhaGov: dados.senhaGov,
+          filiadoProTiro: dados.filiadoProTiro,
+          clubeFiliado: dados.clubeFiliado
+        };
+        if (clienteExistente) {
+          await atualizarCliente(clienteExistente.id, payloadCli);
+        } else {
+          await criarCliente(payloadCli);
+        }
+      } catch (err) {
+        console.error('Erro silencioso ao salvar/atualizar cliente na agenda', err);
+      }
+
       if (ordemExistente) {
         await atualizarOrdem(ordemExistente.id, dados);
         mostrar('sucesso', 'Ordem de Serviço atualizada com sucesso!');
@@ -204,12 +248,36 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         <div className="space-y-4">
 
           {/* Nome */}
-          <div>
+          <div className="relative">
             <label className="label label-required">Nome Completo</label>
             <input id="campo-nome" type="text" className={`input ${erros.nomeCliente ? 'input-error' : ''}`}
               placeholder="Nome completo do cliente" value={form.nomeCliente}
-              onChange={e => atualizar('nomeCliente', e.target.value)} />
+              onChange={e => atualizar('nomeCliente', e.target.value)}
+              onFocus={() => setFocoNome(true)}
+              onBlur={() => setTimeout(() => setFocoNome(false), 200)}
+            />
             {erros.nomeCliente && <p className="text-red-400 text-xs mt-1">{erros.nomeCliente}</p>}
+            
+            {/* Dropdown de Autocomplete */}
+            {focoNome && clientesSugeridos.length > 0 && (
+              <div className="absolute left-0 top-[70px] z-50 w-full bg-brand-dark-3 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                <div className="p-2 border-b border-brand-dark-5 bg-brand-dark-4">
+                  <p className="text-xs text-brand-blue-light px-1 font-semibold flex items-center gap-1.5"><Users size={12}/> Sugestões da sua lista</p>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {clientesSugeridos.map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => selecionarCliente(c)}
+                      className="px-3 py-2 border-b border-brand-dark-5 hover:bg-brand-blue/20 cursor-pointer transition-colors"
+                    >
+                      <p className="text-sm font-bold text-white">{c.nome}</p>
+                      <p className="text-xs text-gray-400">CPF: {c.cpf} | Tel: {c.contato}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Contato + CPF */}

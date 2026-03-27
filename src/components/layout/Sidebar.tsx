@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
@@ -11,6 +11,7 @@ import { sincronizarPendentes } from '../../services/driveSync';
 const links = [
   { to: '/dashboard', label: 'Painel',         icon: LayoutDashboard },
   { to: '/ordens',    label: 'Ordens de Serviço', icon: FileText },
+  { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 

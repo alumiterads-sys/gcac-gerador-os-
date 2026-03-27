@@ -11,6 +11,8 @@ import { ListaOrdens } from './components/ordens/ListaOrdens';
 import { FormularioOrdem } from './components/ordens/FormularioOrdem';
 import { DetalheOrdem } from './components/ordens/DetalheOrdem';
 import { Configuracoes } from './components/config/Configuracoes';
+import { ClientesProvider } from './context/ClientesContext';
+import { ListaClientes } from './components/clientes/ListaClientes';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db/database';
 
@@ -76,8 +78,9 @@ export default function App() {
     <GoogleOAuthProvider clientId={CLIENT_ID}>
       <AuthProvider>
         <OrdensProvider>
-          <BrowserRouter>
-            <Routes>
+          <ClientesProvider>
+            <BrowserRouter>
+              <Routes>
               {/* Login */}
               <Route path="/login" element={<PaginaLoginGuard />} />
 
@@ -98,6 +101,7 @@ export default function App() {
                 } />
                 <Route path="ordens/:id" element={<PaginaDetalheOrdem />} />
                 <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
+                <Route path="clientes" element={<ListaClientes />} />
                 <Route path="configuracoes" element={<Configuracoes />} />
               </Route>
 
@@ -105,6 +109,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </BrowserRouter>
+          </ClientesProvider>
         </OrdensProvider>
       </AuthProvider>
     </GoogleOAuthProvider>

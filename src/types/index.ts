@@ -20,6 +20,18 @@ export type CanalAtendimento =
   | 'E-mail'
   | 'Outro';
 
+export interface Cliente {
+  id: string;
+  nome: string;
+  cpf: string;
+  contato: string;
+  senhaGov: string;
+  filiadoProTiro: boolean;
+  clubeFiliado: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
 export interface OrdemDeServico {
   id: string;
   numero: number;
