@@ -1,4 +1,4 @@
-import { StatusOS, FormaPagamento } from '../types';
+import { StatusOS, FormaPagamento, StatusOrcamento } from '../types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -57,6 +57,24 @@ export function corStatus(status: StatusOS): string {
     case 'Gratuidade':           return '#2d8de0';
     case 'Pago':                 return '#6DBE45';
     default:                     return '#8A8A8A';
+  }
+}
+
+export function classeStatusOrcamento(status: StatusOrcamento): string {
+  switch (status) {
+    case 'Pendente': return 'badge-pendente';
+    case 'Aprovado': return 'badge-concluido';
+    case 'Recusado': return 'badge-cancelado text-red-400 bg-red-500/10 border-red-500/20'; // Custom if badge-cancelado is not enough
+    default:         return 'badge';
+  }
+}
+
+export function corStatusOrcamento(status: StatusOrcamento): string {
+  switch (status) {
+    case 'Pendente': return '#eab308'; // amarelo
+    case 'Aprovado': return '#6DBE45'; // verde
+    case 'Recusado': return '#f87171'; // vermelho
+    default:         return '#8A8A8A';
   }
 }
 

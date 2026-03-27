@@ -1,14 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, Gift, TrendingUp, Plus, ChevronRight, Loader } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus } from '../../utils/formatters';
+import { useOrcamentos } from '../../context/OrcamentosContext';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusOrcamento } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { ordens, itensFila } = useOrdens();
+  const { orcamentos } = useOrcamentos();
   const { usuario } = useAuth();
   const online = useStatusConexao();
 
@@ -19,6 +21,13 @@ export function Dashboard() {
     pagas:       ordens.filter(o => o.status === 'Pago').length,
     receita:     ordens.filter(o => o.status === 'Pago').reduce((s, o) => s + o.valor, 0),
     receitaTotal: ordens.reduce((s, o) => s + o.valor, 0),
+  };
+
+  const orcStats = {
+    total:       orcamentos.length,
+    pendente:    orcamentos.filter(o => o.status === 'Pendente').length,
+    aprovado:    orcamentos.filter(o => o.status === 'Aprovado').length,
+    recusado:    orcamentos.filter(o => o.status === 'Recusado').length,
   };
 
   const recentes = [...ordens].slice(0, 5);
@@ -92,6 +101,50 @@ export function Dashboard() {
             <p className="text-sm text-gray-400">Receita total (todas as OS)</p>
             <p className="text-lg font-bold text-brand-blue-light">{formatarMoeda(stats.receitaTotal)}</p>
           </div>
+        </div>
+      </div>
+
+      {/* ── Resumo de Orçamentos ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <Receipt size={18} className="text-yellow-500" />
+            Resumo de Orçamentos
+          </h2>
+          <button onClick={() => navigate('/orcamentos')} className="text-sm text-yellow-500 hover:text-yellow-400 transition-colors">
+            Ver orçamentos →
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard
+            titulo="Total Emitidos"
+            valor={orcStats.total}
+            icone={<Receipt size={20} className="text-brand-blue-light" />}
+            cor="blue"
+            onClick={() => navigate('/orcamentos')}
+          />
+          <StatCard
+            titulo="Aguardando Aprovação"
+            valor={orcStats.pendente}
+            icone={<Clock size={20} className="text-yellow-400" />}
+            cor="yellow"
+            onClick={() => navigate('/orcamentos')}
+          />
+          <StatCard
+            titulo="Aprovados (Convertidos)"
+            valor={orcStats.aprovado}
+            icone={<CheckCircle size={20} className="text-brand-green" />}
+            cor="green"
+            onClick={() => navigate('/orcamentos')}
+          />
+          <StatCard
+            titulo="Recusados"
+            valor={orcStats.recusado}
+            icone={<XCircle size={20} className="text-red-400" />}
+            cor="red"
+            onClick={() => navigate('/orcamentos')}
+          />
         </div>
       </div>
 

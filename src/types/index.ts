@@ -5,6 +5,11 @@ export type StatusOS =
   | 'Gratuidade'
   | 'Pago';
 
+export type StatusOrcamento =
+  | 'Pendente'
+  | 'Aprovado'
+  | 'Recusado';
+
 export type FormaPagamento =
   | 'PIX'
   | 'Dinheiro'
@@ -65,6 +70,35 @@ export interface OrdemDeServico {
   ultimaSincronizacao: string | null;
   pendenteSincronizacao: boolean;
 
+  // Datas
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface ServicoOrcamento {
+  id: string;
+  nome: string;
+  detalhes: string;
+  valor: number;
+}
+
+export interface Orcamento {
+  id: string;
+  numero: number;
+  
+  // Dados do Cliente
+  nomeCliente: string;
+  contato: string;
+  cpf: string;
+  
+  // Serviço
+  servicos: ServicoOrcamento[];
+  valorTotal: number;
+  
+  // Controle
+  status: StatusOrcamento;
+  observacoes: string;
+  
   // Datas
   criadoEm: string;
   atualizadoEm: string;
@@ -131,4 +165,10 @@ export const STATUS_OS: StatusOS[] = [
   'Aguardando Pagamento',
   'Gratuidade',
   'Pago',
+];
+
+export const STATUS_ORCAMENTO: StatusOrcamento[] = [
+  'Pendente',
+  'Aprovado',
+  'Recusado',
 ];

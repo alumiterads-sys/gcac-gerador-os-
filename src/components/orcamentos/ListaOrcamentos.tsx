@@ -1,0 +1,142 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Plus, FileText, ChevronRight } from 'lucide-react';
+import { useOrcamentos } from '../../context/OrcamentosContext';
+import { StatusOrcamento } from '../../types';
+import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../utils/formatters';
+
+const STATUS_FILTROS: { label: string; valor: StatusOrcamento | 'Todos' }[] = [
+  { label: 'Todos',              valor: 'Todos' },
+  { label: 'Pendentes',          valor: 'Pendente' },
+  { label: 'Aprovados',          valor: 'Aprovado' },
+  { label: 'Recusados',          valor: 'Recusado' },
+];
+
+export function ListaOrcamentos() {
+  const navigate = useNavigate();
+  const { orcamentos } = useOrcamentos();
+  const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<StatusOrcamento | 'Todos'>('Todos');
+
+  const orcamentosFiltrados = orcamentos.filter(o => {
+    const matchBusca = !busca || [
+      o.nomeCliente, 
+      o.cpf, 
+      o.servicos?.map(s => s.nome).join(' '), 
+      String(o.numero)
+    ].some(v => v?.toLowerCase().includes(busca.toLowerCase()));
+    
+    const matchStatus = filtroStatus === 'Todos' || o.status === filtroStatus;
+    
+    return matchBusca && matchStatus;
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Orçamentos</h1>
+          <p className="text-sm text-gray-400">{orcamentos.length} total • {orcamentosFiltrados.length} exibidos</p>
+        </div>
+        <button
+          onClick={() => navigate('/orcamentos/novo')}
+          className="btn-primary bg-brand-green border border-brand-green/60 hover:bg-brand-green/80 text-white"
+        >
+          <Plus size={16} />
+          Novo Orçamento
+        </button>
+      </div>
+
+      {/* ── Busca e Filtros ── */}
+      <div className="card space-y-3">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            className="input pl-9"
+            placeholder="Buscar por nome, CPF, número ou serviço..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+          />
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {STATUS_FILTROS.map(({ label, valor }) => (
+            <button
+              key={valor}
+              onClick={() => setFiltroStatus(valor)}
+              className={`text-sm px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all ${
+                filtroStatus === valor
+                  ? 'bg-brand-blue text-white'
+                  : 'bg-brand-dark-5 text-gray-400 hover:text-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Lista ── */}
+      {orcamentosFiltrados.length === 0 ? (
+        <div className="card text-center py-16">
+          <div className="w-16 h-16 rounded-full bg-brand-dark-5 flex items-center justify-center mx-auto mb-4">
+            <FileText size={28} className="text-gray-500" />
+          </div>
+          <p className="text-gray-400 font-medium">Nenhum orçamento encontrado</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {busca || filtroStatus !== 'Todos'
+              ? 'Tente ajustar os filtros de busca'
+              : 'Clique em "Novo Orçamento" para criar o primeiro orçamento'}
+          </p>
+          {!busca && filtroStatus === 'Todos' && (
+            <button onClick={() => navigate('/orcamentos/novo')} className="btn-primary mt-4 mx-auto">
+              <Plus size={16} />
+              Criar primeiro orçamento
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {orcamentosFiltrados.map(orcamento => (
+            <div
+              key={orcamento.id}
+              onClick={() => navigate(`/orcamentos/${orcamento.id}`)}
+              className="card-hover flex items-center gap-4 cursor-pointer"
+            >
+              {/* Número */}
+              <div className="flex-shrink-0 w-14 text-center">
+                <p className="text-xs text-gray-500">ORC</p>
+                <p className="text-base font-bold text-white">#{String(orcamento.numero).padStart(4, '0')}</p>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px h-10 bg-brand-dark-5 flex-shrink-0" />
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-white truncate">{orcamento.nomeCliente}</p>
+                <p className="text-xs text-brand-blue-light truncate mt-0.5">
+                  {orcamento.servicos && orcamento.servicos.length > 0
+                    ? orcamento.servicos.map(s => s.nome).join(', ')
+                    : 'Sem serviços especificados'}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{formatarDataHora(orcamento.criadoEm)}</p>
+              </div>
+
+              {/* Valor e Status */}
+              <div className="flex-shrink-0 text-right space-y-1">
+                <p className="text-sm font-bold text-white">{formatarMoeda(orcamento.valorTotal)}</p>
+                <span className={classeStatusOrcamento(orcamento.status)}>{orcamento.status}</span>
+              </div>
+
+              {/* Seta */}
+              <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

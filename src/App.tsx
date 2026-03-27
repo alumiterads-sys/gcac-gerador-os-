@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrdensProvider } from './context/OrdensContext';
+import { OrcamentosProvider } from './context/OrcamentosContext';
 import { AppShell } from './components/layout/AppShell';
 import { PaginaLogin } from './components/auth/PaginaLogin';
 import { Dashboard } from './components/dashboard/Dashboard';
@@ -14,6 +15,12 @@ import { Configuracoes } from './components/config/Configuracoes';
 import { ClientesProvider } from './context/ClientesContext';
 import { ListaClientes } from './components/clientes/ListaClientes';
 import { useOrdens } from './context/OrdensContext';
+import { useOrcamentos } from './context/OrcamentosContext';
+
+// Importações dos Orçamentos
+import { ListaOrcamentos } from './components/orcamentos/ListaOrcamentos';
+import { FormularioOrcamento } from './components/orcamentos/FormularioOrcamento';
+import { DetalheOrcamento } from './components/orcamentos/DetalheOrcamento';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // ── Páginas de Ordens ────────────────────────────────────────────────────
@@ -50,6 +57,40 @@ function PaginaEditarOrdem() {
   );
 }
 
+// ── Páginas de Orçamentos ────────────────────────────────────────────────
+
+function PaginaDetalheOrcamento() {
+  const { id } = useParams<{ id: string }>();
+  const { orcamentos } = useOrcamentos();
+  const orcamento = orcamentos.find(o => o.id === id);
+  const navigate = useNavigate();
+
+  if (orcamento === undefined) return <div className="text-center py-20 text-gray-400">Carregando...</div>;
+  if (!orcamento) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-gray-400 mb-4">Orçamento não encontrado</p>
+        <button onClick={() => navigate('/orcamentos')} className="btn-primary">← Voltar para lista</button>
+      </div>
+    );
+  }
+  return <DetalheOrcamento orcamento={orcamento} />;
+}
+
+function PaginaEditarOrcamento() {
+  const { id } = useParams<{ id: string }>();
+  const { orcamentos } = useOrcamentos();
+  const orcamento = orcamentos.find(o => o.id === id);
+
+  if (!orcamento) return <Navigate to="/orcamentos" replace />;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold text-white mb-6">Editar Orçamento #{String(orcamento.numero).padStart(4, '0')}</h1>
+      <FormularioOrcamento orcamentoExistente={orcamento} />
+    </div>
+  );
+}
+
 // ── Guard de Autenticação ────────────────────────────────────────────────
 
 function RotaProtegida({ children }: { children: React.ReactNode }) {
@@ -77,8 +118,9 @@ export default function App() {
     <GoogleOAuthProvider clientId={CLIENT_ID}>
       <AuthProvider>
         <OrdensProvider>
-          <ClientesProvider>
-            <BrowserRouter>
+          <OrcamentosProvider>
+            <ClientesProvider>
+              <BrowserRouter>
               <Routes>
               {/* Login */}
               <Route path="/login" element={<PaginaLoginGuard />} />
@@ -102,6 +144,17 @@ export default function App() {
                 <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
                 <Route path="clientes" element={<ListaClientes />} />
                 <Route path="configuracoes" element={<Configuracoes />} />
+                
+                {/* Orçamentos - placeholders for now, will be replaced by components */}
+                <Route path="orcamentos" element={<ListaOrcamentos />} />
+                <Route path="orcamentos/novo" element={
+                  <div>
+                    <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
+                    <FormularioOrcamento />
+                  </div>
+                } />
+                <Route path="orcamentos/:id" element={<PaginaDetalheOrcamento />} />
+                <Route path="orcamentos/:id/editar" element={<PaginaEditarOrcamento />} />
               </Route>
 
               {/* Fallback */}
@@ -109,7 +162,8 @@ export default function App() {
             </Routes>
           </BrowserRouter>
           </ClientesProvider>
-        </OrdensProvider>
+        </OrcamentosProvider>
+      </OrdensProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );
