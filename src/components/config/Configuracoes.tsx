@@ -92,6 +92,7 @@ export function Configuracoes() {
                 <tr>
                   <th className="px-3 py-2 font-bold">Serviço</th>
                   <th className="px-3 py-2 font-bold">Venda</th>
+                  <th className="px-3 py-2 font-bold text-brand-blue-light">Filiado</th>
                   <th className="px-3 py-2 font-bold text-yellow-500/80">Taxa PF</th>
                   <th className="px-3 py-2 font-bold text-brand-blue-light/80">Lucro Real</th>
                   <th className="px-3 py-2 font-bold text-right">Ações</th>
@@ -102,6 +103,7 @@ export function Configuracoes() {
                   <tr key={s.id} className="hover:bg-brand-dark-4 transition-colors">
                     <td className="px-3 py-3 font-medium text-white max-w-[200px] truncate">{s.nome}</td>
                     <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
+                    <td className="px-3 py-3 text-brand-blue-light font-bold">{formatarMoeda(s.valorFiliado || 0)}</td>
                     <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>
                     <td className="px-3 py-3 text-brand-blue-light/90 font-semibold">{formatarMoeda(s.valorPadrao - s.taxaPF)}</td>
                     <td className="px-3 py-3 text-right">

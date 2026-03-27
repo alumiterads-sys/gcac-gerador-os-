@@ -183,13 +183,16 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   };
 
   const adicionarServico = (serv: ServicoConfig) => {
+    // Escolhe o valor baseado no status de filiado
+    const valorAplicado = form.filiadoProTiro ? (serv.valorFiliado || serv.valorPadrao) : serv.valorPadrao;
+
     const novosServicos = [
       ...form.servicos,
       { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF }
     ];
     
-    // Auto-preenchimento: soma o valor padrão ao valor atual
-    const novoValor = form.valor + serv.valorPadrao;
+    // Auto-preenchimento: soma o valor escolhido ao valor atual
+    const novoValor = form.valor + valorAplicado;
     
     setForm(f => ({
       ...f,

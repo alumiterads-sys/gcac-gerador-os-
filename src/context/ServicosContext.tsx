@@ -29,6 +29,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
           id: row.id,
           nome: row.nome,
           valorPadrao: row.valor_padrao,
+          valorFiliado: row.valor_filiado,
           taxaPF: row.taxa_pf,
           criadoEm: row.criado_em
         })));
@@ -50,6 +51,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
       .insert([{
         nome: dados.nome,
         valor_padrao: dados.valorPadrao,
+        valor_filiado: dados.valorFiliado,
         taxa_pf: dados.taxaPF
       }]);
 
@@ -61,6 +63,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
     const payload: any = {};
     if (dados.nome !== undefined) payload.nome = dados.nome;
     if (dados.valorPadrao !== undefined) payload.valor_padrao = dados.valorPadrao;
+    if (dados.valorFiliado !== undefined) payload.valor_filiado = dados.valorFiliado;
     if (dados.taxaPF !== undefined) payload.taxa_pf = dados.taxaPF;
 
     const { error } = await supabase

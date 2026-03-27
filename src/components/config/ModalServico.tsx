@@ -15,16 +15,19 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
   
   const [nome, setNome] = useState('');
   const [valorPadrao, setValorPadrao] = useState('');
+  const [valorFiliado, setValorFiliado] = useState('');
   const [taxaPF, setTaxaPF] = useState('');
 
   useEffect(() => {
     if (servicoParaEditar) {
       setNome(servicoParaEditar.nome);
       setValorPadrao(servicoParaEditar.valorPadrao.toString().replace('.', ','));
+      setValorFiliado(servicoParaEditar.valorFiliado?.toString().replace('.', ',') || '');
       setTaxaPF(servicoParaEditar.taxaPF.toString().replace('.', ','));
     } else {
       setNome('');
       setValorPadrao('');
+      setValorFiliado('');
       setTaxaPF('');
     }
   }, [servicoParaEditar, aberto]);
@@ -38,12 +41,13 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
     setSalvando(true);
     try {
       const v = parseFloat(valorPadrao.replace(',', '.')) || 0;
+      const vf = parseFloat(valorFiliado.replace(',', '.')) || 0;
       const t = parseFloat(taxaPF.replace(',', '.')) || 0;
 
       if (servicoParaEditar) {
-        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, taxaPF: t });
+        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, valorFiliado: vf, taxaPF: t });
       } else {
-        await criarServico({ nome, valorPadrao: v, taxaPF: t });
+        await criarServico({ nome, valorPadrao: v, valorFiliado: vf, taxaPF: t });
       }
       fechar();
     } catch (err) {
@@ -92,15 +96,26 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
               />
             </div>
             <div>
-              <label className="label">Taxa PF (R$)</label>
+              <label className="label text-brand-blue-light">Valor Filiado (R$)</label>
               <input 
                 type="text" 
-                className="input" 
+                className="input border-brand-blue/30 focus:border-brand-blue" 
                 placeholder="0,00"
-                value={taxaPF}
-                onChange={e => setTaxaPF(e.target.value.replace(/[^\d,]/g, ''))}
+                value={valorFiliado}
+                onChange={e => setValorFiliado(e.target.value.replace(/[^\d,]/g, ''))}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="label text-yellow-500/80">Taxa PF (R$)</label>
+            <input 
+              type="text" 
+              className="input border-yellow-500/20 focus:border-yellow-500" 
+              placeholder="0,00"
+              value={taxaPF}
+              onChange={e => setTaxaPF(e.target.value.replace(/[^\d,]/g, ''))}
+            />
           </div>
 
           <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3 flex gap-2">

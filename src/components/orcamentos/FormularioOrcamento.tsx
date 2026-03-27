@@ -102,6 +102,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     contato:           orcamentoExistente?.contato           ?? '',
     cpf:               orcamentoExistente?.cpf               ?? '',
     senhaGov:          orcamentoExistente?.senhaGov          ?? '',
+    filiadoProTiro:    orcamentoExistente?.filiadoProTiro    ?? true,
+    clubeFiliado:      orcamentoExistente?.clubeFiliado      ?? '',
     servicos:          orcamentoExistente?.servicos          ?? [],
     valorTotal:        orcamentoExistente?.valorTotal        ?? 0,
     status:            (orcamentoExistente?.status           ?? 'Pendente') as StatusOrcamento,
@@ -149,6 +151,9 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
   };
 
   const adicionarServico = (serv: ServicoConfig) => {
+    // Escolhe o valor baseado no status de filiado
+    const valorAplicado = form.filiadoProTiro ? (serv.valorFiliado || serv.valorPadrao) : serv.valorPadrao;
+
     setForm(f => {
       const novosServicos = [
         ...f.servicos,
@@ -156,7 +161,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           id: uuidv4(), 
           nome: serv.nome, 
           detalhes: '', 
-          valor: serv.valorPadrao,
+          valor: valorAplicado,
           taxaPF: serv.taxaPF 
         }
       ];
@@ -231,8 +236,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         contato: dados.contato,
         cpf: dados.cpf,
         senhaGov: dados.senhaGov || '',
-        filiadoProTiro: false,
-        clubeFiliado: '',
+        clubeFiliado: dados.clubeFiliado || '',
+        filiadoProTiro: dados.filiadoProTiro || false,
         servicos: dados.servicos.map((s: any) => ({
           id: s.id,
           nome: s.nome,
@@ -276,6 +281,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         contato:           form.contato.trim(),
         cpf:               form.cpf.trim(),
         senhaGov:          form.senhaGov.trim(),
+        filiadoProTiro:    form.filiadoProTiro,
+        clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
         servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valorTotal:        form.valorTotal,
         taxaPFTotal:       form.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0),
@@ -390,6 +397,56 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Filiado Pró-Tiro */}
+          <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Filiado Pró-Tiro?</p>
+                <p className="text-xs text-gray-500 mt-0.5">Clube de Tiro e Caça Pró-Tiro, Jataí-GO</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => atualizar('filiadoProTiro', true)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                    form.filiadoProTiro
+                      ? 'bg-brand-green/30 border-brand-green/60 text-brand-green-light'
+                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-400 hover:border-brand-metal'
+                  }`}
+                >
+                  {form.filiadoProTiro && <CheckCircle size={13} />}
+                  Sim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => atualizar('filiadoProTiro', false)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                    !form.filiadoProTiro
+                      ? 'bg-red-500/30 border-red-500/60 text-red-300'
+                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-400 hover:border-brand-metal'
+                  }`}
+                >
+                  {!form.filiadoProTiro && <X size={13} />}
+                  Não
+                </button>
+              </div>
+            </div>
+
+            {!form.filiadoProTiro && (
+              <div className="mt-3 pt-3 border-t border-brand-dark-5 animate-fade-in">
+                <label className="label label-required">Qual clube é filiado?</label>
+                <input
+                  type="text"
+                  className={`input ${erros.clubeFiliado ? 'input-error' : ''}`}
+                  placeholder="Nome do clube de tiro onde é filiado..."
+                  value={form.clubeFiliado}
+                  onChange={e => atualizar('clubeFiliado', e.target.value)}
+                />
+                {erros.clubeFiliado && <p className="text-red-400 text-xs mt-1">{erros.clubeFiliado}</p>}
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -26,6 +26,8 @@ const mapFromDB = (row: any): Orcamento => ({
   status: row.status as StatusOrcamento,
   convertidoOsId: row.convertido_os_id || undefined,
   taxaPFTotal: row.taxa_pf_total || 0,
+  filiadoProTiro: row.filiado_pro_tiro || false,
+  clubeFiliado: row.clube_filiado || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -42,6 +44,8 @@ const mapToDB = (dados: any) => {
   if (dados.status !== undefined) payload.status = dados.status;
   if (dados.convertidoOsId !== undefined) payload.convertido_os_id = dados.convertidoOsId;
   if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
+  if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
+  if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   
   return payload;
 };

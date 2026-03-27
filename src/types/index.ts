@@ -29,6 +29,7 @@ export interface ServicoConfig {
   id: string;
   nome: string;
   valorPadrao: number;
+  valorFiliado: number;
   taxaPF: number;
   criadoEm: string;
 }
@@ -102,6 +103,8 @@ export interface Orcamento {
   contato: string;
   cpf: string;
   senhaGov?: string;
+  filiadoProTiro: boolean;
+  clubeFiliado: string;
   
   // Serviço
   servicos: ServicoOrcamento[];
