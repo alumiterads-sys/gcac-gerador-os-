@@ -64,6 +64,7 @@ export interface OrdemDeServico {
     nome: string;
     detalhes: string;
     taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
+    valor?: number;  // Valor individual editável do serviço
   }[];
   valor: number;
   taxaPFTotal?: number; // Total de taxas para esta OS
