@@ -6,6 +6,7 @@ import { useOrcamentos } from '../../context/OrcamentosContext';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusOrcamento } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
+import { BriefingDiario } from './BriefingDiario';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <BriefingDiario />
       {/* ── Saudação ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
