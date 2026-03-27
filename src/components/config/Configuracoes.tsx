@@ -93,6 +93,7 @@ export function Configuracoes() {
                   <th className="px-3 py-2 font-bold">Serviço</th>
                   <th className="px-3 py-2 font-bold">Venda</th>
                   <th className="px-3 py-2 font-bold text-yellow-500/80">Taxa PF</th>
+                  <th className="px-3 py-2 font-bold text-brand-blue-light/80">Lucro Real</th>
                   <th className="px-3 py-2 font-bold text-right">Ações</th>
                 </tr>
               </thead>
@@ -102,6 +103,7 @@ export function Configuracoes() {
                     <td className="px-3 py-3 font-medium text-white max-w-[200px] truncate">{s.nome}</td>
                     <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
                     <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>
+                    <td className="px-3 py-3 text-brand-blue-light/90 font-semibold">{formatarMoeda(s.valorPadrao - s.taxaPF)}</td>
                     <td className="px-3 py-3 text-right">
                       <button onClick={() => abrirEditarServico(s)} className="p-1.5 text-gray-400 hover:text-brand-blue-light">
                         <Edit2 size={14} />
