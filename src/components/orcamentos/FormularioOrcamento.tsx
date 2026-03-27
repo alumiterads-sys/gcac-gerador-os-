@@ -199,8 +199,10 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         mostrar('sucesso', 'Orçamento criado com sucesso!');
         setTimeout(() => navigate(`/orcamentos/${id}`), 1200);
       }
-    } catch {
-      mostrar('erro', 'Erro ao salvar o orçamento. Tente novamente.');
+    } catch (err: any) {
+      console.error('Erro ao salvar orçamento:', err);
+      const msg = err?.message || 'Erro ao salvar o orçamento. Tente novamente.';
+      mostrar('erro', msg);
     } finally {
       setSalvando(false);
     }
