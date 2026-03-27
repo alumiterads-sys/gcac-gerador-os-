@@ -25,6 +25,14 @@ export type CanalAtendimento =
   | 'E-mail'
   | 'Outro';
 
+export interface ServicoConfig {
+  id: string;
+  nome: string;
+  valorPadrao: number;
+  taxaPF: number;
+  criadoEm: string;
+}
+
 export interface Cliente {
   id: string;
   nome: string;
@@ -54,8 +62,10 @@ export interface OrdemDeServico {
     id: string;
     nome: string;
     detalhes: string;
+    taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
   }[];
   valor: number;
+  taxaPFTotal?: number; // Total de taxas para esta OS
   formaPagamento: FormaPagamento;
 
   // Controle
@@ -80,6 +90,7 @@ export interface ServicoOrcamento {
   nome: string;
   detalhes: string;
   valor: number;
+  taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
 }
 
 export interface Orcamento {
@@ -100,6 +111,7 @@ export interface Orcamento {
   status: StatusOrcamento;
   observacoes: string;
   convertidoOsId?: string;
+  taxaPFTotal?: number;
   
   // Datas
   criadoEm: string;

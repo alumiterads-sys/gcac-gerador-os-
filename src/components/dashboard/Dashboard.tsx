@@ -20,8 +20,11 @@ export function Dashboard() {
     gratuidade:  ordens.filter(o => o.status === 'Gratuidade').length,
     pagas:       ordens.filter(o => o.status === 'Pago').length,
     receita:     ordens.filter(o => o.status === 'Pago').reduce((s, o) => s + o.valor, 0),
+    taxas:       ordens.filter(o => o.status === 'Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
     receitaTotal: ordens.reduce((s, o) => s + o.valor, 0),
   };
+
+  const lucroReal = stats.receita - stats.taxas;
 
   const orcStats = {
     total:       orcamentos.length,
@@ -90,16 +93,35 @@ export function Dashboard() {
         />
       </div>
 
-      {/* ── Banner de Receita ── */}
-      <div className="card bg-gradient-to-r from-brand-blue/10 to-brand-green/10 border-brand-blue/20">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-sm text-gray-400">Receita realizada (OS Pagas)</p>
-            <p className="text-3xl font-black text-white mt-1">{formatarMoeda(stats.receita)}</p>
+      {/* ── Banner de Receita e Lucro ── */}
+      <div className="card bg-gradient-to-br from-brand-dark-3 to-brand-dark-2 border border-brand-dark-5 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 rounded-full blur-3xl -mr-16 -mt-16" />
+        
+        <div className="flex flex-col md:flex-row items-stretch gap-6 relative z-10">
+          {/* Lucro Real - Principal */}
+          <div className="flex-1">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Lucro Real Estimado (Líquido)</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-4xl font-black text-white">{formatarMoeda(lucroReal)}</p>
+              <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full">
+                {stats.receita > 0 ? ((lucroReal / stats.receita) * 100).toFixed(0) : 0}% de margem
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 italic">Reflete o faturamento das OS pagas menos as taxas da PF cadastradas.</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-400">Receita total (todas as OS)</p>
-            <p className="text-lg font-bold text-brand-blue-light">{formatarMoeda(stats.receitaTotal)}</p>
+
+          <div className="hidden md:block w-px bg-brand-dark-5" />
+
+          {/* Breakdown Lateral */}
+          <div className="grid grid-cols-2 md:block gap-4 md:space-y-4 min-w-[180px]">
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Faturamento Bruto</p>
+              <p className="text-lg font-bold text-brand-green-light">{formatarMoeda(stats.receita)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Taxas PF</p>
+              <p className="text-lg font-bold text-yellow-500/80">{formatarMoeda(stats.taxas)}</p>
+            </div>
           </div>
         </div>
       </div>

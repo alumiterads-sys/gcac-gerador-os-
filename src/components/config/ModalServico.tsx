@@ -1,0 +1,124 @@
+import React, { useState, useEffect } from 'react';
+import { X, Save, Info } from 'lucide-react';
+import { ServicoConfig } from '../../types';
+import { useServicos } from '../../context/ServicosContext';
+
+interface ModalServicoProps {
+  aberto: boolean;
+  fechar: () => void;
+  servicoParaEditar?: ServicoConfig | null;
+}
+
+export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServicoProps) {
+  const { criarServico, atualizarServico } = useServicos();
+  const [salvando, setSalvando] = useState(false);
+  
+  const [nome, setNome] = useState('');
+  const [valorPadrao, setValorPadrao] = useState('');
+  const [taxaPF, setTaxaPF] = useState('');
+
+  useEffect(() => {
+    if (servicoParaEditar) {
+      setNome(servicoParaEditar.nome);
+      setValorPadrao(servicoParaEditar.valorPadrao.toString().replace('.', ','));
+      setTaxaPF(servicoParaEditar.taxaPF.toString().replace('.', ','));
+    } else {
+      setNome('');
+      setValorPadrao('');
+      setTaxaPF('');
+    }
+  }, [servicoParaEditar, aberto]);
+
+  if (!aberto) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nome.trim()) return;
+
+    setSalvando(true);
+    try {
+      const v = parseFloat(valorPadrao.replace(',', '.')) || 0;
+      const t = parseFloat(taxaPF.replace(',', '.')) || 0;
+
+      if (servicoParaEditar) {
+        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, taxaPF: t });
+      } else {
+        await criarServico({ nome, valorPadrao: v, taxaPF: t });
+      }
+      fechar();
+    } catch (err) {
+      alert('Erro ao salvar serviço');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={fechar} />
+      
+      <div className="card w-full max-w-md shadow-2xl relative z-10 animate-scale-up">
+        <button onClick={fechar} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+          <X size={20} />
+        </button>
+
+        <h2 className="text-xl font-bold text-white mb-6">
+          {servicoParaEditar ? 'Editar Serviço' : 'Novo Serviço'}
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Nome do Serviço</label>
+            <input 
+              type="text" 
+              className="input uppercase" 
+              placeholder="Ex: GUIA DE TRÁFEGO"
+              value={nome}
+              onChange={e => setNome(e.target.value.toUpperCase())}
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Valor de Venda (R$)</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="0,00"
+                value={valorPadrao}
+                onChange={e => setValorPadrao(e.target.value.replace(/[^\d,]/g, ''))}
+              />
+            </div>
+            <div>
+              <label className="label">Taxa PF (R$)</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="0,00"
+                value={taxaPF}
+                onChange={e => setTaxaPF(e.target.value.replace(/[^\d,]/g, ''))}
+              />
+            </div>
+          </div>
+
+          <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3 flex gap-2">
+            <Info size={16} className="text-brand-blue-light shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-400">
+              A **Taxa PF** é apenas para controle interno de lucro e **nunca** aparecerá nos orçamentos ou PDFs enviados aos clientes.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="button" onClick={fechar} className="btn-ghost flex-1">Cancelar</button>
+            <button type="submit" disabled={salvando} className="btn-primary flex-1">
+              <Save size={16} />
+              {salvando ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

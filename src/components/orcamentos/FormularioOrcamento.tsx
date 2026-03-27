@@ -4,9 +4,10 @@ import {
   Save, X, Users, CheckCircle, ChevronDown, List, Trash2, Eye, EyeOff
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { Orcamento, StatusOrcamento, ATALHOS_SERVICO } from '../../types';
+import { Orcamento, StatusOrcamento, ServicoConfig } from '../../types';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useClientes } from '../../context/ClientesContext';
+import { useServicos } from '../../context/ServicosContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
@@ -17,7 +18,9 @@ interface FormularioOrcamentoProps {
 }
 
 // ── Dropdown de serviços (Simplificado) ──────────────────────────────────────────────────
-function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void }) {
+function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => void }) {
+  const navigate = useNavigate();
+  const { servicos } = useServicos();
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -29,7 +32,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
     return () => document.removeEventListener('mousedown', fechar);
   }, []);
 
-  const handleSelecionar = (servico: string) => {
+  const handleSelecionar = (servico: ServicoConfig) => {
     onSelecionar(servico);
   };
 
@@ -48,16 +51,34 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
       {aberto && (
         <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
           <div className="max-h-64 overflow-y-auto">
-            {ATALHOS_SERVICO.map((servico, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSelecionar(servico)}
-                className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
-              >
-                {servico}
-              </button>
-            ))}
+            {servicos.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="text-xs text-gray-500 mb-2">Nenhum serviço cadastrado.</p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/configuracoes')}
+                  className="text-xs text-brand-blue-light hover:underline"
+                >
+                  Cadastrar em Configurações
+                </button>
+              </div>
+            ) : (
+              servicos.map((servico) => (
+                <button
+                  key={servico.id}
+                  type="button"
+                  onClick={() => handleSelecionar(servico)}
+                  className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
+                >
+                  <div className="flex justify-between items-center">
+                    <span>{servico.nome}</span>
+                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green">
+                      R$ {servico.valorPadrao.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -127,14 +148,21 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     atualizar('contato', f);
   };
 
-  const adicionarServico = (nomeServico: string) => {
-    setForm(f => ({
-      ...f,
-      servicos: [
+  const adicionarServico = (serv: ServicoConfig) => {
+    setForm(f => {
+      const novosServicos = [
         ...f.servicos,
-        { id: uuidv4(), nome: nomeServico, detalhes: '', valor: 0 }
-      ]
-    }));
+        { 
+          id: uuidv4(), 
+          nome: serv.nome, 
+          detalhes: '', 
+          valor: serv.valorPadrao,
+          taxaPF: serv.taxaPF 
+        }
+      ];
+      const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
+      return { ...f, servicos: novosServicos, valorTotal: novoTotal };
+    });
     setErros(e => { const n = { ...e }; delete n['servicos']; return n; });
   };
 
@@ -208,14 +236,16 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         servicos: dados.servicos.map((s: any) => ({
           id: s.id,
           nome: s.nome,
-          detalhes: s.detalhes
+          detalhes: s.detalhes,
+          taxaPF: s.taxaPF
         })),
         valor: dados.valorTotal,
         formaPagamento: 'PIX',
         status: 'Aguardando Pagamento',
         canalAtendimento: 'WhatsApp',
         observacaoContato: 'Convertido automaticamente no salvamento',
-        observacoes: dados.observacoes || ''
+        observacoes: dados.observacoes || '',
+        taxaPFTotal: dados.servicos.reduce((acc: number, s: any) => acc + (s.taxaPF || 0), 0)
       });
 
       // 3. Vincular O.S. ao orçamento
@@ -248,6 +278,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         senhaGov:          form.senhaGov.trim(),
         servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valorTotal:        form.valorTotal,
+        taxaPFTotal:       form.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0),
         status:            form.status,
         observacoes:       form.observacoes.trim(),
       };

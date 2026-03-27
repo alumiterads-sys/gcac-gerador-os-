@@ -7,10 +7,11 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
-  ATALHOS_SERVICO, FormaPagamento, StatusOS, CanalAtendimento,
+  FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
+import { useServicos } from '../../context/ServicosContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
@@ -34,7 +35,9 @@ const ESTILO_STATUS: Record<StatusOS, string> = {
 };
 
 // ── Dropdown de serviços ──────────────────────────────────────────────────
-function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void }) {
+function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => void }) {
+  const navigate = useNavigate();
+  const { servicos } = useServicos();
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -46,7 +49,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
     return () => document.removeEventListener('mousedown', fechar);
   }, []);
 
-  const handleSelecionar = (servico: string) => {
+  const handleSelecionar = (servico: ServicoConfig) => {
     onSelecionar(servico);
     // setAberto(false); -> Agora ele não fecha sozinho, permitindo múltiplos cliques consecutivos.
   };
@@ -69,16 +72,34 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: string) => void })
             <p className="text-xs text-gray-500 px-1">Clique para adicionar à descrição</p>
           </div>
           <div className="max-h-64 overflow-y-auto">
-            {ATALHOS_SERVICO.map((servico, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSelecionar(servico)}
-                className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
-              >
-                {servico}
-              </button>
-            ))}
+            {servicos.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="text-xs text-gray-500 mb-2">Nenhum serviço cadastrado.</p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/configuracoes')}
+                  className="text-xs text-brand-blue-light hover:underline"
+                >
+                  Cadastrar em Configurações
+                </button>
+              </div>
+            ) : (
+              servicos.map((servico) => (
+                <button
+                  key={servico.id}
+                  type="button"
+                  onClick={() => handleSelecionar(servico)}
+                  className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
+                >
+                  <div className="flex justify-between items-center">
+                    <span>{servico.nome}</span>
+                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green">
+                      R$ {servico.valorPadrao.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -161,15 +182,22 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     atualizar('valor', parseFloat(limpo) || 0);
   };
 
-  const adicionarServico = (nomeServico: string) => {
+  const adicionarServico = (serv: ServicoConfig) => {
+    const novosServicos = [
+      ...form.servicos,
+      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF }
+    ];
+    
+    // Auto-preenchimento: soma o valor padrão ao valor atual
+    const novoValor = form.valor + serv.valorPadrao;
+    
     setForm(f => ({
       ...f,
-      servicos: [
-        ...f.servicos,
-        { id: uuidv4(), nome: nomeServico, detalhes: '' }
-      ]
+      servicos: novosServicos,
+      valor: novoValor,
+      valorTexto: novoValor.toFixed(2).replace('.', ',')
     }));
-    setErros(e => { const n = { ...e }; delete n['servicos']; return n; });
+    setErros(e => { const n = { ...e }; delete n['servicos']; delete n['valor']; return n; });
   };
 
   const atualizarDetalhesServico = (id: string, texto: string) => {
@@ -214,6 +242,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
         servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valor:             form.valor,
+        taxaPFTotal:       form.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0),
         formaPagamento:    form.formaPagamento,
         status:            form.status,
         canalAtendimento:  form.canalAtendimento,

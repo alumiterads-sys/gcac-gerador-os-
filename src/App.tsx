@@ -13,6 +13,7 @@ import { FormularioOrdem } from './components/ordens/FormularioOrdem';
 import { DetalheOrdem } from './components/ordens/DetalheOrdem';
 import { Configuracoes } from './components/config/Configuracoes';
 import { ClientesProvider } from './context/ClientesContext';
+import { ServicosProvider } from './context/ServicosContext';
 import { ListaClientes } from './components/clientes/ListaClientes';
 import { useOrdens } from './context/OrdensContext';
 import { useOrcamentos } from './context/OrcamentosContext';
@@ -120,50 +121,52 @@ export default function App() {
         <OrdensProvider>
           <OrcamentosProvider>
             <ClientesProvider>
-              <BrowserRouter>
-              <Routes>
-              {/* Login */}
-              <Route path="/login" element={<PaginaLoginGuard />} />
+              <ServicosProvider>
+                <BrowserRouter>
+                  <Routes>
+                    {/* Login */}
+                    <Route path="/login" element={<PaginaLoginGuard />} />
 
-              {/* App protegido */}
-              <Route path="/" element={
-                <RotaProtegida>
-                  <AppShell />
-                </RotaProtegida>
-              }>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="ordens" element={<ListaOrdens />} />
-                <Route path="ordens/nova" element={
-                  <div>
-                    <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
-                    <FormularioOrdem />
-                  </div>
-                } />
-                <Route path="ordens/:id" element={<PaginaDetalheOrdem />} />
-                <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
-                <Route path="clientes" element={<ListaClientes />} />
-                <Route path="configuracoes" element={<Configuracoes />} />
-                
-                {/* Orçamentos - placeholders for now, will be replaced by components */}
-                <Route path="orcamentos" element={<ListaOrcamentos />} />
-                <Route path="orcamentos/novo" element={
-                  <div>
-                    <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
-                    <FormularioOrcamento />
-                  </div>
-                } />
-                <Route path="orcamentos/:id" element={<PaginaDetalheOrcamento />} />
-                <Route path="orcamentos/:id/editar" element={<PaginaEditarOrcamento />} />
-              </Route>
+                    {/* App protegido */}
+                    <Route path="/" element={
+                      <RotaProtegida>
+                        <AppShell />
+                      </RotaProtegida>
+                    }>
+                      <Route index element={<Navigate to="/dashboard" replace />} />
+                      <Route path="dashboard" element={<Dashboard />} />
+                      <Route path="ordens" element={<ListaOrdens />} />
+                      <Route path="ordens/nova" element={
+                        <div>
+                          <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
+                          <FormularioOrdem />
+                        </div>
+                      } />
+                      <Route path="ordens/:id" element={<PaginaDetalheOrdem />} />
+                      <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
+                      <Route path="clientes" element={<ListaClientes />} />
+                      <Route path="configuracoes" element={<Configuracoes />} />
+                      
+                      {/* Orçamentos */}
+                      <Route path="orcamentos" element={<ListaOrcamentos />} />
+                      <Route path="orcamentos/novo" element={
+                        <div>
+                          <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
+                          <FormularioOrcamento />
+                        </div>
+                      } />
+                      <Route path="orcamentos/:id" element={<PaginaDetalheOrcamento />} />
+                      <Route path="orcamentos/:id/editar" element={<PaginaEditarOrcamento />} />
+                    </Route>
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </BrowserRouter>
-          </ClientesProvider>
-        </OrcamentosProvider>
-      </OrdensProvider>
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </BrowserRouter>
+              </ServicosProvider>
+            </ClientesProvider>
+          </OrcamentosProvider>
+        </OrdensProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );

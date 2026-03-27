@@ -30,6 +30,7 @@ const mapFromDB = (row: any): OrdemDeServico => ({
   valor: row.valor,
   formaPagamento: row.forma_pagamento as FormaPagamento,
   status: row.status as StatusOS,
+  taxaPFTotal: row.taxa_pf_total || 0,
   canalAtendimento: row.canal_atendimento as CanalAtendimento | null,
   observacaoContato: row.observacao_contato || '',
   observacoes: row.observacoes || '',
@@ -56,6 +57,7 @@ const mapToDB = (dados: any) => {
   if (dados.canalAtendimento !== undefined) payload.canal_atendimento = dados.canalAtendimento;
   if (dados.observacaoContato !== undefined) payload.observacao_contato = dados.observacaoContato;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
+  if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
   
   if (dados.driveArquivoJsonId !== undefined) payload.drive_arquivo_json_id = dados.driveArquivoJsonId;
   if (dados.drivePdfId !== undefined) payload.drive_pdf_id = dados.drivePdfId;
