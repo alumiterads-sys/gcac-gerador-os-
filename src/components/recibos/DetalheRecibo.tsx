@@ -157,7 +157,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
               <img 
                 src="/assinatura_guilherme.png" 
                 alt="Assinatura" 
-                className="absolute -top-12 left-1/2 -translate-x-1/2 h-20 w-auto object-contain pointer-events-none z-10"
+                className="absolute -top-28 left-1/2 -translate-x-1/2 h-36 w-auto object-contain pointer-events-none z-10"
                 onError={e => {
                   console.error('Erro ao carregar assinatura');
                   (e.target as HTMLImageElement).style.visibility = 'hidden';
