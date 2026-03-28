@@ -25,6 +25,13 @@ export type CanalAtendimento =
   | 'E-mail'
   | 'Outro';
 
+export type StatusExecucaoServico =
+  | 'Pendente'
+  | 'Iniciado — Montando Processo'
+  | 'Aguardando Documentos'
+  | 'Protocolado — Ag. PF'
+  | 'Concluído';
+
 export interface ServicoConfig {
   id: string;
   nome: string;
@@ -65,6 +72,7 @@ export interface OrdemDeServico {
     detalhes: string;
     taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
     valor?: number;  // Valor individual editável do serviço
+    statusExecucao?: StatusExecucaoServico;
   }[];
   valor: number;
   taxaPFTotal?: number; // Total de taxas para esta OS
@@ -190,4 +198,12 @@ export const STATUS_ORCAMENTO: StatusOrcamento[] = [
   'Pendente',
   'Aprovado',
   'Recusado',
+];
+
+export const STATUS_EXECUCAO_SERVICO: StatusExecucaoServico[] = [
+  'Pendente',
+  'Iniciado — Montando Processo',
+  'Aguardando Documentos',
+  'Protocolado — Ag. PF',
+  'Concluído',
 ];

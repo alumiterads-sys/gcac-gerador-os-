@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle } from 'lucide-react';
-import { OrdemDeServico, CanalAtendimento } from '../../types';
+import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown } from 'lucide-react';
+import { OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, StatusExecucaoServico } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useAuth } from '../../context/AuthContext';
 import { baixarPdf, imprimirPdf } from '../../services/geradorPdf';
 import { sincronizarOrdem } from '../../services/driveSync';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -16,13 +16,19 @@ interface DetalheOrdemProps {
 
 export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const navigate = useNavigate();
-  const { deletarOrdem } = useOrdens();
+  const { deletarOrdem, atualizarStatusServico } = useOrdens();
   const { estaAutenticado } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [imprimindo, setImprimindo] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
+  const [statusAberto, setStatusAberto] = useState<string | null>(null);
+
+  const servicos = ordem.servicos || [];
+  const totalServicos = servicos.length;
+  const servicosConcluidos = servicos.filter(s => s.statusExecucao === 'Concluído').length;
+  const progresso = totalServicos > 0 ? (servicosConcluidos / totalServicos) * 100 : 0;
 
   const handleBaixarPdf = async () => {
     setGerandoPdf(true);
@@ -68,6 +74,15 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const handleDeletar = async () => {
     await deletarOrdem(ordem.id);
     navigate('/ordens');
+  };
+
+  const handleMudarStatus = async (servicoId: string, novoStatus: StatusExecucaoServico) => {
+    try {
+      await atualizarStatusServico(ordem.id, servicoId, novoStatus);
+      setStatusAberto(null);
+    } catch {
+      mostrar('erro', 'Erro ao atualizar o status do serviço.');
+    }
   };
 
   return (
@@ -157,13 +172,59 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
 
       {/* ── Serviço ── */}
       <div className="card">
-        <h3 className="text-sm font-bold text-brand-green-light uppercase tracking-wider mb-4">Descrição do Serviço</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-brand-green-light uppercase tracking-wider">Descrição do Serviço</h3>
+          <span className="text-xs font-bold text-gray-400 bg-brand-dark-4 px-2 py-1 rounded">
+            {servicosConcluidos} / {totalServicos} Concluídos
+          </span>
+        </div>
+
+        {/* Barra de Progresso */}
+        <div className="w-full h-1.5 bg-brand-dark-4 rounded-full mb-6 overflow-hidden border border-brand-dark-5">
+          <div 
+            className="h-full bg-brand-green transition-all duration-500 ease-out"
+            style={{ width: `${progresso}%` }}
+          />
+        </div>
         
-        {ordem.servicos && ordem.servicos.length > 0 ? (
+        {servicos && servicos.length > 0 ? (
           <div className="space-y-3">
-            {ordem.servicos.map((serv) => (
-              <div key={serv.id} className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
-                <p className="font-bold text-white text-base mb-1">• {serv.nome}</p>
+            {servicos.map((serv) => (
+              <div key={serv.id} className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5 relative">
+                <div className="flex items-start justify-between gap-4 mb-2">
+                  <p className="font-bold text-white text-base leading-tight">• {serv.nome}</p>
+                  
+                  {/* Dropdown de status */}
+                  <div className="relative flex-shrink-0">
+                    <button 
+                      onClick={() => setStatusAberto(statusAberto === serv.id ? null : serv.id)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all uppercase tracking-wider ${classeStatusExecucao(serv.statusExecucao)}`}
+                    >
+                      <span>{iconeStatusExecucao(serv.statusExecucao)}</span>
+                      <span>{serv.statusExecucao || 'Pendente'}</span>
+                      <ChevronDown size={12} className={`transition-transform ${statusAberto === serv.id ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {statusAberto === serv.id && (
+                      <div className="absolute right-0 top-full mt-1 z-20 w-52 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden py-1 animate-scale-up">
+                        {STATUS_EXECUCAO_SERVICO.map(s => (
+                          <button
+                            key={s}
+                            onClick={() => handleMudarStatus(serv.id, s)}
+                            className={`w-full text-left px-3 py-2 text-[11px] font-semibold transition-colors flex items-center gap-2 ${
+                              serv.statusExecucao === s 
+                                ? 'bg-brand-blue/20 text-brand-blue-light' 
+                                : 'text-gray-400 hover:bg-brand-dark-5 hover:text-white'
+                            }`}
+                          >
+                            <span className="text-sm">{iconeStatusExecucao(s)}</span>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 {serv.detalhes.trim() && (
                   <p className="text-sm text-gray-300 whitespace-pre-wrap pl-4 border-l-2 border-brand-dark-5 mt-2">
                     {serv.detalhes}

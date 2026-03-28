@@ -7,7 +7,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
-  FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig
+  FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig, StatusExecucaoServico
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
@@ -188,7 +188,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
     const novosServicos = [
       ...form.servicos,
-      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado }
+      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Pendente' as StatusExecucaoServico }
     ];
     
     // Auto-preenchimento: recalcula o total somando todos os valores individuais

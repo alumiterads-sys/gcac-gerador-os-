@@ -1,4 +1,4 @@
-import { StatusOS, FormaPagamento, StatusOrcamento } from '../types';
+import { StatusOS, FormaPagamento, StatusOrcamento, StatusExecucaoServico } from '../types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -75,6 +75,28 @@ export function corStatusOrcamento(status: StatusOrcamento): string {
     case 'Aprovado': return '#6DBE45'; // verde
     case 'Recusado': return '#f87171'; // vermelho
     default:         return '#8A8A8A';
+  }
+}
+
+export function classeStatusExecucao(status?: StatusExecucaoServico): string {
+  switch (status) {
+    case 'Pendente':                      return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    case 'Iniciado — Montando Processo':   return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+    case 'Aguardando Documentos':         return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+    case 'Protocolado — Ag. PF':          return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+    case 'Concluído':                    return 'bg-green-500/20 text-green-300 border-green-500/30';
+    default:                              return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+  }
+}
+
+export function iconeStatusExecucao(status?: StatusExecucaoServico): string {
+  switch (status) {
+    case 'Pendente':                      return '⏳';
+    case 'Iniciado — Montando Processo':   return '🔧';
+    case 'Aguardando Documentos':         return '📄';
+    case 'Protocolado — Ag. PF':          return '📤';
+    case 'Concluído':                    return '✅';
+    default:                              return '⏳';
   }
 }
 
