@@ -48,7 +48,7 @@ export function FormularioRecibo() {
   };
 
   // --- Cenário 1: Seleção de OS ---
-  const ordensPendentes = ordens.filter(o => o.status === 'Aguardando Pagamento');
+  const ordensDisponiveis = ordens.filter(o => o.status === 'Aguardando Pagamento' || o.status === 'Pago');
 
   const selecionarOS = (id: string) => {
     const os = ordens.find(o => o.id === id);
@@ -122,8 +122,11 @@ export function FormularioRecibo() {
 
       // Se for vinculado a uma OS, perguntar e atualizar status
       if (form.ordemId) {
-        if (confirm('Deseja marcar a Ordem de Serviço vinculada como "PAGO" automaticamente?')) {
-          await atualizarOrdem(form.ordemId, { status: 'Pago' });
+        const os = ordens.find(o => o.id === form.ordemId);
+        if (os && os.status !== 'Pago') {
+          if (confirm('Deseja marcar a Ordem de Serviço vinculada como "PAGO" automaticamente?')) {
+            await atualizarOrdem(form.ordemId, { status: 'Pago' });
+          }
         }
       }
 
@@ -175,16 +178,16 @@ export function FormularioRecibo() {
                   value={form.ordemId}
                   onChange={e => selecionarOS(e.target.value)}
                 >
-                  <option value="">Selecione uma OS pendente...</option>
-                  {ordensPendentes.map(o => (
+                  <option value="">Selecione uma OS pendente ou paga...</option>
+                  {ordensDisponiveis.map(o => (
                     <option key={o.id} value={o.id}>
-                      OS-{String(o.numero).padStart(4, '0')} — {o.nomeCliente} ({formatarMoeda(o.valor)})
+                      OS-{String(o.numero).padStart(4, '0')} — {o.nomeCliente} ({formatarMoeda(o.valor)}) {o.status === 'Pago' ? '✅' : ''}
                     </option>
                   ))}
                 </select>
                 {erros.ordemId && <p className="text-red-400 text-xs mt-1">{erros.ordemId}</p>}
-                {ordensPendentes.length === 0 && (
-                  <p className="text-xs text-yellow-500 mt-2">Nenhuma OS com status "Aguardando Pagamento" encontrada.</p>
+                {ordensDisponiveis.length === 0 && (
+                  <p className="text-xs text-yellow-500 mt-2">Nenhuma OS com status "Aguardando Pagamento" ou "Pago" encontrada.</p>
                 )}
               </div>
             ) : (
