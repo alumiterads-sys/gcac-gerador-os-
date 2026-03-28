@@ -9,7 +9,7 @@ import { useRecibos } from '../../context/RecibosContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
 import { useServicos } from '../../context/ServicosContext';
-import { OrdemDeServico, Recibo, Cliente, ServicoConfig } from '../../types';
+import { OrdemDeServico, Recibo, Cliente, ServicoConfig, FORMAS_PAGAMENTO, FormaPagamento } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { formatarMoeda } from '../../utils/formatters';
 
@@ -37,6 +37,7 @@ export function FormularioRecibo() {
     servicos: [] as any[],
     valorTotal: 0,
     ordemId: '',
+    formaPagamento: 'PIX' as FormaPagamento,
     observacoes: ''
   });
 
@@ -64,6 +65,7 @@ export function FormularioRecibo() {
         })),
         valorTotal: os.valor,
         ordemId: os.id,
+        formaPagamento: (os.formaPagamento as FormaPagamento) || 'PIX',
         observacoes: os.observacoes
       });
     }
@@ -214,6 +216,23 @@ export function FormularioRecibo() {
                 </div>
               </>
             )}
+
+            {/* Forma de Pagamento */}
+            <div className="pt-2 border-t border-brand-dark-5 mt-4">
+              <label className="label label-required flex items-center gap-2">
+                <CreditCard size={14} className="text-brand-blue" />
+                Forma de Pagamento
+              </label>
+              <select 
+                className="select"
+                value={form.formaPagamento}
+                onChange={e => atualizar('formaPagamento', e.target.value as FormaPagamento)}
+              >
+                {FORMAS_PAGAMENTO.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

@@ -149,6 +149,7 @@ export interface Recibo {
   
   // Referência Opcional
   ordemId?: string;
+  formaPagamento: FormaPagamento;
   observacoes: string;
   
   // Emitente (Dados Fixos)

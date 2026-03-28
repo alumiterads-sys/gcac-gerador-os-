@@ -129,6 +129,10 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
                   ))}
                 </tbody>
                 <tfoot className="bg-brand-dark-2/20 font-black text-lg print:bg-gray-50 print:text-gray-900 border-t-2 border-brand-dark-5">
+                  <tr className="border-b border-brand-dark-5/30 print:border-gray-100">
+                    <td className="px-6 py-3 text-right uppercase text-[10px] tracking-widest text-gray-500">Forma de Pagamento</td>
+                    <td className="px-6 py-3 text-right text-sm text-gray-700">{recibo.formaPagamento}</td>
+                  </tr>
                   <tr>
                     <td className="px-6 py-5 text-right uppercase text-xs tracking-widest text-gray-500">Valor Total do Recibo</td>
                     <td className="px-6 py-5 text-right text-2xl text-brand-blue-light print:text-gray-900">{formatarMoeda(recibo.valorTotal)}</td>
