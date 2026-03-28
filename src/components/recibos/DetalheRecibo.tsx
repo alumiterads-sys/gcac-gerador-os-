@@ -69,7 +69,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
       </div>
 
       {/* Recibo para Impressão */}
-      <div id="print-area" className="bg-white text-gray-900 border border-brand-dark-5 rounded-2xl overflow-hidden shadow-2xl p-8 sm:p-12 animate-fade-in print:shadow-none print:border-none print:p-0 print:m-0">
+      <div id="print-area" className="bg-white text-gray-900 border border-brand-dark-5 rounded-2xl shadow-2xl p-8 sm:p-12 animate-fade-in print:shadow-none print:border-none print:p-0 print:m-0">
         
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-8 border-b-2 border-brand-dark-5 pb-8 mb-8">
@@ -82,7 +82,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
             />
             <div>
               <h1 className="text-2xl font-black text-brand-dark leading-tight uppercase tracking-tighter">Gcac Despachante Bélico</h1>
-              <p className="text-sm font-bold text-brand-blue uppercase">Soluções em Despachante e C.A.C.</p>
+              <p className="text-sm font-bold text-brand-blue uppercase">Gestão e Assessoria C.A.C.</p>
               <p className="text-[10px] text-gray-500 font-bold mt-1">CNPJ: {recibo.emitenteCNPJ}</p>
             </div>
           </div>
@@ -153,14 +153,17 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
 
           {/* Assinaturas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 pt-16 mt-16 border-t border-brand-dark-5 print:mt-12 print:pt-8 print:border-gray-200">
-            <div className="text-center space-y-2 relative">
+            <div className="text-center space-y-2 relative flex flex-col items-center">
               <img 
                 src="/assinatura_guilherme.png" 
                 alt="Assinatura" 
-                className="absolute -top-16 left-1/2 -translate-x-1/2 h-16 object-contain pointer-events-none"
-                onError={e => (e.target as HTMLImageElement).style.display = 'none'}
+                className="absolute -top-12 left-1/2 -translate-x-1/2 h-20 w-auto object-contain pointer-events-none z-10"
+                onError={e => {
+                  console.error('Erro ao carregar assinatura');
+                  (e.target as HTMLImageElement).style.visibility = 'hidden';
+                }}
               />
-              <div className="border-t border-brand-dark pt-2 mx-auto w-4/5 print:border-gray-900" />
+              <div className="border-t border-brand-dark pt-2 mx-auto w-4/5 print:border-gray-900 relative z-0" />
               <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Pelo Responsável / Emitente</p>
               <p className="text-sm font-bold uppercase">Guilherme Gomes</p>
               <p className="text-[8px] text-gray-400 uppercase font-bold">CNPJ: {recibo.emitenteCNPJ}</p>
