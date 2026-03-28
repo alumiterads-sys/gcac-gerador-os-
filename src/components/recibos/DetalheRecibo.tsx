@@ -75,7 +75,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
         <div className="flex flex-col sm:flex-row justify-between items-start gap-8 border-b-2 border-brand-dark-5 pb-8 mb-8">
           <div className="flex items-center gap-4">
             <img 
-              src="/logo.jpg" 
+              src="/Logo oficial.png" 
               alt="Logo" 
               className="w-16 h-16 object-contain" 
               onError={e => (e.target as HTMLImageElement).style.display = 'none'}

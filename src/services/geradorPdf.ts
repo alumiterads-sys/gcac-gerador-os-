@@ -21,11 +21,11 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
 
   // Logo
   try {
-    const logoRes = await fetch('/logo.jpg');
+    const logoRes = await fetch('/Logo oficial.png');
     if (logoRes.ok) {
       const logoBlob = await logoRes.blob();
       const logoBase64 = await blobParaBase64(logoBlob);
-      doc.addImage(logoBase64, 'JPEG', 6, 2, 34, 38);
+      doc.addImage(logoBase64, 'PNG', 6, 2, 34, 38);
     }
   } catch { /* logo nao disponivel */ }
 

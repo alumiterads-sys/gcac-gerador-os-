@@ -59,7 +59,7 @@ export function BriefingDiario() {
           <div className="mb-6 relative">
             <div className="absolute inset-0 bg-brand-blue/20 blur-2xl rounded-full" />
             <img 
-              src="/logo.jpg" 
+              src="/Logo oficial.png" 
               alt="Logo GCAC" 
               className="w-20 h-20 object-contain relative z-10"
               onError={(e) => (e.currentTarget.style.display = 'none')} 

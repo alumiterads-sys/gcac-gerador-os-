@@ -36,7 +36,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-brand-dark-5">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="GCAC" className="w-10 h-10 object-contain"
+          <img src="/Logo oficial.png" alt="GCAC" className="w-10 h-10 object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           <div>
             <p className="font-black text-white text-base leading-tight">GCAC</p>
