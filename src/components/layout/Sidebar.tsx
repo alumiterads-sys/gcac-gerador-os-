@@ -12,6 +12,7 @@ const links = [
   { to: '/dashboard', label: 'Painel',         icon: LayoutDashboard },
   { to: '/orcamentos',label: 'Orçamentos',     icon: Receipt },
   { to: '/ordens',    label: 'Ordens de Serviço', icon: FileText },
+  { to: '/recibos',   label: 'Recibos',           icon: Receipt },
   { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];

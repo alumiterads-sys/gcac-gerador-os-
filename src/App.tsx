@@ -22,6 +22,13 @@ import { useOrcamentos } from './context/OrcamentosContext';
 import { ListaOrcamentos } from './components/orcamentos/ListaOrcamentos';
 import { FormularioOrcamento } from './components/orcamentos/FormularioOrcamento';
 import { DetalheOrcamento } from './components/orcamentos/DetalheOrcamento';
+
+// Importações dos Recibos
+import { RecibosProvider, useRecibos } from './context/RecibosContext';
+import { ListaRecibos } from './components/recibos/ListaRecibos';
+import { FormularioRecibo } from './components/recibos/FormularioRecibo';
+import { DetalheRecibo } from './components/recibos/DetalheRecibo';
+
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // ── Páginas de Ordens ────────────────────────────────────────────────────
@@ -92,6 +99,26 @@ function PaginaEditarOrcamento() {
   );
 }
 
+// ── Páginas de Recibos ───────────────────────────────────────────────────
+
+function PaginaDetalheRecibo() {
+  const { id } = useParams<{ id: string }>();
+  const { recibos } = useRecibos();
+  const recibo = recibos.find(r => r.id === id);
+  const navigate = useNavigate();
+
+  if (recibo === undefined) return <div className="text-center py-20 text-gray-400">Carregando...</div>;
+  if (!recibo) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-gray-400 mb-4">Recibo não encontrado</p>
+        <button onClick={() => navigate('/recibos')} className="btn-primary">← Voltar para lista</button>
+      </div>
+    );
+  }
+  return <DetalheRecibo recibo={recibo} />;
+}
+
 // ── Guard de Autenticação ────────────────────────────────────────────────
 
 function RotaProtegida({ children }: { children: React.ReactNode }) {
@@ -122,8 +149,9 @@ export default function App() {
           <OrcamentosProvider>
             <ClientesProvider>
               <ServicosProvider>
-                <BrowserRouter>
-                  <Routes>
+                <RecibosProvider>
+                  <BrowserRouter>
+                    <Routes>
                     {/* Login */}
                     <Route path="/login" element={<PaginaLoginGuard />} />
 
@@ -157,19 +185,29 @@ export default function App() {
                       } />
                       <Route path="orcamentos/:id" element={<PaginaDetalheOrcamento />} />
                       <Route path="orcamentos/:id/editar" element={<PaginaEditarOrcamento />} />
+
+                      {/* Recibos */}
+                      <Route path="recibos" element={<ListaRecibos />} />
+                      <Route path="recibos/novo" element={
+                        <div>
+                          <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
+                          <FormularioRecibo />
+                        </div>
+                      } />
+                      <Route path="recibos/:id" element={<PaginaDetalheRecibo />} />
                     </Route>
 
-                    {/* Fallback */}
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </BrowserRouter>
-              </ServicosProvider>
-            </ClientesProvider>
-          </OrcamentosProvider>
-        </OrdensProvider>
-      </AuthProvider>
-    </GoogleOAuthProvider>
-  );
+              </RecibosProvider>
+            </ServicosProvider>
+          </ClientesProvider>
+        </OrcamentosProvider>
+      </OrdensProvider>
+    </AuthProvider>
+  </GoogleOAuthProvider>
+);
 }
 
 function PaginaLoginGuard() {

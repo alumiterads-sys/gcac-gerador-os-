@@ -130,6 +130,35 @@ export interface Orcamento {
   atualizadoEm: string;
 }
 
+export interface Recibo {
+  id: string;
+  numero: number;
+  
+  // Dados do Cliente
+  clienteNome: string;
+  clienteCPF: string;
+  
+  // Valores e Serviços
+  servicos: {
+    id: string;
+    nome: string;
+    valor: number;
+    detalhes?: string;
+  }[];
+  valorTotal: number;
+  
+  // Referência Opcional
+  ordemId?: string;
+  observacoes: string;
+  
+  // Emitente (Dados Fixos)
+  emitenteNome: string;
+  emitenteCNPJ: string;
+  
+  // Datas
+  criadoEm: string;
+}
+
 export interface FilaSincronizacao {
   id?: number;
   ordemId: string;
