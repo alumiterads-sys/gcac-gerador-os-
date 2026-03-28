@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Filter, ChevronRight, FileText } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { StatusOS } from '../../types';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
 
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
   { label: 'Todas',              valor: 'Todos' },
@@ -109,10 +109,43 @@ export function ListaOrdens() {
               {/* Divider */}
               <div className="w-px h-10 bg-brand-dark-5 flex-shrink-0" />
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white truncate">{ordem.nomeCliente}</p>
-                <p className="text-xs text-gray-400 truncate mt-0.5">{ordem.servicos ? ordem.servicos.map(s => s.nome).join(', ') : (ordem as any).servico}</p>
+                <p className="font-semibold text-white truncate leading-tight">{ordem.nomeCliente}</p>
+                <p className="text-[10px] text-gray-500 truncate mt-0.5">{ordem.servicos ? ordem.servicos.map((s: any) => s.nome).join(', ') : (ordem as any).servico}</p>
+                
+                {/* Status de Execução Compacto */}
+                <div className="mt-1.5 flex items-center gap-2">
+                  {ordem.servicos && ordem.servicos.length > 0 ? (
+                    <>
+                      {ordem.servicos.length === 1 ? (
+                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-tighter ${classeStatusExecucao(ordem.servicos[0].statusExecucao)}`}>
+                          <span>{iconeStatusExecucao(ordem.servicos[0].statusExecucao)}</span>
+                          <span>{ordem.servicos[0].statusExecucao || 'Não Iniciado'}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">
+                            {ordem.servicos.filter((s: any) => s.statusExecucao === 'Concluído').length}/{ordem.servicos.length} Concluídos
+                          </span>
+                          <div className="flex gap-0.5">
+                            {ordem.servicos.map((s: any, i: number) => (
+                              <div 
+                                key={i} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  s.statusExecucao === 'Concluído' ? 'bg-brand-green' :
+                                  s.statusExecucao === 'Não Iniciado' ? 'bg-gray-600' : 'bg-brand-blue'
+                                }`} 
+                                title={s.nome + ': ' + (s.statusExecucao || 'Não Iniciado')}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter italic">Sem serviços</span>
+                  )}
+                </div>
               </div>
 
               {/* Valor e Status */}

@@ -26,7 +26,7 @@ export type CanalAtendimento =
   | 'Outro';
 
 export type StatusExecucaoServico =
-  | 'Pendente'
+  | 'Não Iniciado'
   | 'Iniciado — Montando Processo'
   | 'Aguardando Documentos'
   | 'Protocolado — Ag. PF'
@@ -201,7 +201,7 @@ export const STATUS_ORCAMENTO: StatusOrcamento[] = [
 ];
 
 export const STATUS_EXECUCAO_SERVICO: StatusExecucaoServico[] = [
-  'Pendente',
+  'Não Iniciado',
   'Iniciado — Montando Processo',
   'Aguardando Documentos',
   'Protocolado — Ag. PF',

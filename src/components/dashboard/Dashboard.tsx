@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusOrcamento } from '../../utils/formatters';
+import { StatusExecucaoServico, STATUS_EXECUCAO_SERVICO } from '../../types';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusOrcamento, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { BriefingDiario } from './BriefingDiario';
@@ -29,10 +30,19 @@ export function Dashboard() {
 
   const orcStats = {
     total:       orcamentos.length,
-    pendente:    orcamentos.filter(o => o.status === 'Pendente').length,
-    aprovado:    orcamentos.filter(o => o.status === 'Aprovado').length,
-    recusado:    orcamentos.filter(o => o.status === 'Recusado').length,
+    pendente:    orcamentos.filter((o: any) => o.status === 'Pendente').length,
+    aprovado:    orcamentos.filter((o: any) => o.status === 'Aprovado').length,
+    recusado:    orcamentos.filter((o: any) => o.status === 'Recusado').length,
   };
+
+  // Estatísticas de Execução (Operacional)
+  const todosServicos = ordens.flatMap((o: any) => o.servicos || []);
+  const operStats = STATUS_EXECUCAO_SERVICO.reduce((acc, status) => {
+    acc[status] = todosServicos.filter((s: any) => (s.statusExecucao || 'Não Iniciado') === status).length;
+    return acc;
+  }, {} as Record<StatusExecucaoServico, number>);
+
+  const servicosNaoIniciados = operStats['Não Iniciado'];
 
   const recentes = [...ordens].slice(0, 5);
 
@@ -125,6 +135,42 @@ export function Dashboard() {
               <p className="text-lg font-bold text-yellow-500/80">{formatarMoeda(stats.taxas)}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── Resumo Operacional ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <Loader size={18} className="text-brand-blue-light" />
+            Resumo Operacional
+          </h2>
+          <span className="text-xs text-brand-metal font-medium uppercase tracking-wider">Status de Execução</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {STATUS_EXECUCAO_SERVICO.map(status => (
+            <div key={status} className="card bg-brand-dark-3/50 border-brand-dark-5 p-3 flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xl">{iconeStatusExecucao(status)}</span>
+                <span className="text-lg font-black text-white">{operStats[status]}</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-500 uppercase truncate" title={status}>
+                {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
+                 status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+              </p>
+              <div className="w-full h-1 bg-brand-dark-5 rounded-full mt-1 overflow-hidden">
+                <div 
+                  className={`h-full opacity-50 ${
+                    status === 'Concluído' ? 'bg-brand-green' : 
+                    status === 'Não Iniciado' ? 'bg-gray-500' :
+                    'bg-brand-blue'
+                  }`}
+                  style={{ width: `${todosServicos.length > 0 ? (operStats[status] / todosServicos.length) * 100 : 0}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

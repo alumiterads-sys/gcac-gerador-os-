@@ -190,7 +190,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
     const novosServicos = [
       ...form.servicos,
-      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Pendente' as StatusExecucaoServico }
+      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Não Iniciado' as StatusExecucaoServico }
     ];
     
     // Auto-preenchimento: recalcula o total somando todos os valores individuais
@@ -518,7 +518,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                           <span className={serv.statusExecucao === status ? 'inline' : 'hidden sm:inline'}>
                             {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
                              status === 'Aguardando Documentos' ? 'Ag. Docs' :
-                             status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                             status === 'Protocolado — Ag. PF' ? 'Protocolado' :
+                             status === 'Não Iniciado' ? 'Não Iniciado' : status}
                           </span>
                         </button>
                       ))}

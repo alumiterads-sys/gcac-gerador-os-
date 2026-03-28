@@ -201,7 +201,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all uppercase tracking-wider ${classeStatusExecucao(serv.statusExecucao)}`}
                     >
                       <span>{iconeStatusExecucao(serv.statusExecucao)}</span>
-                      <span>{serv.statusExecucao || 'Pendente'}</span>
+                      <span>{serv.statusExecucao || 'Não Iniciado'}</span>
                       <ChevronDown size={12} className={`transition-transform ${statusAberto === serv.id ? 'rotate-180' : ''}`} />
                     </button>
 
