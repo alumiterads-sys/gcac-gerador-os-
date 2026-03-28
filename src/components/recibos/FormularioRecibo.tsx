@@ -15,7 +15,7 @@ import { formatarMoeda } from '../../utils/formatters';
 
 // Configurações do Emitente
 const EMITENTE = {
-  nome: 'ALUMITERADS', // Substitua pelo nome fantasia se necessário
+  nome: 'GCAC DESPACHANTE BÉLICO', // Substitua pelo nome fantasia se necessário
   cnpj: '63.820.168/0001-63'
 };
 

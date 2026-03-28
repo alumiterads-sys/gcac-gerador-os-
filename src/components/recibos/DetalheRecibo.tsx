@@ -81,7 +81,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
               onError={e => (e.target as HTMLImageElement).style.display = 'none'}
             />
             <div>
-              <h1 className="text-2xl font-black text-brand-dark leading-tight uppercase tracking-tighter">{recibo.emitenteNome}</h1>
+              <h1 className="text-2xl font-black text-brand-dark leading-tight uppercase tracking-tighter">Gcac Despachante Bélico</h1>
               <p className="text-sm font-bold text-brand-blue uppercase">Soluções em Despachante e C.A.C.</p>
               <p className="text-[10px] text-gray-500 font-bold mt-1">CNPJ: {recibo.emitenteCNPJ}</p>
             </div>
@@ -149,10 +149,16 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
 
           {/* Assinaturas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-12 pt-16 mt-16 border-t border-brand-dark-5 print:mt-12 print:pt-8 print:border-gray-200">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-2 relative">
+              <img 
+                src="/assinatura_guilherme.png" 
+                alt="Assinatura" 
+                className="absolute -top-16 left-1/2 -translate-x-1/2 h-16 object-contain pointer-events-none"
+                onError={e => (e.target as HTMLImageElement).style.display = 'none'}
+              />
               <div className="border-t border-brand-dark pt-2 mx-auto w-4/5 print:border-gray-900" />
               <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Pelo Responsável / Emitente</p>
-              <p className="text-sm font-bold uppercase">{recibo.emitenteNome}</p>
+              <p className="text-sm font-bold uppercase">Guilherme Gomes</p>
               <p className="text-[8px] text-gray-400 uppercase font-bold">CNPJ: {recibo.emitenteCNPJ}</p>
             </div>
             <div className="text-center space-y-2">
@@ -167,7 +173,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
         <div className="mt-16 pt-8 border-t border-brand-dark-5 text-center print:mt-12">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
             Este recibo é um documento de quitação de pagamento emitido eletronicamente pela plataforma GCAC Gerador de O.S.<br/>
-            Sistemas Alumiterads &copy; {new Date().getFullYear()} — Todos os direitos reservados.
+            Sistemas Portal Gcac &copy; {new Date().getFullYear()} — Todos os direitos reservados.
           </p>
         </div>
       </div>
