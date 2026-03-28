@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Printer, Share2, Receipt, 
   Calendar, User, CheckCircle, FileText, 
-  ChevronRight, Trash2, Mail, Phone, MapPin
+  ChevronRight, Trash2, Mail, Phone, MapPin, List
 } from 'lucide-react';
 import { Recibo } from '../../types';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
