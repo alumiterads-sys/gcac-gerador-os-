@@ -7,13 +7,15 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
-  FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig, StatusExecucaoServico
+  FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig, StatusExecucaoServico,
+  STATUS_EXECUCAO_SERVICO
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
 import { useServicos } from '../../context/ServicosContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
+import { classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
 
 interface FormularioOrdemProps {
   ordemExistente?: OrdemDeServico;
@@ -192,7 +194,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     ];
     
     // Auto-preenchimento: recalcula o total somando todos os valores individuais
-    const novoValor = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
+    const novoValor = novosServicos.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     
     setForm(f => ({
       ...f,
@@ -206,25 +208,32 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const atualizarDetalhesServico = (id: string, texto: string) => {
     setForm(f => ({
       ...f,
-      servicos: f.servicos.map(s => s.id === id ? { ...s, detalhes: texto } : s)
+      servicos: f.servicos.map((s: any) => s.id === id ? { ...s, detalhes: texto } : s)
     }));
   };
 
   const atualizarValorServico = (id: string, novoValor: number) => {
-    const novosServicos = form.servicos.map(s => s.id === id ? { ...s, valor: novoValor } : s);
-    const totalNovo = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
+    const novosServicosResource = (form.servicos as any[]).map((s: any) => s.id === id ? { ...s, valor: novoValor } : s);
+    const totalNovo = novosServicosResource.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     setForm(f => ({
       ...f,
-      servicos: novosServicos,
+      servicos: novosServicosResource,
       valor: totalNovo,
       valorTexto: totalNovo.toFixed(2).replace('.', ',')
     }));
     setErros(e => { const n = { ...e }; delete n['valor']; return n; });
   };
 
+  const atualizarStatusServicoExec = (id: string, novoStatus: StatusExecucaoServico) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => s.id === id ? { ...s, statusExecucao: novoStatus } : s)
+    }));
+  };
+
   const removerServico = (id: string) => {
-    const novosServicos = form.servicos.filter(s => s.id !== id);
-    const totalNovo = novosServicos.reduce((acc, s) => acc + (s.valor || 0), 0);
+    const novosServicos = (form.servicos as any[]).filter((s: any) => s.id !== id);
+    const totalNovo = novosServicos.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     setForm(f => ({
       ...f,
       servicos: novosServicos,
@@ -259,9 +268,9 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         senhaGov:          form.senhaGov.trim(),
         filiadoProTiro:    form.filiadoProTiro,
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
-        servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
+        servicos:          (form.servicos as any[]).map((s: any) => ({ ...s, detalhes: (s.detalhes || '').trim() })),
         valor:             form.valor,
-        taxaPFTotal:       form.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0),
+        taxaPFTotal:       (form.servicos as any[]).reduce((acc: number, s: any) => acc + (s.taxaPF || 0), 0),
         formaPagamento:    form.formaPagamento,
         status:            form.status,
         canalAtendimento:  form.canalAtendimento,
@@ -454,38 +463,66 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
         {/* Lista de Blocos de Serviço */}
         <div className="space-y-4">
-          {form.servicos.length === 0 ? (
-            <div className="text-center py-6 border-2 border-dashed border-brand-dark-5 rounded-xl">
-              <List size={24} className="text-brand-dark-5 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Nenhum serviço adicionado ainda.</p>
-            </div>
-          ) : (
-            form.servicos.map((serv, index) => (
-              <div key={serv.id} className="relative bg-brand-dark-4 border border-brand-dark-5 p-4 rounded-xl animate-scale-up">
-                <button
-                  type="button"
-                  onClick={() => removerServico(serv.id)}
+            {form.servicos.length === 0 ? (
+              <div className="text-center py-6 border-2 border-dashed border-brand-dark-5 rounded-xl">
+                <List size={24} className="text-brand-dark-5 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">Nenhum serviço adicionado ainda.</p>
+              </div>
+            ) : (
+              (form.servicos as any[]).map((serv: any, index: number) => (
+                <div key={serv.id} className="relative bg-brand-dark-4 border border-brand-dark-5 p-4 rounded-xl animate-scale-up">
+                  <button
+                    type="button"
+                    onClick={() => removerServico(serv.id)}
                   className="absolute top-4 right-4 text-gray-500 hover:text-red-400 transition-colors"
                   title="Remover Serviço"
                 >
                   <Trash2 size={16} />
                 </button>
 
-                {/* Cabeçalho do card: nome + valor editável */}
-                <div className="flex items-center gap-3 mb-3 pr-8">
-                  <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold flex-shrink-0">{index + 1}</span>
-                  <h4 className="text-sm font-bold text-white flex-1 min-w-0 truncate">{serv.nome}</h4>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-xs text-gray-500 font-medium">R$</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="w-24 text-right bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2 py-1 text-sm font-bold text-brand-green-light outline-none transition-colors"
-                      value={serv.valor ?? 0}
-                      onChange={e => atualizarValorServico(serv.id, parseFloat(e.target.value) || 0)}
-                      title="Editar valor deste serviço"
-                    />
+                {/* Cabeçalho do card: nome + valor + status */}
+                <div className="flex flex-col gap-3 mb-3 pr-8">
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold flex-shrink-0">{index + 1}</span>
+                    <h4 className="text-sm font-bold text-white flex-1 min-w-0 truncate">{serv.nome}</h4>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-xs text-gray-500 font-medium">R$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-20 text-right bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2 py-1 text-sm font-bold text-brand-green-light outline-none transition-colors"
+                        value={serv.valor ?? 0}
+                        onChange={e => atualizarValorServico(serv.id, parseFloat(e.target.value) || 0)}
+                        title="Editar valor deste serviço"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Status Operacional:</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STATUS_EXECUCAO_SERVICO.map((status: StatusExecucaoServico) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => atualizarStatusServicoExec(serv.id, status)}
+                          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold border transition-all ${
+                            serv.statusExecucao === status
+                              ? classeStatusExecucao(status)
+                              : 'bg-brand-dark-3 border-brand-dark-5 text-gray-500 hover:border-brand-metal'
+                          }`}
+                          title={status}
+                        >
+                          <span>{iconeStatusExecucao(status)}</span>
+                          <span className={serv.statusExecucao === status ? 'inline' : 'hidden sm:inline'}>
+                            {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
+                             status === 'Aguardando Documentos' ? 'Ag. Docs' :
+                             status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -526,7 +563,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
             <select id="campo-pagamento" className="select" value={form.formaPagamento}
               onChange={e => atualizar('formaPagamento', e.target.value as FormaPagamento)}
               disabled={form.status === 'Gratuidade'}>
-              {FORMAS_PAGAMENTO.map(f => <option key={f} value={f}>{f}</option>)}
+              {FORMAS_PAGAMENTO.map((f: string) => <option key={f} value={f}>{f}</option>)}
             </select>
           </div>
         </div>
@@ -535,7 +572,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         <div>
           <label className="label">Status do Pagamento</label>
           <div className="grid grid-cols-3 gap-2">
-            {STATUS_OS.map(s => (
+            {STATUS_OS.map((s: any) => (
               <button key={s} type="button"
                 onClick={() => {
                   atualizar('status', s);
@@ -546,7 +583,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 }}
                 className={`py-2.5 px-2 rounded-lg text-sm font-semibold border transition-all text-center ${
                   form.status === s
-                    ? ESTILO_STATUS[s]
+                    ? ESTILO_STATUS[s as StatusOS]
                     : 'bg-brand-dark-4 border-brand-dark-5 text-gray-400 hover:border-brand-metal'
                 }`}>
                 {s}
@@ -570,9 +607,9 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         </h3>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          {CANAIS_ATENDIMENTO.map(canal => (
+          {CANAIS_ATENDIMENTO.map((canal: string) => (
             <button key={canal} type="button"
-              onClick={() => atualizar('canalAtendimento', form.canalAtendimento === canal ? null : canal)}
+              onClick={() => atualizar('canalAtendimento', form.canalAtendimento === canal ? null : canal as CanalAtendimento)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium border transition-all ${
                 form.canalAtendimento === canal
                   ? canal === 'WhatsApp'   ? 'bg-green-500/30 border-green-500/60 text-green-300'
@@ -582,7 +619,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                   :                         'bg-brand-metal/30 border-brand-metal/60 text-gray-300'
                   : 'bg-brand-dark-4 border-brand-dark-5 text-gray-400 hover:border-brand-metal hover:text-gray-200'
               }`}>
-              {ICONES_CANAL[canal]}
+              {ICONES_CANAL[canal as CanalAtendimento]}
               {canal}
             </button>
           ))}
