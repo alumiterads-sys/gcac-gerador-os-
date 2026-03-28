@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Recibo } from '../../types';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
+import { baixarPdfRecibo } from '../../services/geradorPdfRecibo';
 
 interface DetalheReciboProps {
   recibo: Recibo;
@@ -14,6 +15,19 @@ interface DetalheReciboProps {
 
 export function DetalheRecibo({ recibo }: DetalheReciboProps) {
   const navigate = useNavigate();
+  const [gerandoPdf, setGerandoPdf] = React.useState(false);
+
+  const handleBaixarPdf = async () => {
+    setGerandoPdf(true);
+    try {
+      await baixarPdfRecibo(recibo);
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err);
+      alert('Erro ao gerar arquivo PDF. Tente imprimir pelo navegador.');
+    } finally {
+      setGerandoPdf(false);
+    }
+  };
 
   const handleImprimir = () => {
     window.print();
@@ -57,6 +71,18 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
           >
             <Share2 size={18} />
             Compartilhar
+          </button>
+          <button 
+            onClick={handleBaixarPdf}
+            disabled={gerandoPdf}
+            className="btn-ghost"
+          >
+            {gerandoPdf ? (
+              <div className="w-4 h-4 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <FileText size={18} />
+            )}
+            {gerandoPdf ? 'Gerando...' : 'Baixar PDF'}
           </button>
           <button 
             onClick={handleImprimir}

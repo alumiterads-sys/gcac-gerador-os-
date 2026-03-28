@@ -179,12 +179,52 @@
 
 /* Print styles */
 @media print {
+  @page {
+    margin: 5mm;
+    size: auto;
+  }
+
   body {
     background: white !important;
     color: black !important;
+    overflow: visible !important;
   }
 
-  .no-print {
+  /* Esconde TUDO por padrão */
+  aside, 
+  nav, 
+  header, 
+  button, 
+  .no-print,
+  .print\:hidden {
     display: none !important;
+  }
+
+  /* Garante que o conteúdo principal ocupe a tela toda */
+  main, .flex-1 {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+
+  /* Estiliza o print-area para ocupar a página */
+  #print-area {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    visibility: visible !important;
+  }
+
+  /* Remove sombras e bordas escuras no print */
+  .shadow-2xl, .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  .border-brand-dark-5 {
+    border-color: #eee !important;
   }
 }
