@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Filter, ChevronRight, FileText } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { StatusOS } from '../../types';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
 
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
   { label: 'Todas',              valor: 'Todos' },
@@ -114,34 +114,38 @@ export function ListaOrdens() {
                 <p className="text-[10px] text-gray-500 truncate mt-0.5">{ordem.servicos ? ordem.servicos.map((s: any) => s.nome).join(', ') : (ordem as any).servico}</p>
                 
                 {/* Status de Execução Compacto */}
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className="mt-2 flex flex-col gap-1.5">
                   {ordem.servicos && ordem.servicos.length > 0 ? (
-                    <>
-                      {ordem.servicos.length === 1 ? (
-                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-tighter ${classeStatusExecucao(ordem.servicos[0].statusExecucao)}`}>
-                          <span>{iconeStatusExecucao(ordem.servicos[0].statusExecucao)}</span>
-                          <span>{ordem.servicos[0].statusExecucao || 'Não Iniciado'}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">
-                            {ordem.servicos.filter((s: any) => s.statusExecucao === 'Concluído').length}/{ordem.servicos.length} Concluídos
-                          </span>
-                          <div className="flex gap-0.5">
-                            {ordem.servicos.map((s: any, i: number) => (
-                              <div 
-                                key={i} 
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  s.statusExecucao === 'Concluído' ? 'bg-brand-green' :
-                                  s.statusExecucao === 'Não Iniciado' ? 'bg-gray-600' : 'bg-brand-blue'
-                                }`} 
-                                title={s.nome + ': ' + (s.statusExecucao || 'Não Iniciado')}
-                              />
-                            ))}
+                    (() => {
+                      const resumo = obterResumoExecucao(ordem.servicos);
+                      if (!resumo) return null;
+
+                      if (resumo.tipo === 'unificado') {
+                        return (
+                          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider w-fit shadow-sm ${resumo.classe}`}>
+                            <span>{resumo.icone}</span>
+                            <span>{resumo.texto}</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex flex-col gap-1 w-full max-w-[140px]">
+                          <div className="flex items-center justify-between gap-2">
+                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                              {resumo.texto}
+                            </span>
+                            <span className="text-[9px] font-bold text-brand-blue-light">{resumo.progresso}%</span>
+                          </div>
+                          <div className="w-full h-1 bg-brand-dark-5 rounded-full overflow-hidden border border-white/5">
+                            <div 
+                              className="h-full bg-brand-blue transition-all duration-500 shadow-[0_0_8px_rgba(45,141,224,0.4)]"
+                              style={{ width: `${resumo.progresso}%` }}
+                            />
                           </div>
                         </div>
-                      )}
-                    </>
+                      );
+                    })()
                   ) : (
                     <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter italic">Sem serviços</span>
                   )}

@@ -8,7 +8,7 @@ import { baixarPdf, imprimirPdf } from '../../services/geradorPdf';
 import { sincronizarOrdem } from '../../services/driveSync';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -28,7 +28,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const servicos = ordem.servicos || [];
   const totalServicos = servicos.length;
   const servicosConcluidos = servicos.filter(s => s.statusExecucao === 'Concluído').length;
-  const progresso = totalServicos > 0 ? (servicosConcluidos / totalServicos) * 100 : 0;
+  const progresso = calcularProgressoServicos(servicos);
 
   const handleBaixarPdf = async () => {
     setGerandoPdf(true);
@@ -180,11 +180,18 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         </div>
 
         {/* Barra de Progresso */}
-        <div className="w-full h-1.5 bg-brand-dark-4 rounded-full mb-6 overflow-hidden border border-brand-dark-5">
-          <div 
-            className="h-full bg-brand-green transition-all duration-500 ease-out"
-            style={{ width: `${progresso}%` }}
-          />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-2.5 bg-brand-dark-4 rounded-full overflow-hidden border border-brand-dark-5 shadow-inner">
+            <div 
+              className={`h-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(109,190,69,0.3)] ${
+                progresso === 100 ? 'bg-brand-green' : 'bg-brand-blue'
+              }`}
+              style={{ width: `${progresso}%` }}
+            />
+          </div>
+          <span className={`text-xs font-black min-w-[32px] text-right ${progresso === 100 ? 'text-brand-green' : 'text-brand-blue-light'}`}>
+            {progresso}%
+          </span>
         </div>
         
         {servicos && servicos.length > 0 ? (

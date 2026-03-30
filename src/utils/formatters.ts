@@ -108,3 +108,45 @@ export function parsearMoeda(valor: string): number {
 export function hoje(): string {
   return new Date().toISOString().split('T')[0];
 }
+
+export function calcularProgressoServicos(servicos: { statusExecucao?: StatusExecucaoServico }[]): number {
+  if (!servicos || servicos.length === 0) return 0;
+  
+  const pesos: Record<string, number> = {
+    'Não Iniciado': 0,
+    'Iniciado — Montando Processo': 25,
+    'Aguardando Documentos': 50,
+    'Protocolado — Ag. PF': 75,
+    'Concluído': 100,
+  };
+
+  const soma = servicos.reduce((acc, s) => acc + (pesos[s.statusExecucao || 'Não Iniciado'] || 0), 0);
+  return Math.round(soma / servicos.length);
+}
+
+export function obterResumoExecucao(servicos: { statusExecucao?: StatusExecucaoServico }[]) {
+  if (!servicos || servicos.length === 0) return null;
+
+  const statuses = servicos.map(s => s.statusExecucao || 'Não Iniciado');
+  const todosIguais = statuses.every(s => s === statuses[0]);
+  const statusUnico = statuses[0] as StatusExecucaoServico;
+
+  if (todosIguais) {
+    return {
+      texto: servicos.length === 1 ? statusUnico : `${servicos.length} Serviços: ${statusUnico}`,
+      classe: classeStatusExecucao(statusUnico),
+      icone: iconeStatusExecucao(statusUnico),
+      tipo: 'unificado' as const,
+      progresso: calcularProgressoServicos(servicos)
+    };
+  }
+
+  const concluidos = servicos.filter(s => s.statusExecucao === 'Concluído').length;
+  const progresso = calcularProgressoServicos(servicos);
+
+  return {
+    texto: `${concluidos}/${servicos.length} Concluídos`,
+    progresso,
+    tipo: 'misto' as const
+  };
+}
