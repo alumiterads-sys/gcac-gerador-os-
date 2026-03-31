@@ -96,7 +96,15 @@ export function FormularioRecibo() {
 
   const removerServico = (id: string) => {
     const novosServicos = form.servicos.filter(s => s.id !== id);
-    const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
+    const novoTotal = novosServicos.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
+    setForm(f => ({ ...f, servicos: novosServicos, valorTotal: novoTotal }));
+  };
+
+  const atualizarServico = (id: string, campo: string, valor: any) => {
+    const novosServicos = form.servicos.map(s => 
+      s.id === id ? { ...s, [campo]: valor } : s
+    );
+    const novoTotal = novosServicos.reduce((acc, s) => acc + (Number(s.valor) || 0), 0);
     setForm(f => ({ ...f, servicos: novosServicos, valorTotal: novoTotal }));
   };
 
@@ -257,9 +265,25 @@ export function FormularioRecibo() {
             ) : (
               form.servicos.map((s, index) => (
                 <div key={s.id} className="p-3 bg-brand-dark-4 border border-brand-dark-5 rounded-lg flex items-center justify-between gap-4 animate-scale-up">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{s.nome}</p>
-                    <p className="text-xs text-brand-green-light font-bold">{formatarMoeda(s.valor)}</p>
+                  <div className="flex-1 grid grid-cols-5 gap-3 items-center">
+                    <div className="col-span-3">
+                      <input 
+                        type="text"
+                        className="bg-transparent border-none text-sm font-bold text-white w-full focus:ring-0 uppercase p-0"
+                        value={s.nome}
+                        onChange={(e) => atualizarServico(s.id, 'nome', e.target.value.toUpperCase())}
+                      />
+                    </div>
+                    <div className="col-span-2 text-right flex items-center justify-end gap-1">
+                      <span className="text-[10px] text-brand-green-light font-bold">R$</span>
+                      <input 
+                        type="number"
+                        className="bg-transparent border-none text-sm text-brand-green-light font-black w-20 text-right focus:ring-0 p-0"
+                        value={s.valor}
+                        step="0.01"
+                        onChange={(e) => atualizarServico(s.id, 'valor', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
                   </div>
                   <button
                     type="button"
