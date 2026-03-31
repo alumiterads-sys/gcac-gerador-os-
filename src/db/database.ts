@@ -1,10 +1,12 @@
 import Dexie, { Table } from 'dexie';
-import { OrdemDeServico, FilaSincronizacao, Cliente } from '../types';
+import { OrdemDeServico, FilaSincronizacao, Cliente, Agendamento } from '../types';
 
 class GCACDatabase extends Dexie {
   ordensDeServico!: Table<OrdemDeServico, string>;
   filaDeSincronizacao!: Table<FilaSincronizacao, number>;
   clientes!: Table<Cliente, string>;
+  agendamentos!: Table<Agendamento, string>;
+
 
   constructor() {
     super('GCACGeradordOS');
@@ -16,6 +18,10 @@ class GCACDatabase extends Dexie {
 
     this.version(2).stores({
       clientes: 'id, cpf, nome, criadoEm'
+    });
+
+    this.version(3).stores({
+      agendamentos: 'id, tipo, clienteCPF, clienteNome, data, confirmado'
     });
   }
 }

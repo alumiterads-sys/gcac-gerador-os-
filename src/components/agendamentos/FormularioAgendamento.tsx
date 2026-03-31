@@ -1,0 +1,385 @@
+import React, { useState, useEffect } from 'react';
+import { Save, X, Users, Phone, MapPin, User, Crosshair, DollarSign, Calendar, Clock, Info } from 'lucide-react';
+import { Agendamento, TipoAgendamento, Cliente } from '../../types';
+import { useAgendamentos } from '../../context/AgendamentosContext';
+import { useClientes } from '../../context/ClientesContext';
+import { Notificacao, useNotificacao } from '../common/Notificacao';
+
+interface FormularioAgendamentoProps {
+  agendamentoExistente?: Agendamento;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+const DEFAULTS = {
+  'Psicológico': {
+    local: 'Clinica Metra (Em frente a Saneago)',
+    profissional: 'Millena Queluz',
+    valor: 300,
+  },
+  'Tiro': {
+    local: 'Clube de Tiro e caça Pró tiro',
+    profissional: 'Keoma',
+    valor: 350,
+  }
+};
+
+export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCancel }: FormularioAgendamentoProps) {
+  const { criarAgendamento, atualizarAgendamento, buscarAgendamentoPorCPF } = useAgendamentos();
+  const { clientes } = useClientes();
+  const { estado: notif, mostrar, fechar } = useNotificacao();
+  const [salvando, setSalvando] = useState(false);
+  const [focoNome, setFocoNome] = useState(false);
+
+  const [form, setForm] = useState({
+    tipo:               (agendamentoExistente?.tipo               ?? 'Psicológico') as TipoAgendamento,
+    clienteNome:        agendamentoExistente?.clienteNome       ?? '',
+    clienteCPF:         agendamentoExistente?.clienteCPF        ?? '',
+    clienteContato:     agendamentoExistente?.clienteContato    ?? '',
+    clienteEndereco:    agendamentoExistente?.clienteEndereco   ?? '',
+    arma:               agendamentoExistente?.arma              ?? '',
+    data:               agendamentoExistente?.data              ?? '',
+    horario:            agendamentoExistente?.horario           ?? '',
+    local:              agendamentoExistente?.local             ?? DEFAULTS['Psicológico'].local,
+    profissional:       agendamentoExistente?.profissional      ?? DEFAULTS['Psicológico'].profissional,
+    valor:              agendamentoExistente?.valor             ?? DEFAULTS['Psicológico'].valor,
+    dataPsicologico:    agendamentoExistente?.dataPsicologico    ?? '',
+    horarioPsicologico: agendamentoExistente?.horarioPsicologico ?? '',
+  });
+
+  const [erros, setErros] = useState<Record<string, string>>({});
+
+  const atualizar = (campo: string, valor: any) => {
+    setForm(f => {
+      const novoForm = { ...f, [campo]: valor };
+      
+      // Se mudar o tipo e não for edição, aplica os padrões
+      if (campo === 'tipo' && !agendamentoExistente) {
+        const defaults = DEFAULTS[valor as TipoAgendamento];
+        novoForm.local = defaults.local;
+        novoForm.profissional = defaults.profissional;
+        novoForm.valor = defaults.valor;
+      }
+
+      return novoForm;
+    });
+    setErros(e => { const n = { ...e }; delete n[campo]; return n; });
+  };
+
+  // Lógica de "Encontro de Agendamentos"
+  useEffect(() => {
+    if (form.tipo === 'Tiro' && form.clienteCPF.length >= 11 && !agendamentoExistente) {
+      const cpfLimpo = form.clienteCPF.replace(/\D/g, '');
+      if (cpfLimpo.length === 11) {
+        const agendamentoPsi = buscarAgendamentoPorCPF(form.clienteCPF, 'Psicológico');
+        if (agendamentoPsi) {
+          setForm(f => ({
+            ...f,
+            dataPsicologico: agendamentoPsi.data,
+            horarioPsicologico: agendamentoPsi.horario
+          }));
+          mostrar('info', `Encontramos um laudo psicológico para este cliente em ${agendamentoPsi.data}. Dados preenchidos.`);
+        }
+      }
+    }
+  }, [form.tipo, form.clienteCPF, buscarAgendamentoPorCPF, agendamentoExistente]);
+
+  const selecionarCliente = (c: Cliente) => {
+    setForm(f => ({
+      ...f,
+      clienteNome: c.nome,
+      clienteCPF: c.cpf,
+      clienteContato: c.contato,
+      clienteEndereco: '', // Endereço não costuma estar no objeto Cliente, mas pode ser adicionado
+    }));
+    setFocoNome(false);
+  };
+
+  const clientesSugeridos = clientes.filter(c => 
+    c.nome.toLowerCase().includes(form.clienteNome.toLowerCase()) && 
+    form.clienteNome.length > 0 && 
+    c.nome.toLowerCase() !== form.clienteNome.toLowerCase()
+  );
+
+  const handleCPF = (v: string) => {
+    const n = v.replace(/\D/g, '').slice(0, 11);
+    const f = n.replace(/(\d{3})(\d)/, '$1.$2')
+               .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+               .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+    atualizar('clienteCPF', f);
+  };
+
+  const handleTelefone = (v: string) => {
+    const n = v.replace(/\D/g, '').slice(0, 11);
+    const f = n.length <= 10
+      ? n.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
+      : n.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    atualizar('clienteContato', f);
+  };
+
+  const validar = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!form.clienteNome.trim()) e.clienteNome = 'Nome é obrigatório';
+    if (!form.clienteCPF.trim())  e.clienteCPF = 'CPF é obrigatório';
+    if (!form.clienteContato.trim()) e.clienteContato = 'Contato é obrigatório';
+    if (!form.data)               e.data        = 'Data é obrigatória';
+    if (!form.horario)            e.horario     = 'Horário é obrigatório';
+    if (!form.arma)               e.arma        = 'Informe a arma';
+    
+    setErros(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validar()) return;
+    
+    setSalvando(true);
+    try {
+      if (agendamentoExistente) {
+        await atualizarAgendamento(agendamentoExistente.id, form);
+        mostrar('sucesso', 'Agendamento atualizado com sucesso!');
+      } else {
+        await criarAgendamento(form);
+        mostrar('sucesso', 'Agendamento criado com sucesso!');
+      }
+      setTimeout(() => onSuccess?.(), 1000);
+    } catch (err) {
+      mostrar('erro', 'Erro ao salvar agendamento.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Tipo de Agendamento */}
+        <div className="flex gap-2 p-1 bg-brand-dark-3 rounded-xl border border-brand-dark-5">
+          {(['Psicológico', 'Tiro'] as TipoAgendamento[]).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => atualizar('tipo', t)}
+              className={`flex-1 py-3 px-4 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                form.tipo === t 
+                  ? t === 'Psicológico' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full ${form.tipo === t ? 'bg-white animate-pulse' : 'bg-gray-700'}`} />
+              Laudo {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Dados do Cliente */}
+        <div className="card space-y-4">
+          <h3 className="text-white font-bold flex items-center gap-2 mb-2">
+            <Users size={18} className="text-brand-blue" />
+            Dados do Cliente
+          </h3>
+          
+          <div className="relative">
+            <label className="label label-required">Nome Completo</label>
+            <input 
+              type="text" 
+              className={`input uppercase ${erros.clienteNome ? 'input-error' : ''}`}
+              placeholder="NOME DO CLIENTE"
+              value={form.clienteNome}
+              onChange={e => atualizar('clienteNome', e.target.value.toUpperCase())}
+              onFocus={() => setFocoNome(true)}
+              onBlur={() => setTimeout(() => setFocoNome(false), 200)}
+            />
+            {focoNome && clientesSugeridos.length > 0 && (
+              <div className="absolute left-0 top-[100%] z-50 w-full bg-brand-dark-3 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden mt-1 max-h-48 overflow-y-auto">
+                {clientesSugeridos.map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => selecionarCliente(c)}
+                    className="px-4 py-3 border-b border-brand-dark-5 hover:bg-brand-blue/20 cursor-pointer transition-colors"
+                  >
+                    <p className="text-sm font-bold text-white">{c.nome}</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">CPF: {c.cpf}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {erros.clienteNome && <p className="text-red-400 text-xs mt-1">{erros.clienteNome}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label label-required">CPF</label>
+              <input 
+                type="text" 
+                className={`input ${erros.clienteCPF ? 'input-error' : ''}`}
+                placeholder="000.000.000-00"
+                value={form.clienteCPF}
+                onChange={e => handleCPF(e.target.value)}
+              />
+              {erros.clienteCPF && <p className="text-red-400 text-xs mt-1">{erros.clienteCPF}</p>}
+            </div>
+            <div>
+              <label className="label label-required">Contato</label>
+              <input 
+                type="tel" 
+                className={`input ${erros.clienteContato ? 'input-error' : ''}`}
+                placeholder="(00) 00000-0000"
+                value={form.clienteContato}
+                onChange={e => handleTelefone(e.target.value)}
+              />
+              {erros.clienteContato && <p className="text-red-400 text-xs mt-1">{erros.clienteContato}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Endereço Completo</label>
+            <textarea 
+              className="input h-20 resize-none uppercase"
+              placeholder="RUA, NÚMERO, BAIRRO, CEP, CIDADE-UF"
+              value={form.clienteEndereco}
+              onChange={e => atualizar('clienteEndereco', e.target.value.toUpperCase())}
+            />
+          </div>
+        </div>
+
+        {/* Detalhes do Laudo */}
+        <div className="card space-y-4">
+          <h3 className="text-white font-bold flex items-center gap-2 mb-2">
+            <Calendar size={18} className="text-brand-blue" />
+            Detalhes do Laudo
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-1">
+              <label className="label label-required">Arma</label>
+              <input 
+                type="text" 
+                className={`input uppercase ${erros.arma ? 'input-error' : ''}`}
+                placeholder="EX: PISTOLA, CARABINA..."
+                value={form.arma}
+                onChange={e => atualizar('arma', e.target.value.toUpperCase())}
+              />
+              {erros.arma && <p className="text-red-400 text-xs mt-1">{erros.arma}</p>}
+            </div>
+            <div>
+              <label className="label label-required">Data</label>
+              <input 
+                type="date" 
+                className={`input ${erros.data ? 'input-error' : ''}`}
+                value={form.data}
+                onChange={e => atualizar('data', e.target.value)}
+              />
+              {erros.data && <p className="text-red-400 text-xs mt-1">{erros.data}</p>}
+            </div>
+            <div>
+              <label className="label label-required">Horário</label>
+              <input 
+                type="text" 
+                className={`input ${erros.horario ? 'input-error' : ''}`}
+                placeholder="Ex: 08h"
+                value={form.horario}
+                onChange={e => atualizar('horario', e.target.value)}
+              />
+              {erros.horario && <p className="text-red-400 text-xs mt-1">{erros.horario}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="label">Local </label>
+              <div className="relative">
+                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                  type="text" 
+                  className="input pl-10"
+                  value={form.local}
+                  onChange={e => atualizar('local', e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label">{form.tipo === 'Psicológico' ? 'Psicóloga' : 'Instrutor'}</label>
+              <div className="relative">
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                  type="text" 
+                  className="input pl-10"
+                  value={form.profissional}
+                  onChange={e => atualizar('profissional', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Valor Cobrado</label>
+            <div className="relative">
+              <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input 
+                type="number" 
+                className="input pl-10"
+                value={form.valor}
+                onChange={e => atualizar('valor', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Informação Adicional para Laudo de Tiro */}
+        {form.tipo === 'Tiro' && (
+          <div className="card space-y-4 border-l-4 border-l-brand-blue animate-in slide-in-from-left-4">
+            <h3 className="text-white font-bold flex items-center gap-2 mb-2">
+              <Info size={18} className="text-brand-blue" />
+              Vínculo com Psicológico
+            </h3>
+            <p className="text-gray-500 text-xs">
+              Informe a data e hora do laudo psicológico para constar no comunicado de tiro.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Data do Psicológico</label>
+                <input 
+                  type="date" 
+                  className="input"
+                  value={form.dataPsicologico}
+                  onChange={e => atualizar('dataPsicologico', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Horário do Psicológico</label>
+                <input 
+                  type="text" 
+                  className="input"
+                  placeholder="Ex: 08h"
+                  value={form.horarioPsicologico}
+                  onChange={e => atualizar('horarioPsicologico', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-4 pt-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="btn-ghost flex-1 py-4 h-auto"
+          >
+            <X size={18} /> Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={salvando}
+            className="btn-primary flex-1 py-4 h-auto shadow-lg shadow-brand-blue/20"
+          >
+            <Save size={18} />
+            {salvando ? 'Salvando...' : agendamentoExistente ? 'Atualizar Agendamento' : 'Salvar Agendamento'}
+          </button>
+        </div>
+      </form>
+      <Notificacao {...notif} onFechar={fechar} />
+    </div>
+  );
+}

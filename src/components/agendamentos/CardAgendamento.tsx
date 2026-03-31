@@ -1,0 +1,128 @@
+import React from 'react';
+import { Agendamento } from '../../types';
+import { formatarDataParaWhatsApp } from '../../utils/agendamentoFormatador';
+import { MapPin, User, Phone, Crosshair, Calendar, Clock, CheckCircle, Circle, Trash2, Edit2 } from 'lucide-react';
+import { useAgendamentos } from '../../context/AgendamentosContext';
+
+interface CardAgendamentoProps {
+  agendamento: Agendamento;
+  onEdit: (a: Agendamento) => void;
+  onView: (a: Agendamento) => void;
+}
+
+export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamentoProps) {
+  const { confirmarAgendamento, deletarAgendamento } = useAgendamentos();
+
+  const handleToggleConfirmar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    confirmarAgendamento(agendamento.id, !agendamento.confirmado);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
+      deletarAgendamento(agendamento.id);
+    }
+  };
+
+  return (
+    <div 
+      onClick={() => onView(agendamento)}
+      className={`bg-brand-dark-2 border p-4 rounded-xl cursor-pointer transition-all hover:border-brand-blue/50 ${
+        agendamento.confirmado ? 'border-brand-green/30 shadow-[0_0_15px_-5px_rgba(34,197,94,0.1)]' : 'border-brand-dark-5'
+      }`}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+            agendamento.tipo === 'Psicológico' ? 'bg-purple-500/20 text-purple-400' : 'bg-orange-500/20 text-orange-400'
+          }`}>
+            {agendamento.tipo}
+          </div>
+          {agendamento.confirmado ? (
+            <span className="flex items-center gap-1 text-brand-green text-[10px] font-bold">
+              <CheckCircle size={12} /> CONFIRMADO
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-gray-500 text-[10px] font-bold">
+              <Circle size={12} /> PENDENTE
+            </span>
+          ) }
+        </div>
+        
+        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+           <button 
+            onClick={handleToggleConfirmar}
+            title={agendamento.confirmado ? "Marcar como pendente" : "Confirmar agendamento"}
+            className={`p-1.5 rounded-lg transition-colors ${
+              agendamento.confirmado ? 'text-brand-green hover:bg-brand-green/10' : 'text-gray-500 hover:bg-gray-700'
+            }`}
+          >
+            <CheckCircle size={18} />
+          </button>
+          <button 
+            onClick={() => onEdit(agendamento)}
+            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            title="Editar agendamento"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={handleDelete}
+            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+            title="Excluir agendamento"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+
+      <h3 className="font-bold text-white text-lg mb-1 truncate">{agendamento.clienteNome}</h3>
+      <p className="text-gray-400 text-xs mb-4 flex items-center gap-1">
+        <Phone size={12} className="text-brand-blue" /> {agendamento.clienteContato}
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-brand-dark-3 p-2 rounded-lg border border-brand-dark-5">
+          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1 flex items-center gap-1">
+            <Calendar size={10} /> Data
+          </p>
+          <p className="text-white text-xs font-medium">{formatarDataParaWhatsApp(agendamento.data).split(' ')[0]}</p>
+        </div>
+        <div className="bg-brand-dark-3 p-2 rounded-lg border border-brand-dark-5">
+          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1 flex items-center gap-1">
+            <Clock size={10} /> Horário
+          </p>
+          <p className="text-white text-xs font-medium">{agendamento.horario}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-start gap-2 text-xs">
+          <MapPin size={14} className="text-brand-blue flex-shrink-0 mt-0.5" />
+          <span className="text-gray-300 line-clamp-1">{agendamento.local}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <User size={14} className="text-brand-blue flex-shrink-0" />
+          <span className="text-gray-300">{agendamento.profissional}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <Crosshair size={14} className="text-brand-blue flex-shrink-0" />
+          <span className="text-gray-300">Arma: {agendamento.arma}</span>
+        </div>
+      </div>
+      
+      <div className="mt-4 pt-3 border-t border-brand-dark-5 flex justify-between items-center">
+        <span className="text-brand-blue-light font-bold">
+          {agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </span>
+        <button 
+          onClick={(e) => { e.stopPropagation(); onView(agendamento); }}
+          className="text-[10px] text-brand-blue hover:text-brand-blue-light font-bold uppercase tracking-wider transition-colors"
+        >
+          Confirmar p/ Cliente
+        </button>
+      </div>
+    </div>
+  );
+}

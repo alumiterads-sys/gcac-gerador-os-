@@ -29,6 +29,10 @@ import { ListaRecibos } from './components/recibos/ListaRecibos';
 import { FormularioRecibo } from './components/recibos/FormularioRecibo';
 import { DetalheRecibo } from './components/recibos/DetalheRecibo';
 
+// Importações dos Agendamentos
+import { AgendamentosProvider } from './context/AgendamentosContext';
+import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
+
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // ── Páginas de Ordens ────────────────────────────────────────────────────
@@ -150,7 +154,8 @@ export default function App() {
             <ClientesProvider>
               <ServicosProvider>
                 <RecibosProvider>
-                  <BrowserRouter>
+                  <AgendamentosProvider>
+                    <BrowserRouter>
                     <Routes>
                     {/* Login */}
                     <Route path="/login" element={<PaginaLoginGuard />} />
@@ -173,6 +178,7 @@ export default function App() {
                       <Route path="ordens/:id" element={<PaginaDetalheOrdem />} />
                       <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
                       <Route path="clientes" element={<ListaClientes />} />
+                      <Route path="agendamentos" element={<ListaAgendamentos />} />
                       <Route path="configuracoes" element={<Configuracoes />} />
                       
                       {/* Orçamentos */}
@@ -200,8 +206,9 @@ export default function App() {
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </BrowserRouter>
-              </RecibosProvider>
-            </ServicosProvider>
+                  </AgendamentosProvider>
+                </RecibosProvider>
+              </ServicosProvider>
           </ClientesProvider>
         </OrcamentosProvider>
       </OrdensProvider>

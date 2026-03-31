@@ -237,3 +237,25 @@ export const STATUS_EXECUCAO_SERVICO: StatusExecucaoServico[] = [
   'Protocolado — Ag. PF',
   'Concluído',
 ];
+
+export type TipoAgendamento = 'Psicológico' | 'Tiro';
+
+export interface Agendamento {
+  id: string;
+  tipo: TipoAgendamento;
+  clienteNome: string;
+  clienteCPF: string;
+  clienteContato: string;
+  clienteEndereco: string;
+  arma: string;
+  data: string; // YYYY-MM-DD
+  horario: string;
+  local: string;
+  profissional: string;
+  valor: number;
+  dataPsicologico?: string;
+  horarioPsicologico?: string;
+  confirmado: boolean;
+  criadoEm: string;
+}
+

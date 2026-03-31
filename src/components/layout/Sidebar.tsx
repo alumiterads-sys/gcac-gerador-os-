@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
@@ -13,6 +13,7 @@ const links = [
   { to: '/orcamentos',label: 'Orçamentos',     icon: Receipt },
   { to: '/ordens',    label: 'Ordens de Serviço', icon: FileText },
   { to: '/recibos',   label: 'Recibos',           icon: Receipt },
+  { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
   { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
