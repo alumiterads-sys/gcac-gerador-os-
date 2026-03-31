@@ -91,7 +91,12 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       .select()
       .single();
 
-    if (error || !data) throw error || new Error('Falha ao criar agendamento');
+    if (error) {
+      console.error('Erro Supabase ao criar agendamento:', error);
+      throw error;
+    }
+    
+    if (!data) throw new Error('Falha ao criar agendamento: nenhum dado retornado');
     
     await carregarAgendamentos();
     return data.id;

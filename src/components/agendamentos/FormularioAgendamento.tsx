@@ -144,8 +144,10 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
         mostrar('sucesso', 'Agendamento criado com sucesso!');
       }
       setTimeout(() => onSuccess?.(), 1000);
-    } catch (err) {
-      mostrar('erro', 'Erro ao salvar agendamento.');
+    } catch (err: any) {
+      console.error('Erro ao salvar agendamento:', err);
+      const msg = err.message || 'Erro ao salvar agendamento.';
+      mostrar('erro', msg);
     } finally {
       setSalvando(false);
     }
