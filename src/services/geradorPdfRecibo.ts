@@ -147,15 +147,15 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
   doc.setTextColor(CINZA_TEXTO);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('FORMA DE PAGAMENTO', largura - 80, y + 10);
+  doc.text('FORMA DE PAGAMENTO', 18, y + 10);
   doc.setTextColor(ESCURO_BRAND);
   doc.text(recibo.formaPagamento.toUpperCase(), largura - 18, y + 10, { align: 'right' });
 
   doc.setLineWidth(0.5);
-  doc.line(largura - 80, y + 15, largura - 18, y + 15);
+  doc.line(18, y + 15, largura - 18, y + 15);
 
   doc.setTextColor(CINZA_TEXTO);
-  doc.text('VALOR TOTAL DO RECIBO', largura - 80, y + 24);
+  doc.text('VALOR TOTAL DO RECIBO', 18, y + 24);
   doc.setTextColor(AZUL_BRAND);
   doc.setFontSize(18);
   doc.text(formatarMoeda(recibo.valorTotal), largura - 18, y + 25, { align: 'right' });
