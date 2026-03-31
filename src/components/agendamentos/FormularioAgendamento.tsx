@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Save, X, Users, Phone, MapPin, User, Crosshair, DollarSign, Calendar, Clock, Info } from 'lucide-react';
+import { Save, X, Users, Phone, MapPin, User, Crosshair, DollarSign, Calendar, Clock, Info, CheckCircle } from 'lucide-react';
 import { Agendamento, TipoAgendamento, Cliente } from '../../types';
 import { useAgendamentos } from '../../context/AgendamentosContext';
 import { useClientes } from '../../context/ClientesContext';
+import { useAuth } from '../../context/AuthContext';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 interface FormularioAgendamentoProps {
@@ -31,6 +32,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
   const [salvando, setSalvando] = useState(false);
   const [focoNome, setFocoNome] = useState(false);
 
+  const { usuario } = useAuth();
   const [form, setForm] = useState({
     tipo:               (agendamentoExistente?.tipo               ?? 'Psicológico') as TipoAgendamento,
     clienteNome:        agendamentoExistente?.clienteNome       ?? '',
@@ -41,8 +43,10 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     data:               agendamentoExistente?.data              ?? '',
     horario:            agendamentoExistente?.horario           ?? '',
     local:              agendamentoExistente?.local             ?? DEFAULTS['Psicológico'].local,
-    profissional:       agendamentoExistente?.profissional      ?? DEFAULTS['Psicológico'].profissional,
+    profissional:       agendamentoExistente?.profissional      ?? (usuario?.role === 'instrutor' ? usuario.nome : DEFAULTS['Psicológico'].profissional),
     valor:              agendamentoExistente?.valor             ?? DEFAULTS['Psicológico'].valor,
+    despachante:        agendamentoExistente?.despachante       ?? 'GCAC / Guilherme',
+    enviadoPF:          agendamentoExistente?.enviadoPF         ?? false,
     dataPsicologico:    agendamentoExistente?.dataPsicologico    ?? '',
     horarioPsicologico: agendamentoExistente?.horarioPsicologico ?? '',
   });
@@ -154,19 +158,37 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     return Object.keys(e).length === 0;
   };
 
+  const avisarInstrutor = (id: string) => {
+    const dataFmt = form.data.split('-').reverse().join('/');
+    const texto = `*Aviso de Novo Agendamento* ✅\n\nInstrutor Keoma, você tem um novo laudo de tiro agendado:\n\n*Cliente:* ${form.clienteNome}\n*CPF:* ${form.clienteCPF}\n*Arma:* ${form.arma}\n*Data:* ${dataFmt} às ${form.horario}\n*Local:* ${form.local}\n\nPor favor, confirme sua presença acessando o sistema.`;
+    
+    const fone = '5564999352661';
+    const url = `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
     
     setSalvando(true);
     try {
+      let id = agendamentoExistente?.id;
       if (agendamentoExistente) {
         await atualizarAgendamento(agendamentoExistente.id, form);
         mostrar('sucesso', 'Agendamento atualizado com sucesso!');
       } else {
-        await criarAgendamento(form);
+        id = await criarAgendamento(form);
         mostrar('sucesso', 'Agendamento criado com sucesso!');
       }
+
+      // Se for Tiro e o profissional for Keoma, oferece a notificação
+      if (form.tipo === 'Tiro' && form.profissional.toLowerCase().includes('keoma')) {
+        if (window.confirm('Agendamento salvo! Deseja enviar o aviso para o WhatsApp do Instrutor Keoma agora?')) {
+          avisarInstrutor(id!);
+        }
+      }
+
       setTimeout(() => onSuccess?.(), 1000);
     } catch (err: any) {
       console.error('Erro ao salvar agendamento:', err);
@@ -337,7 +359,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div>
               <label className="label">Local </label>
               <div className="relative">
@@ -345,9 +367,17 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                 <input 
                   type="text" 
                   className="input pl-10"
+                  list="lista-clubes"
+                  placeholder="EX: CLUBE PRO TIRO"
                   value={form.local}
-                  onChange={e => atualizar('local', e.target.value)}
+                  onChange={e => atualizar('local', e.target.value.toUpperCase())}
                 />
+                <datalist id="lista-clubes">
+                  <option value="CLUBE DE TIRO E CAÇA PRÓ TIRO (JATAÍ)" />
+                  <option value="CLUBE DE TIRO ARMAZÉM DO CAC" />
+                  <option value="CLUBE DE TIRO E CAÇA DO PANTANAL" />
+                  <option value="CLÍNICA METRA" />
+                </datalist>
               </div>
             </div>
             <div>
@@ -360,6 +390,26 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                   value={form.profissional}
                   onChange={e => atualizar('profissional', e.target.value)}
                 />
+              </div>
+            </div>
+            <div>
+              <label className="label text-brand-blue-light font-bold">Despachante Responsável</label>
+              <div className="relative">
+                <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                  type="text" 
+                  className={`input pl-10 ${usuario?.role === 'instrutor' ? 'border-brand-blue/30 focus:border-brand-blue' : ''}`}
+                  list="lista-despachantes"
+                  placeholder="EX: GCAC / GUILHERME"
+                  value={form.despachante}
+                  onChange={e => atualizar('despachante', e.target.value.toUpperCase())}
+                />
+                <datalist id="lista-despachantes">
+                  <option value="GCAC / GUILHERME" />
+                  <option value="PARTICULAR — CLIENTE DIRETO" />
+                  <option value="CLUBE PRO TIRO" />
+                  <option value="OUTRO DESPACHANTE" />
+                </datalist>
               </div>
             </div>
           </div>
@@ -408,6 +458,26 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                   onChange={e => atualizar('horarioPsicologico', e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="sm:col-span-2 pt-2">
+              <label className="flex items-center gap-3 cursor-pointer group bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 hover:border-brand-blue/30 transition-all">
+                <div className="relative">
+                  <input 
+                    type="checkbox"
+                    className="sr-only"
+                    checked={form.enviadoPF}
+                    onChange={e => atualizar('enviadoPF', e.target.checked)}
+                  />
+                  <div className={`w-10 h-6 rounded-full transition-colors ${form.enviadoPF ? 'bg-brand-blue' : 'bg-gray-700'}`} />
+                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${form.enviadoPF ? 'translate-x-4' : ''}`} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white group-hover:text-brand-blue-light transition-colors">Informamos a Polícia Federal?</p>
+                  <p className="text-[10px] text-gray-500 uppercase font-medium">Controle de envio de e-mail ao órgão fiscalizador</p>
+                </div>
+                {form.enviadoPF && <CheckCircle size={18} className="text-brand-blue animate-in zoom-in" />}
+              </label>
             </div>
           </div>
         )}

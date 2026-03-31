@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, useState, useEffect } fr
 import { Agendamento, TipoAgendamento } from '../types';
 import { supabase } from '../db/supabase';
 import { useAuth } from './AuthContext';
+import { useNotificacoesSistema } from './NotificacoesSistemaContext';
 
 interface AgendamentosContextType {
   agendamentos: Agendamento[];
@@ -10,6 +11,8 @@ interface AgendamentosContextType {
   atualizarAgendamento: (id: string, dados: Partial<Agendamento>) => Promise<void>;
   deletarAgendamento: (id: string) => Promise<void>;
   confirmarAgendamento: (id: string, confirmado: boolean) => Promise<void>;
+  confirmarAgendamentoInstrutor: (id: string, confirmado: boolean) => Promise<void>;
+  finalizarLaudo: (id: string) => Promise<void>;
   buscarAgendamentoPorCPF: (cpf: string, tipo?: TipoAgendamento) => Agendamento | undefined;
 }
 
@@ -31,6 +34,11 @@ const mapFromDB = (row: any): Agendamento => ({
   dataPsicologico: row.data_psicologico || undefined,
   horarioPsicologico: row.horario_psicologico || undefined,
   confirmado: row.confirmado,
+  confirmadoInstrutor: row.confirmado_instrutor,
+  despachante: row.despachante || 'GCAC / Guilherme',
+  enviadoPF: row.enviado_pf || false,
+  usuarioId: row.usuario_id,
+  status: row.status || 'pendente',
   criadoEm: row.criado_em,
 });
 
@@ -50,11 +58,17 @@ const mapToDB = (dados: any) => {
   if (dados.dataPsicologico !== undefined) payload.data_psicologico = dados.dataPsicologico || null;
   if (dados.horarioPsicologico !== undefined) payload.horario_psicologico = dados.horarioPsicologico || null;
   if (dados.confirmado !== undefined) payload.confirmado = dados.confirmado;
+  if (dados.confirmadoInstrutor !== undefined) payload.confirmado_instrutor = dados.confirmadoInstrutor;
+  if (dados.despachante !== undefined) payload.despachante = dados.despachante;
+  if (dados.enviadoPF !== undefined) payload.enviado_pf = dados.enviadoPF;
+  if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
+  if (dados.status !== undefined) payload.status = dados.status;
   return payload;
 };
 
 export function AgendamentosProvider({ children }: { children: React.ReactNode }) {
-  const { estaAutenticado } = useAuth();
+  const { usuario, estaAutenticado } = useAuth();
+  const { enviarNotificacao } = useNotificacoesSistema();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [estaCarregando, setEstaCarregando] = useState(true);
 
@@ -62,10 +76,18 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     if (!estaAutenticado) return;
     
     setEstaCarregando(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('agendamentos')
       .select('*')
       .order('data', { ascending: false });
+    
+    // Se for instrutor, filtra apenas os seus próprios dados (Multi-Tenant)
+    // O Administrador (Guilherme) continua vendo tudo
+    if (usuario?.role === 'instrutor') {
+      query = query.eq('usuario_id', usuario.id);
+    }
+    
+    const { data, error } = await query;
     
     if (!error && data) {
       setAgendamentos(data.map(mapFromDB));
@@ -82,6 +104,8 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
   ): Promise<string> => {
     const payload = {
       ...mapToDB(dados),
+      usuario_id: usuario?.id,
+      status: 'pendente',
       confirmado: false
     };
 
@@ -98,6 +122,15 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     
     if (!data) throw new Error('Falha ao criar agendamento: nenhum dado retornado');
     
+    // Notificar Admin apenas se for Instrutor E se o despacho for para GCAC
+    if (usuario?.role === 'instrutor' && dados.despachante === 'GCAC / Guilherme') {
+      enviarNotificacao({
+        titulo: 'Novo Agendamento por Keoma',
+        mensagem: `Keoma agendou um laudo para ${dados.clienteNome} no dia ${dados.data.split('-').reverse().join('/')}.`,
+        tipo: 'sucesso'
+      }).then();
+    }
+
     await carregarAgendamentos();
     return data.id;
   }, [carregarAgendamentos]);
@@ -109,8 +142,18 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       .eq('id', id);
 
     if (error) throw error;
+
+    // Notificar Admin apenas se for Instrutor E se o despacho for para GCAC
+    if (usuario?.role === 'instrutor' && dados.despachante === 'GCAC / Guilherme') {
+      enviarNotificacao({
+        titulo: 'Agendamento Atualizado',
+        mensagem: `Keoma atualizou o agendamento de ${dados.clienteNome || 'um cliente'}.`,
+        tipo: 'info'
+      }).then();
+    }
+
     await carregarAgendamentos();
-  }, [carregarAgendamentos]);
+  }, [carregarAgendamentos, usuario?.role, enviarNotificacao]);
 
   const deletarAgendamento = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -132,6 +175,26 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     await carregarAgendamentos();
   }, [carregarAgendamentos]);
 
+  const confirmarAgendamentoInstrutor = useCallback(async (id: string, confirmado: boolean) => {
+    const { error } = await supabase
+      .from('agendamentos')
+      .update({ confirmado_instrutor: confirmado })
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarAgendamentos();
+  }, [carregarAgendamentos]);
+
+  const finalizarLaudo = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('agendamentos')
+      .update({ status: 'realizado' })
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarAgendamentos();
+  }, [carregarAgendamentos]);
+
   const buscarAgendamentoPorCPF = useCallback((cpf: string, tipo?: TipoAgendamento) => {
     return agendamentos.find(a => 
       a.clienteCPF === cpf && (!tipo || a.tipo === tipo)
@@ -146,6 +209,8 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       atualizarAgendamento,
       deletarAgendamento,
       confirmarAgendamento,
+      confirmarAgendamentoInstrutor,
+      finalizarLaudo,
       buscarAgendamentoPorCPF
     }}>
       {children}

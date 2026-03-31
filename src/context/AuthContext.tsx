@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { UsuarioGoogle } from '../types';
+import { supabase } from '../db/supabase';
 
 interface AuthContextType {
   usuario: UsuarioGoogle | null;
@@ -34,10 +35,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       const info = await res.json();
 
-      // Cadeado de segurança: apenas este email pode usar o sistema
-      const EMAILS_PERMITIDOS = ['gui.gomesassis@gmail.com'];
-      if (!EMAILS_PERMITIDOS.includes(info.email.toLowerCase())) {
+      // 1. Busca o perfil pelo E-MAIL (forma mais segura de pré-cadastro)
+      let { data: perfil, error: errorPerfil } = await supabase
+        .from('perfis')
+        .select('*')
+        .eq('email', info.email.toLowerCase())
+        .single();
+      
+      if (errorPerfil || !perfil) {
+        console.error('Perfil não encontrado no banco:', info.email);
         throw new Error('ACESSO_REJEITADO');
+      }
+
+      // 2. Se o ID no banco for diferente do Google Sub (primeiro acesso ou troca de conta)
+      // atualizamos o ID para garantir o funcionamento do RLS futuramente.
+      if (perfil.id !== info.sub) {
+        const { error: errorUpdate } = await supabase
+          .from('perfis')
+          .update({ id: info.sub })
+          .eq('email', info.email.toLowerCase());
+          
+        if (!errorUpdate) {
+          perfil.id = info.sub;
+        }
+      }
+
+      if (!perfil.ativo) {
+        throw new Error('CONTA_DESATIVADA');
       }
 
       const novoUsuario: UsuarioGoogle = {
@@ -46,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: info.email,
         fotoPerfil: info.picture,
         accessToken: tokenResponse.access_token,
+        role: perfil.role as 'admin' | 'instrutor',
       };
 
       setUsuario(novoUsuario);

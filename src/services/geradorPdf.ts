@@ -101,7 +101,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     // Calcula linhas do bloco de detalhe e altura final
     doc.setFontSize(9.5);
     const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
-    const alturaBloco = serv.detalhes ? (12 + (linhasDetalhe.length * 5.5)) : 14;
+    const alturaBloco = serv.detalhes ? (10 + (linhasDetalhe.length * 4.5)) : 11;
 
     doc.setFillColor('#F8F9FA');
     doc.setDrawColor(LINHA);
@@ -112,17 +112,17 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     doc.setTextColor(ESCURO);
     doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(serv.nome.toUpperCase(), 17, y + 7);
+    doc.text(serv.nome.toUpperCase(), 17, y + 6);
 
     // Imprimir Detalhes em NORMAL, alinhados sutilmente
     if (serv.detalhes && serv.detalhes.trim()) {
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor('#444444');
-      doc.text(linhasDetalhe, 17, y + 13);
+      doc.text(linhasDetalhe, 17, y + 11);
     }
     
-    y += alturaBloco + 3; // espaçamento de um card pro outro
+    y += alturaBloco + 2; // espaçamento de um card pro outro
   });
 
   y += 2;

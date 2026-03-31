@@ -1,8 +1,9 @@
 import React from 'react';
 import { Agendamento } from '../../types';
 import { formatarDataParaWhatsApp } from '../../utils/agendamentoFormatador';
-import { MapPin, User, Phone, Crosshair, Calendar, Clock, CheckCircle, Circle, Trash2, Edit2 } from 'lucide-react';
+import { MapPin, User, Phone, Crosshair, Calendar, Clock, CheckCircle, Circle, Trash2, Edit2, Eye, Users } from 'lucide-react';
 import { useAgendamentos } from '../../context/AgendamentosContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface CardAgendamentoProps {
   agendamento: Agendamento;
@@ -11,11 +12,19 @@ interface CardAgendamentoProps {
 }
 
 export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamentoProps) {
-  const { confirmarAgendamento, deletarAgendamento } = useAgendamentos();
+  const { usuario } = useAuth();
+  const { confirmarAgendamento, confirmarAgendamentoInstrutor, finalizarLaudo, deletarAgendamento } = useAgendamentos();
+
+  const isInstrutor = usuario?.role === 'instrutor';
 
   const handleToggleConfirmar = (e: React.MouseEvent) => {
     e.stopPropagation();
     confirmarAgendamento(agendamento.id, !agendamento.confirmado);
+  };
+
+  const handleToggleConfirmarInstrutor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    confirmarAgendamentoInstrutor(agendamento.id, !agendamento.confirmadoInstrutor);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -33,47 +42,76 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
       }`}
     >
       <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-2">
-          <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-            agendamento.tipo === 'Psicológico' ? 'bg-purple-500/20 text-purple-400' : 'bg-orange-500/20 text-orange-400'
-          }`}>
-            {agendamento.tipo}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+              agendamento.tipo === 'Psicológico' ? 'bg-purple-500/20 text-purple-400' : 'bg-orange-500/20 text-orange-400'
+            }`}>
+              {agendamento.tipo}
+            </div>
+            {agendamento.confirmado ? (
+              <span className="flex items-center gap-1 text-brand-green text-[10px] font-bold">
+                <CheckCircle size={12} /> CLIENTE OK
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-gray-500 text-[10px] font-bold">
+                <Circle size={12} /> AG. CLIENTE
+              </span>
+            ) }
+            {agendamento.status === 'realizado' && (
+              <span className="flex items-center gap-1 text-brand-blue-light text-[10px] font-black bg-brand-blue/10 px-2 py-1 rounded border border-brand-blue/20">
+                <CheckCircle size={12} /> REALIZADO
+              </span>
+            )}
           </div>
-          {agendamento.confirmado ? (
-            <span className="flex items-center gap-1 text-brand-green text-[10px] font-bold">
-              <CheckCircle size={12} /> CONFIRMADO
+          {agendamento.confirmadoInstrutor && (
+            <span className="flex items-center gap-1 text-brand-blue-light text-[9px] font-bold mt-1 bg-brand-blue/10 px-1.5 py-0.5 rounded w-fit">
+              <Eye size={10} /> INSTRUTOR CONFIRMOU
             </span>
-          ) : (
-            <span className="flex items-center gap-1 text-gray-500 text-[10px] font-bold">
-              <Circle size={12} /> PENDENTE
-            </span>
-          ) }
+          )}
         </div>
         
-        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-           <button 
-            onClick={handleToggleConfirmar}
-            title={agendamento.confirmado ? "Marcar como pendente" : "Confirmar agendamento"}
-            className={`p-1.5 rounded-lg transition-colors ${
-              agendamento.confirmado ? 'text-brand-green hover:bg-brand-green/10' : 'text-gray-500 hover:bg-gray-700'
-            }`}
-          >
-            <CheckCircle size={18} />
-          </button>
-          <button 
-            onClick={() => onEdit(agendamento)}
-            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-            title="Editar agendamento"
-          >
-            <Edit2 size={16} />
-          </button>
-          <button 
-            onClick={handleDelete}
-            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
-            title="Excluir agendamento"
-          >
-            <Trash2 size={16} />
-          </button>
+        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+          {isInstrutor ? (
+            <button 
+              onClick={handleToggleConfirmarInstrutor}
+              title={agendamento.confirmadoInstrutor ? "Remover minha confirmação" : "Confirmar que vi e estarei presente"}
+              className={`p-2 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold ${
+                agendamento.confirmadoInstrutor 
+                  ? 'bg-brand-blue/20 text-brand-blue-light border border-brand-blue/30' 
+                  : 'bg-brand-dark-3 text-gray-400 border border-brand-dark-5 hover:border-brand-blue'
+              }`}
+            >
+              <CheckCircle size={16} />
+              {agendamento.confirmadoInstrutor ? 'VISTO' : 'CONFIRMAR'}
+            </button>
+          ) : (
+            <>
+              <button 
+                onClick={handleToggleConfirmar}
+                title={agendamento.confirmado ? "Marcar como pendente" : "Confirmar agendamento"}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  agendamento.confirmado ? 'text-brand-green hover:bg-brand-green/10' : 'text-gray-500 hover:bg-gray-700'
+                }`}
+              >
+                <CheckCircle size={18} />
+              </button>
+              <button 
+                onClick={() => onEdit(agendamento)}
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+                title="Editar agendamento"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button 
+                onClick={handleDelete}
+                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+                title="Excluir agendamento"
+              >
+                <Trash2 size={16} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -110,6 +148,18 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
           <Crosshair size={14} className="text-brand-blue flex-shrink-0" />
           <span className="text-gray-300">Arma: {agendamento.arma}</span>
         </div>
+        <div className="flex items-center justify-between gap-2 text-xs border-t border-brand-dark-5 pt-2 mt-1">
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-brand-green flex-shrink-0" />
+            <span className="text-gray-300 text-[10px] font-bold uppercase tracking-tight">Despacho: {agendamento.despachante}</span>
+          </div>
+          {agendamento.enviadoPF && (
+            <div className="flex items-center gap-1 bg-brand-blue/10 text-brand-blue-light px-1.5 py-0.5 rounded border border-brand-blue/20 animate-pulse">
+              <CheckCircle size={10} />
+              <span className="text-[8px] font-black uppercase">PF OK</span>
+            </div>
+          )}
+        </div>
       </div>
       
       <div className="mt-4 pt-3 border-t border-brand-dark-5 flex justify-between items-center">
@@ -122,6 +172,15 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
         >
           Confirmar p/ Cliente
         </button>
+
+        {isInstrutor && agendamento.status === 'pendente' && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); if (window.confirm('Marcar este laudo como realizado? Ele irá para o seu histórico.')) finalizarLaudo(agendamento.id); }}
+            className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/20 text-brand-green-light border border-brand-green/30 rounded-lg text-[10px] font-black hover:bg-brand-green/30 transition-all ml-2"
+          >
+            <CheckCircle size={14} /> FINALIZAR
+          </button>
+        )}
       </div>
     </div>
   );

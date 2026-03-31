@@ -32,6 +32,8 @@ import { DetalheRecibo } from './components/recibos/DetalheRecibo';
 // Importações dos Agendamentos
 import { AgendamentosProvider } from './context/AgendamentosContext';
 import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
+import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContext';
+import { GestaoInstrutores } from './components/instrutores/GestaoInstrutores';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -125,8 +127,8 @@ function PaginaDetalheRecibo() {
 
 // ── Guard de Autenticação ────────────────────────────────────────────────
 
-function RotaProtegida({ children }: { children: React.ReactNode }) {
-  const { estaAutenticado, estaCarregando } = useAuth();
+function RotaProtegida({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
+  const { usuario, estaAutenticado, estaCarregando } = useAuth();
 
   if (estaCarregando) {
     return (
@@ -140,7 +142,19 @@ function RotaProtegida({ children }: { children: React.ReactNode }) {
   }
 
   if (!estaAutenticado) return <Navigate to="/login" replace />;
+
+  // Se a rota for administrativa e o usuário for instrutor, redireciona para sua área
+  if (adminOnly && usuario?.role === 'instrutor') {
+    return <Navigate to="/agendamentos" replace />;
+  }
+
   return <>{children}</>;
+}
+
+function ProtecaoIndex() {
+  const { usuario } = useAuth();
+  if (usuario?.role === 'instrutor') return <Navigate to="/agendamentos" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 // ── App Principal ────────────────────────────────────────────────────────
@@ -149,12 +163,13 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={CLIENT_ID}>
       <AuthProvider>
-        <OrdensProvider>
-          <OrcamentosProvider>
-            <ClientesProvider>
-              <ServicosProvider>
-                <RecibosProvider>
-                  <AgendamentosProvider>
+        <NotificacoesSistemaProvider>
+          <OrdensProvider>
+            <OrcamentosProvider>
+              <ClientesProvider>
+                <ServicosProvider>
+                  <RecibosProvider>
+                    <AgendamentosProvider>
                     <BrowserRouter>
                     <Routes>
                     {/* Login */}
@@ -166,54 +181,62 @@ export default function App() {
                         <AppShell />
                       </RotaProtegida>
                     }>
-                      <Route index element={<Navigate to="/dashboard" replace />} />
-                      <Route path="dashboard" element={<Dashboard />} />
-                      <Route path="ordens" element={<ListaOrdens />} />
+                      <Route index element={<ProtecaoIndex />} />
+                      <Route path="dashboard" element={<RotaProtegida adminOnly><Dashboard /></RotaProtegida>} />
+                      <Route path="ordens" element={<RotaProtegida adminOnly><ListaOrdens /></RotaProtegida>} />
                       <Route path="ordens/nova" element={
-                        <div>
-                          <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
-                          <FormularioOrdem />
-                        </div>
+                        <RotaProtegida adminOnly>
+                          <div>
+                            <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
+                            <FormularioOrdem />
+                          </div>
+                        </RotaProtegida>
                       } />
-                      <Route path="ordens/:id" element={<PaginaDetalheOrdem />} />
-                      <Route path="ordens/:id/editar" element={<PaginaEditarOrdem />} />
-                      <Route path="clientes" element={<ListaClientes />} />
+                      <Route path="ordens/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrdem /></RotaProtegida>} />
+                      <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
+                      <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
                       <Route path="agendamentos" element={<ListaAgendamentos />} />
-                      <Route path="configuracoes" element={<Configuracoes />} />
+                      <Route path="instrutores" element={<RotaProtegida adminOnly><GestaoInstrutores /></RotaProtegida>} />
+                      <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
                       
                       {/* Orçamentos */}
-                      <Route path="orcamentos" element={<ListaOrcamentos />} />
+                      <Route path="orcamentos" element={<RotaProtegida adminOnly><ListaOrcamentos /></RotaProtegida>} />
                       <Route path="orcamentos/novo" element={
-                        <div>
-                          <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
-                          <FormularioOrcamento />
-                        </div>
+                        <RotaProtegida adminOnly>
+                          <div>
+                            <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
+                            <FormularioOrcamento />
+                          </div>
+                        </RotaProtegida>
                       } />
-                      <Route path="orcamentos/:id" element={<PaginaDetalheOrcamento />} />
-                      <Route path="orcamentos/:id/editar" element={<PaginaEditarOrcamento />} />
+                      <Route path="orcamentos/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrcamento /></RotaProtegida>} />
+                      <Route path="orcamentos/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrcamento /></RotaProtegida>} />
 
                       {/* Recibos */}
-                      <Route path="recibos" element={<ListaRecibos />} />
+                      <Route path="recibos" element={<RotaProtegida adminOnly><ListaRecibos /></RotaProtegida>} />
                       <Route path="recibos/novo" element={
-                        <div>
-                          <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
-                          <FormularioRecibo />
-                        </div>
+                        <RotaProtegida adminOnly>
+                          <div>
+                            <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
+                            <FormularioRecibo />
+                          </div>
+                        </RotaProtegida>
                       } />
-                      <Route path="recibos/:id" element={<PaginaDetalheRecibo />} />
+                      <Route path="recibos/:id" element={<RotaProtegida adminOnly><PaginaDetalheRecibo /></RotaProtegida>} />
                     </Route>
 
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </BrowserRouter>
-                  </AgendamentosProvider>
-                </RecibosProvider>
-              </ServicosProvider>
-          </ClientesProvider>
-        </OrcamentosProvider>
-      </OrdensProvider>
-    </AuthProvider>
-  </GoogleOAuthProvider>
+                    </AgendamentosProvider>
+                  </RecibosProvider>
+                </ServicosProvider>
+              </ClientesProvider>
+            </OrcamentosProvider>
+          </OrdensProvider>
+        </NotificacoesSistemaProvider>
+      </AuthProvider>
+    </GoogleOAuthProvider>
 );
 }
 

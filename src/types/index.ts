@@ -174,6 +174,7 @@ export interface UsuarioGoogle {
   email: string;
   fotoPerfil: string;
   accessToken: string;
+  role: 'admin' | 'instrutor';
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────
@@ -256,6 +257,31 @@ export interface Agendamento {
   dataPsicologico?: string;
   horarioPsicologico?: string;
   confirmado: boolean;
+  confirmadoInstrutor?: boolean;
+  despachante?: string;
+  enviadoPF?: boolean;
+  usuarioId?: string;
+  status?: 'pendente' | 'realizado';
   criadoEm: string;
 }
 
+export interface Perfil {
+  id: string; // Google sub
+  nome: string;
+  email: string;
+  cpf?: string;
+  contato?: string;
+  role: 'admin' | 'instrutor';
+  ativo: boolean;
+  statusPagamento: 'em_dia' | 'atrasado' | 'pendente';
+  criadoEm: string;
+}
+export interface NotificacaoSistema {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  lida: boolean;
+  tipo: 'info' | 'sucesso' | 'alerta';
+  link?: string;
+  criadoEm: string;
+}

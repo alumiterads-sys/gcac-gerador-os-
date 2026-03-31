@@ -100,10 +100,10 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       // Calcula linhas do detalhe
       doc.setFontSize(9.5);
       const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 60) : [];
-      let alturaBloco = serv.detalhes ? (12 + (linhasDetalhe.length * 5.5)) : 14;
+      let alturaBloco = serv.detalhes ? (10 + (linhasDetalhe.length * 4.5)) : 11;
       
       // Ajusta se bloco ficar pequeno 
-      if (alturaBloco < 15) alturaBloco = 15;
+      if (alturaBloco < 11) alturaBloco = 11;
 
       doc.setFillColor('#F8F9FA');
       doc.setDrawColor(LINHA);
@@ -114,14 +114,14 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       doc.setTextColor(ESCURO);
       doc.setFontSize(10.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(serv.nome.toUpperCase(), 17, y + 7);
+      doc.text(serv.nome.toUpperCase(), 17, y + 6);
 
       // Detalhes
       if (serv.detalhes && serv.detalhes.trim()) {
         doc.setFontSize(9.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor('#444444');
-        doc.text(linhasDetalhe, 17, y + 13);
+        doc.text(linhasDetalhe, 17, y + 11);
       }
 
       // Valor à direita do bloco
@@ -130,7 +130,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       doc.setFont('helvetica', 'bold');
       doc.text(formatarMoeda(serv.valor), largura - 16, y + 9, { align: 'right' });
       
-      y += alturaBloco + 3; // espaçamento de um card pro outro
+      y += alturaBloco + 2; // espaçamento de um card pro outro
     });
   }
 

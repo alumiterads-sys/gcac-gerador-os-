@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { sincronizarPendentes } from '../../services/driveSync';
+import { useNotificacoesSistema } from '../../context/NotificacoesSistemaContext';
+import { NotificacoesDropdown } from './NotificacoesDropdown';
+import { Bell } from 'lucide-react';
 
 const links = [
   { to: '/dashboard', label: 'Painel',         icon: LayoutDashboard },
@@ -15,15 +18,18 @@ const links = [
   { to: '/recibos',   label: 'Recibos',           icon: Receipt },
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
   { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
+  { to: '/instrutores', label: 'Instrutores',     icon: UserCheck },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export function Sidebar() {
   const { usuario, logout } = useAuth();
   const { itensFila } = useOrdens();
+  const { naoLidas } = useNotificacoesSistema();
   const online = useStatusConexao();
   const navigate = useNavigate();
   const [sincronizando, setSincronizando] = useState(false);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
 
   const handleSyncManual = async () => {
     if (!online || sincronizando || itensFila === 0) return;
@@ -32,10 +38,27 @@ export function Sidebar() {
     setSincronizando(false);
   };
 
+  const linksFiltrados = links.filter(link => {
+    if (usuario?.role === 'instrutor') {
+      return link.to === '/agendamentos';
+    }
+    // Suporte especial para o Guilherme (forçar exibição para teste)
+    if (link.to === '/instrutores' && usuario?.email === 'gui.gomesassis@gmail.com') {
+      return true;
+    }
+    // Oculta instrutores para quem não é admin
+    if (link.to === '/instrutores' && usuario?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
+
+  const isAdmin = usuario?.role === 'admin';
+
   return (
-    <aside className="w-64 bg-brand-dark-2 border-r border-brand-dark-5 flex flex-col h-full">
+    <aside className="w-64 bg-brand-dark-2 border-r border-brand-dark-5 flex flex-col h-full relative">
       {/* Logo */}
-      <div className="p-5 border-b border-brand-dark-5">
+      <div className="p-5 border-b border-brand-dark-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src="/Logo oficial.png" alt="GCAC" className="w-10 h-10 object-contain"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -44,11 +67,33 @@ export function Sidebar() {
             <p className="text-brand-green text-xs font-bold tracking-wider">Gerador de O.S.</p>
           </div>
         </div>
+        
+        {isAdmin && (
+          <div className="relative">
+            <button 
+              onClick={() => setDropdownAberto(!dropdownAberto)}
+              className={`p-2 rounded-xl transition-all h-10 w-10 flex items-center justify-center relative ${
+                dropdownAberto ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-3 text-gray-500 hover:text-white'
+              }`}
+            >
+              <Bell size={20} />
+              {naoLidas > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-brand-blue text-white text-[9px] font-bold rounded-full border-2 border-brand-dark-2 flex items-center justify-center animate-pulse">
+                  {naoLidas}
+                </span>
+              )}
+            </button>
+            <NotificacoesDropdown 
+              aberto={dropdownAberto} 
+              onClose={() => setDropdownAberto(false)} 
+            />
+          </div>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-1">
-        {links.map(({ to, label, icon: Icon }) => (
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {linksFiltrados.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -59,43 +104,47 @@ export function Sidebar() {
           </NavLink>
         ))}
 
-        <div className="pt-2">
-          <button
-            onClick={() => navigate('/ordens/nova')}
-            className="nav-link w-full text-brand-green-light hover:bg-brand-green/10 hover:text-brand-green border border-brand-green/20"
-          >
-            <Plus size={18} />
-            Nova OS
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="pt-2">
+            <button
+              onClick={() => navigate('/ordens/nova')}
+              className="nav-link w-full text-brand-green-light hover:bg-brand-green/10 hover:text-brand-green border border-brand-green/20"
+            >
+              <Plus size={18} />
+              Nova OS
+            </button>
+          </div>
+        )}
       </nav>
 
-      {/* Status Sync */}
-      <div className="p-3 border-t border-brand-dark-5">
-        <div
-          onClick={handleSyncManual}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${
-            itensFila > 0 && online
-              ? 'bg-brand-blue/20 text-brand-blue-light border border-brand-blue/30 hover:bg-brand-blue/30'
-              : 'bg-brand-dark-4 text-gray-500'
-          }`}
-          title={itensFila > 0 ? 'Clique para sincronizar' : 'Tudo sincronizado'}
-        >
-          {sincronizando ? (
-            <Loader size={12} className="animate-spin text-brand-blue-light" />
-          ) : online ? (
-            <Cloud size={12} className={itensFila > 0 ? 'text-brand-blue-light' : 'text-brand-green'} />
-          ) : (
-            <CloudOff size={12} className="text-red-400" />
-          )}
-          <span>
-            {sincronizando ? 'Sincronizando...'
-              : !online ? 'Sem conexão'
-              : itensFila > 0 ? `${itensFila} pendente${itensFila > 1 ? 's' : ''} — clique para sync`
-              : 'Tudo sincronizado'}
-          </span>
+      {/* Status Sync - Apenas para Admin */}
+      {isAdmin && (
+        <div className="p-3 border-t border-brand-dark-5">
+          <div
+            onClick={handleSyncManual}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              itensFila > 0 && online
+                ? 'bg-brand-blue/20 text-brand-blue-light border border-brand-blue/30 hover:bg-brand-blue/30'
+                : 'bg-brand-dark-4 text-gray-500'
+            }`}
+            title={itensFila > 0 ? 'Clique para sincronizar' : 'Tudo sincronizado'}
+          >
+            {sincronizando ? (
+              <Loader size={12} className="animate-spin text-brand-blue-light" />
+            ) : online ? (
+              <Cloud size={12} className={itensFila > 0 ? 'text-brand-blue-light' : 'text-brand-green'} />
+            ) : (
+              <CloudOff size={12} className="text-red-400" />
+            )}
+            <span>
+              {sincronizando ? 'Sincronizando...'
+                : !online ? 'Sem conexão'
+                : itensFila > 0 ? `${itensFila} pendente${itensFila > 1 ? 's' : ''} — clique para sync`
+                : 'Tudo sincronizado'}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Usuário */}
       <div className="p-3 border-t border-brand-dark-5">
@@ -109,7 +158,10 @@ export function Sidebar() {
             />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">{usuario.nome}</p>
-              <p className="text-xs text-gray-500 truncate">{usuario.email}</p>
+              <p className="text-[10px] text-brand-green uppercase font-bold tracking-tighter opacity-70">
+                {usuario.role === 'admin' ? 'Administrador' : 'Instrutor'}
+              </p>
+              <p className="text-[10px] text-gray-500 truncate">{usuario.email}</p>
             </div>
             <button onClick={logout} title="Sair" className="text-gray-500 hover:text-red-400 transition-colors p-1">
               <LogOut size={15} />
@@ -125,14 +177,26 @@ export function Sidebar() {
   );
 }
 
-// ── Navegação inferior mobile ──────────────────────────────────────────────
-
 export function NavegacaoInferior() {
+  const { usuario } = useAuth();
   const { itensFila } = useOrdens();
+
+  const linksFiltrados = links.filter(link => {
+    if (usuario?.role === 'instrutor') {
+      return link.to === '/agendamentos';
+    }
+    if (link.to === '/instrutores' && usuario?.email === 'gui.gomesassis@gmail.com') {
+      return true;
+    }
+    if (link.to === '/instrutores' && usuario?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-brand-dark-2 border-t border-brand-dark-5 flex sm:hidden">
-      {links.map(({ to, label, icon: Icon }) => (
+      {linksFiltrados.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
