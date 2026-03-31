@@ -3,7 +3,7 @@ import { supabase } from '../../db/supabase';
 import { Perfil } from '../../types';
 import { 
   UserPlus, Search, Shield, ShieldOff, MessageCircle, 
-  CheckCircle2, AlertCircle, Phone, Mail, Fingerprint, Calendar
+  CheckCircle2, AlertCircle, Phone, Mail, Fingerprint, Calendar, Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,6 +58,23 @@ export function GestaoInstrutores() {
       .eq('id', id);
     
     if (!error) carregarInstrutores();
+  }
+
+  async function handleExcluir(id: string, nome: string) {
+    if (!window.confirm(`Tem certeza que deseja EXCLUIR permanentemente o instrutor ${nome}?\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('perfis')
+      .delete()
+      .eq('id', id);
+    
+    if (!error) {
+      carregarInstrutores();
+    } else {
+      alert('Erro ao excluir: ' + error.message);
+    }
   }
 
   async function handleCadastrar(e: React.FormEvent) {
@@ -150,13 +167,23 @@ export function GestaoInstrutores() {
                   </div>
                 </div>
                 
-                <button 
-                  onClick={() => handleToggleAtivo(instrutor.id, instrutor.ativo)}
-                  title={instrutor.ativo ? 'Suspender Acesso' : 'Reativar Acesso'}
-                  className={`p-2 rounded-lg transition-colors ${instrutor.ativo ? 'text-red-400 hover:bg-red-400/10' : 'text-brand-green hover:bg-brand-green/10'}`}
-                >
-                  {instrutor.ativo ? <ShieldOff size={20} /> : <Shield size={20} />}
-                </button>
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => handleToggleAtivo(instrutor.id, instrutor.ativo)}
+                    title={instrutor.ativo ? 'Suspender Acesso' : 'Reativar Acesso'}
+                    className={`p-2 rounded-lg transition-colors ${instrutor.ativo ? 'text-red-400 hover:bg-red-400/10' : 'text-brand-green hover:bg-brand-green/10'}`}
+                  >
+                    {instrutor.ativo ? <ShieldOff size={20} /> : <Shield size={20} />}
+                  </button>
+
+                  <button 
+                    onClick={() => handleExcluir(instrutor.id, instrutor.nome)}
+                    title="Excluir Instrutor"
+                    className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2 mb-4 border-t border-brand-dark-5 pt-4">
