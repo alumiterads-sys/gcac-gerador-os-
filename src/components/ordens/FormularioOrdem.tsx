@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Save, X, Eye, EyeOff, MessageCircle, Users, Phone,
+  Save, X, Eye, EyeOff, MessageCircle, Users, Phone, Search,
   Mail, HelpCircle, CheckCircle, ChevronDown, List, Trash2
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -41,7 +41,9 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
   const navigate = useNavigate();
   const { servicos } = useServicos();
   const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fechar = (e: MouseEvent) => {
@@ -51,15 +53,26 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
     return () => document.removeEventListener('mousedown', fechar);
   }, []);
 
+  useEffect(() => {
+    if (aberto) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+      setBusca('');
+    }
+  }, [aberto]);
+
   const handleSelecionar = (servico: ServicoConfig) => {
     onSelecionar(servico);
-    // setAberto(false); -> Agora ele não fecha sozinho, permitindo múltiplos cliques consecutivos.
   };
+
+  const servicosFiltrados = servicos.filter(s => 
+    s.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
+        id="btn-selecionar-servico"
         onClick={() => setAberto(a => !a)}
         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-dark-5 border border-brand-dark-5 hover:border-brand-blue/40 hover:bg-brand-blue/10 text-gray-300 hover:text-brand-blue-light text-sm font-medium transition-all"
       >
@@ -70,23 +83,37 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
 
       {aberto && (
         <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-          <div className="p-2 border-b border-brand-dark-5">
-            <p className="text-xs text-gray-500 px-1">Clique para adicionar à descrição</p>
+          <div className="p-2 border-b border-brand-dark-5 bg-brand-dark-3">
+            <div className="relative">
+              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input 
+                ref={inputRef}
+                type="text"
+                className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg pl-7 pr-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue/50 transition-all font-medium"
+                placeholder="Pesquisar serviço..."
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+              />
+            </div>
           </div>
           <div className="max-h-64 overflow-y-auto">
-            {servicos.length === 0 ? (
+            {servicosFiltrados.length === 0 ? (
               <div className="p-4 text-center">
-                <p className="text-xs text-gray-500 mb-2">Nenhum serviço cadastrado.</p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/configuracoes')}
-                  className="text-xs text-brand-blue-light hover:underline"
-                >
-                  Cadastrar em Configurações
-                </button>
+                <p className="text-xs text-gray-500 mb-2">
+                  {busca ? 'Nenhum serviço encontrado.' : 'Nenhum serviço cadastrado.'}
+                </p>
+                {!busca && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/configuracoes')}
+                    className="text-xs text-brand-blue-light hover:underline"
+                  >
+                    Cadastrar em Configurações
+                  </button>
+                )}
               </div>
             ) : (
-              servicos.map((servico) => (
+              servicosFiltrados.map((servico) => (
                 <button
                   key={servico.id}
                   type="button"
@@ -94,8 +121,8 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
                   className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
                 >
                   <div className="flex justify-between items-center">
-                    <span>{servico.nome}</span>
-                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green">
+                    <span className="truncate pr-2">{servico.nome}</span>
+                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green flex-shrink-0">
                       R$ {servico.valorPadrao.toFixed(2).replace('.', ',')}
                     </span>
                   </div>

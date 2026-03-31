@@ -150,7 +150,11 @@ export function Dashboard() {
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {STATUS_EXECUCAO_SERVICO.map(status => (
-            <div key={status} className="card bg-brand-dark-3/50 border-brand-dark-5 p-3 flex flex-col gap-1">
+            <div 
+              key={status} 
+              onClick={() => navigate('/ordens', { state: { filtroStatusExecucao: status } })}
+              className="card bg-brand-dark-3/50 border-brand-dark-5 p-3 flex flex-col gap-1 cursor-pointer hover:border-brand-blue/30 hover:bg-brand-dark-3 transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xl">{iconeStatusExecucao(status)}</span>
                 <span className="text-lg font-black text-white">{operStats[status]}</span>

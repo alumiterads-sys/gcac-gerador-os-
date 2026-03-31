@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, ChevronRight, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Search, Plus, Filter, ChevronRight, FileText, X } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
-import { StatusOS } from '../../types';
+import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
 
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
@@ -14,15 +14,28 @@ const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
 
 export function ListaOrdens() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { ordens } = useOrdens();
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<StatusOS | 'Todos'>('Todos');
+  const [filtroStatusExec, setFiltroStatusExec] = useState<StatusExecucaoServico | 'Todos'>('Todos');
+
+  useEffect(() => {
+    const state = location.state as { filtroStatusExecucao?: StatusExecucaoServico };
+    if (state?.filtroStatusExecucao) {
+      setFiltroStatusExec(state.filtroStatusExecucao);
+      // Limpar o estado para evitar comportamentos inesperados ao recarregar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const ordensFiltradas = ordens.filter(o => {
     const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, String(o.numero)]
       .some(v => v.toLowerCase().includes(busca.toLowerCase()));
     const matchStatus = filtroStatus === 'Todos' || o.status === filtroStatus;
-    return matchBusca && matchStatus;
+    const matchStatusExec = filtroStatusExec === 'Todos' || (o.servicos && o.servicos.some((s: any) => (s.statusExecucao || 'Não Iniciado') === filtroStatusExec));
+    
+    return matchBusca && matchStatus && matchStatusExec;
   });
 
   return (
@@ -71,6 +84,26 @@ export function ListaOrdens() {
             </button>
           ))}
         </div>
+
+        {/* Indicador de Filtro de Execução Ativo */}
+        {filtroStatusExec !== 'Todos' && (
+          <div className="flex items-center gap-2 pt-2 border-t border-brand-dark-5">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
+              <Filter size={10} /> Filtro Ativo:
+            </span>
+            <div className={`flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-bold border ${classeStatusExecucao(filtroStatusExec as StatusExecucaoServico)}`}>
+              <span>{iconeStatusExecucao(filtroStatusExec as StatusExecucaoServico)}</span>
+              <span>{filtroStatusExec === 'Iniciado — Montando Processo' ? 'Iniciado' : filtroStatusExec}</span>
+              <button 
+                onClick={() => setFiltroStatusExec('Todos')}
+                className="ml-1 p-0.5 hover:bg-white/10 rounded-full transition-colors"
+                title="Remover Filtro"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Lista ── */}

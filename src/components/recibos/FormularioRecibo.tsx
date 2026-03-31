@@ -332,10 +332,11 @@ export function FormularioRecibo() {
   );
 }
 
-// Sub-componente Seletor de Serviço Rápido
 function SeletorServicoRapido({ onSelecionar, servicos }: { onSelecionar: (s: ServicoConfig) => void, servicos: ServicoConfig[] }) {
   const [aberto, setAberto] = useState(false);
+  const [busca, setBusca] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fechar = (e: MouseEvent) => {
@@ -344,6 +345,17 @@ function SeletorServicoRapido({ onSelecionar, servicos }: { onSelecionar: (s: Se
     document.addEventListener('mousedown', fechar);
     return () => document.removeEventListener('mousedown', fechar);
   }, []);
+
+  useEffect(() => {
+    if (aberto) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+      setBusca('');
+    }
+  }, [aberto]);
+
+  const servicosFiltrados = servicos.filter(s => 
+    s.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <div ref={ref} className="relative">
@@ -357,18 +369,41 @@ function SeletorServicoRapido({ onSelecionar, servicos }: { onSelecionar: (s: Se
       </button>
 
       {aberto && (
-        <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl max-h-64 overflow-y-auto animate-fade-in">
-          {servicos.map(s => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => { onSelecionar(s); setAberto(false); }}
-              className="w-full text-left px-3 py-2.5 text-xs text-gray-200 hover:bg-brand-blue/20 transition-colors border-b border-brand-dark-5/50 last:border-0 flex justify-between items-center"
-            >
-              <span>{s.nome}</span>
-              <span className="text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</span>
-            </button>
-          ))}
+        <div className="absolute left-0 top-full mt-1 z-50 w-72 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+          <div className="p-2 border-b border-brand-dark-5 bg-brand-dark-3">
+            <div className="relative">
+              <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input 
+                ref={inputRef}
+                type="text"
+                className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg pl-7 pr-2 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-blue/50 transition-all font-medium"
+                placeholder="Pesquisar serviço..."
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {servicosFiltrados.length === 0 ? (
+              <div className="p-4 text-center">
+                <p className="text-xs text-gray-500">
+                  {busca ? 'Nenhum serviço encontrado.' : 'Nenhum serviço cadastrado.'}
+                </p>
+              </div>
+            ) : (
+              servicosFiltrados.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { onSelecionar(s); }}
+                  className="w-full text-left px-3 py-2.5 text-xs text-gray-200 hover:bg-brand-blue/20 transition-colors border-b border-brand-dark-5/50 last:border-0 flex justify-between items-center"
+                >
+                  <span className="truncate pr-2">{s.nome}</span>
+                  <span className="text-brand-green font-bold flex-shrink-0">{formatarMoeda(s.valorPadrao)}</span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
