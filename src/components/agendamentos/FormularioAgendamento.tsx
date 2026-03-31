@@ -117,6 +117,30 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     atualizar('clienteContato', f);
   };
 
+  const handleHorario = (v: string) => {
+    // Remove tudo que não é número
+    let n = v.replace(/\D/g, '').slice(0, 4);
+    let f = n;
+    if (n.length > 2) {
+      f = n.slice(0, 2) + ':' + n.slice(2);
+    }
+    if (f.length === 5) {
+      f = f + 'H';
+    }
+    atualizar('horario', f);
+  };
+
+  const toggleArma = (opcao: string) => {
+    const armasAtuais = form.arma ? form.arma.split(', ').filter(Boolean) : [];
+    const novaLista = armasAtuais.includes(opcao)
+      ? armasAtuais.filter(a => a !== opcao)
+      : [...armasAtuais, opcao].sort();
+    
+    atualizar('arma', novaLista.join(', '));
+  };
+
+  const OPCOES_ARMAS = ['CARABINA', 'ESPINGARDA', 'PISTOLA', 'REVÓLVER'];
+
   const validar = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.clienteNome.trim()) e.clienteNome = 'Nome é obrigatório';
@@ -255,14 +279,26 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-1">
-              <label className="label label-required">Arma</label>
-              <input 
-                type="text" 
-                className={`input uppercase ${erros.arma ? 'input-error' : ''}`}
-                placeholder="EX: PISTOLA, CARABINA..."
-                value={form.arma}
-                onChange={e => atualizar('arma', e.target.value.toUpperCase())}
-              />
+              <label className="label label-required">Arma(s)</label>
+              <div className="flex flex-wrap gap-2">
+                {OPCOES_ARMAS.map(opcao => {
+                  const selecionada = form.arma.split(', ').includes(opcao);
+                  return (
+                    <button
+                      key={opcao}
+                      type="button"
+                      onClick={() => toggleArma(opcao)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                        selecionada 
+                          ? 'bg-brand-blue/20 border-brand-blue text-brand-blue-light' 
+                          : 'bg-brand-dark-3 border-brand-dark-5 text-gray-500 hover:border-brand-metal'
+                      }`}
+                    >
+                      {opcao}
+                    </button>
+                  );
+                })}
+              </div>
               {erros.arma && <p className="text-red-400 text-xs mt-1">{erros.arma}</p>}
             </div>
             <div>
@@ -277,13 +313,16 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
             </div>
             <div>
               <label className="label label-required">Horário</label>
-              <input 
-                type="text" 
-                className={`input ${erros.horario ? 'input-error' : ''}`}
-                placeholder="Ex: 08h"
-                value={form.horario}
-                onChange={e => atualizar('horario', e.target.value)}
-              />
+              <div className="relative">
+                <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                  type="text" 
+                  className={`input pl-10 ${erros.horario ? 'input-error' : ''}`}
+                  placeholder="00:00H"
+                  value={form.horario}
+                  onChange={e => handleHorario(e.target.value)}
+                />
+              </div>
               {erros.horario && <p className="text-red-400 text-xs mt-1">{erros.horario}</p>}
             </div>
           </div>

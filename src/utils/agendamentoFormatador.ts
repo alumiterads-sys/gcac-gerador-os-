@@ -18,10 +18,9 @@ export function formatarDataParaWhatsApp(dataIso: string): string {
 
 export function gerarTextoAgendamento(agendamento: Agendamento): string {
   const dataFormatada = formatarDataParaWhatsApp(agendamento.data);
-  const checkMark = agendamento.confirmado ? '✅' : '⏳';
 
   if (agendamento.tipo === 'Psicológico') {
-    return `Confirmação de agendamento de Laudo psicológico
+    return `*Confirmação de agendamento de Laudo psicológico*
 ${agendamento.clienteNome.toUpperCase()}
 CPF: ${agendamento.clienteCPF}
 Contato: ${agendamento.clienteContato}
@@ -31,8 +30,8 @@ DIA ${dataFormatada}
 HORÁRIO ${agendamento.horario}
 Local: ${agendamento.local}
 Psicologa ${agendamento.profissional}
-Valor: R$${agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-${checkMark}`;
+Valor: ${agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+✅`;
   } else {
     // Para o laudo de tiro, formatamos o psicológico se existir
     let infoPsi = '';
@@ -42,7 +41,7 @@ ${checkMark}`;
       infoPsi = `Laudo psicológico para: ${dataPsi} ${agendamento.horarioPsicologico || ''}\n`;
     }
 
-    return `Confirmação de agendamento de Laudo de Tiro
+    return `*Confirmação de agendamento de Laudo de Tiro*
 ${agendamento.clienteNome.toUpperCase()}
 CPF: ${agendamento.clienteCPF}
 Contato: ${agendamento.clienteContato}
@@ -52,7 +51,7 @@ DIA ${dataFormatada}
 HORÁRIO ${agendamento.horario}
 ${infoPsi}Local: ${agendamento.local}
 Instrutor: ${agendamento.profissional}
-Valor: R$${agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-${checkMark}`;
+Valor: ${agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+✅`;
   }
 }
