@@ -162,24 +162,22 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
 
   // 5. Assinaturas
   const yAssIn = altura - 60;
-  
-  // Linha do Guilherme (Responsavel)
-  doc.setLineWidth(1);
-  doc.setDrawColor(ESCURO_BRAND);
-  doc.line(20, yAssIn, largura / 2 - 10, yAssIn);
-  
-  // Assinatura Guilherme (Rubrica Master)
+
+  // 5.1 Assinatura Guilherme (Rubrica Master) - Desenhar primeiro para ficar por baixo
   try {
     const assRes = await fetch('/assinatura_guilherme.png');
     if (assRes.ok) {
       const assBlob = await assRes.blob();
       const assBase64 = await blobParaBase64(assBlob);
-      // h-80 = 84mm. Posicao -top-64 = 67.7mm acima da linha.
-      // doc.addImage(base64, format, x, y, w, h)
-      // Centralizado horizontalmente no bloco (20 a largura/2-10) -> largura central 57.5mm
-      doc.addImage(assBase64, 'PNG', 32.5, yAssIn - 22, 50, 20);
+      // Maior: Width 80mm, Height 40mm. Centralizada (57.5 - 40 = 17.5) e sobrepondo a linha.
+      doc.addImage(assBase64, 'PNG', 17.5, yAssIn - 32, 80, 40);
     }
   } catch { /* erro na rubrica */ }
+  
+  // 5.2 Linha e Textos (Por cima)
+  doc.setLineWidth(1);
+  doc.setDrawColor(ESCURO_BRAND);
+  doc.line(20, yAssIn, largura / 2 - 10, yAssIn);
 
   doc.setTextColor(CINZA_TEXTO);
   doc.setFontSize(8);
