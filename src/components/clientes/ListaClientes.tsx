@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useClientes } from '../../context/ClientesContext';
-import { Users, Search, Edit2, Trash2 } from 'lucide-react';
+import { Users, Search, Edit2, Trash2, Eye, Shield, Copy, Check } from 'lucide-react';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone } from '../../utils/formatters';
 import { FormularioCliente } from './FormularioCliente';
@@ -9,7 +9,9 @@ export function ListaClientes() {
   const { clientes, deletarCliente } = useClientes();
   const [busca, setBusca] = useState('');
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
+  const [clienteVisualizando, setClienteVisualizando] = useState<Cliente | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
+  const [copiou, setCopiou] = useState(false);
 
   const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -30,6 +32,12 @@ export function ListaClientes() {
   const abrirNovo = () => {
     setClienteEditando(null);
     setModalAberto(true);
+  };
+
+  const handleCopiarSenha = (senha: string) => {
+    navigator.clipboard.writeText(senha);
+    setCopiou(true);
+    setTimeout(() => setCopiou(false), 2000);
   };
 
   return (
@@ -99,7 +107,14 @@ export function ListaClientes() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setClienteVisualizando(cliente)}
+                        className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                        title="Visualizar"
+                      >
+                        <Eye size={16} />
+                      </button>
                       <button
                         onClick={() => abrirEdicao(cliente)}
                         className="p-1.5 text-gray-400 hover:text-brand-blue-light transition-colors"
@@ -109,7 +124,7 @@ export function ListaClientes() {
                       </button>
                       <button
                         onClick={() => handleExcluir(cliente)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 transition-colors ml-2"
+                        className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
                         title="Excluir"
                       >
                         <Trash2 size={16} />
@@ -128,6 +143,86 @@ export function ListaClientes() {
           clienteEditando={clienteEditando}
           onFechar={() => setModalAberto(false)}
         />
+      )}
+
+      {clienteVisualizando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-brand-dark-2 w-full max-w-lg rounded-2xl border border-brand-dark-5 p-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-brand-blue" />
+            
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-brand-blue/10 p-2.5 rounded-xl border border-brand-blue/20">
+                  <Users size={24} className="text-brand-blue" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white uppercase tracking-tight">{clienteVisualizando.nome}</h2>
+                  <p className="text-gray-500 text-xs font-medium uppercase tracking-widest leading-none mt-1">Detalhes do Cliente</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setClienteVisualizando(null)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <Trash2 className="rotate-45" size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-brand-dark-3 p-3 rounded-xl border border-brand-dark-5">
+                <p className="text-[10px] text-gray-500 font-black uppercase mb-1">CPF</p>
+                <p className="text-white font-medium">{formatarCPF(clienteVisualizando.cpf)}</p>
+              </div>
+              <div className="bg-brand-dark-3 p-3 rounded-xl border border-brand-dark-5">
+                <p className="text-[10px] text-gray-500 font-black uppercase mb-1">Contato</p>
+                <p className="text-white font-medium">{formatarTelefone(clienteVisualizando.contato)}</p>
+              </div>
+            </div>
+
+            <div className="bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Shield size={16} className="text-brand-blue" />
+                  <p className="text-xs text-white font-bold uppercase tracking-wider">Acesso GOV.BR</p>
+                </div>
+                <button 
+                  onClick={() => handleCopiarSenha(clienteVisualizando.senhaGov)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                    copiou ? 'bg-brand-green/20 text-brand-green border border-brand-green/30' : 'bg-brand-blue/20 text-brand-blue border border-brand-blue/30 hover:bg-brand-blue/30'
+                  }`}
+                >
+                  {copiou ? <Check size={12} /> : <Copy size={12} />}
+                  {copiou ? 'Copiado!' : 'Copiar Senha'}
+                </button>
+              </div>
+              <div className="bg-brand-dark-2 p-3 rounded-lg border border-brand-dark-5 font-mono text-lg text-brand-blue-light tracking-widest text-center">
+                {clienteVisualizando.senhaGov}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm py-2 border-b border-brand-dark-5">
+                <span className="text-gray-500">Pró-Tiro:</span>
+                <span className={clienteVisualizando.filiadoProTiro ? 'text-brand-green font-bold' : 'text-gray-400'}>
+                  {clienteVisualizando.filiadoProTiro ? 'Sim' : `Não (${clienteVisualizando.clubeFiliado})`}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm py-2">
+                <span className="text-gray-500">Cadastrado em:</span>
+                <span className="text-gray-300">
+                  {new Date(clienteVisualizando.criadoEm).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setClienteVisualizando(null)}
+              className="w-full mt-8 btn-ghost border-brand-dark-5 h-11"
+            >
+              Fechar Detalhes
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
