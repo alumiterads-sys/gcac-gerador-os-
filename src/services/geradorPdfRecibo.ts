@@ -176,8 +176,8 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
       const assBase64 = await blobParaBase64(assBlob);
       // h-80 = 84mm. Posicao -top-64 = 67.7mm acima da linha.
       // doc.addImage(base64, format, x, y, w, h)
-      // Centralizado horizontalmente no bloco (20 a largura/2-10) -> largura media 42mm
-      doc.addImage(assBase64, 'PNG', 12, yAssIn - 67.7, 75, 84.6);
+      // Centralizado horizontalmente no bloco (20 a largura/2-10) -> largura central 57.5mm
+      doc.addImage(assBase64, 'PNG', 32.5, yAssIn - 22, 50, 20);
     }
   } catch { /* erro na rubrica */ }
 
