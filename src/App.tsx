@@ -33,7 +33,6 @@ import { DetalheRecibo } from './components/recibos/DetalheRecibo';
 import { AgendamentosProvider } from './context/AgendamentosContext';
 import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
 import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContext';
-import { GestaoInstrutores } from './components/instrutores/GestaoInstrutores';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -142,18 +141,10 @@ function RotaProtegida({ children, adminOnly = false }: { children: React.ReactN
   }
 
   if (!estaAutenticado) return <Navigate to="/login" replace />;
-
-  // Se a rota for administrativa e o usuário for instrutor, redireciona para sua área
-  if (adminOnly && usuario?.role === 'instrutor') {
-    return <Navigate to="/agendamentos" replace />;
-  }
-
   return <>{children}</>;
 }
 
 function ProtecaoIndex() {
-  const { usuario } = useAuth();
-  if (usuario?.role === 'instrutor') return <Navigate to="/agendamentos" replace />;
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -196,7 +187,6 @@ export default function App() {
                       <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
                       <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
                       <Route path="agendamentos" element={<ListaAgendamentos />} />
-                      <Route path="instrutores" element={<RotaProtegida adminOnly><GestaoInstrutores /></RotaProtegida>} />
                       <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
                       
                       {/* Orçamentos */}

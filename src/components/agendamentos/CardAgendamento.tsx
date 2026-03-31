@@ -13,18 +13,11 @@ interface CardAgendamentoProps {
 
 export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamentoProps) {
   const { usuario } = useAuth();
-  const { confirmarAgendamento, confirmarAgendamentoInstrutor, finalizarLaudo, deletarAgendamento } = useAgendamentos();
-
-  const isInstrutor = usuario?.role === 'instrutor';
+  const { confirmarAgendamento, finalizarLaudo, deletarAgendamento } = useAgendamentos();
 
   const handleToggleConfirmar = (e: React.MouseEvent) => {
     e.stopPropagation();
     confirmarAgendamento(agendamento.id, !agendamento.confirmado);
-  };
-
-  const handleToggleConfirmarInstrutor = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    confirmarAgendamentoInstrutor(agendamento.id, !agendamento.confirmadoInstrutor);
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -64,54 +57,32 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
               </span>
             )}
           </div>
-          {agendamento.confirmadoInstrutor && (
-            <span className="flex items-center gap-1 text-brand-blue-light text-[9px] font-bold mt-1 bg-brand-blue/10 px-1.5 py-0.5 rounded w-fit">
-              <Eye size={10} /> INSTRUTOR CONFIRMOU
-            </span>
-          )}
         </div>
         
         <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-          {isInstrutor ? (
-            <button 
-              onClick={handleToggleConfirmarInstrutor}
-              title={agendamento.confirmadoInstrutor ? "Remover minha confirmação" : "Confirmar que vi e estarei presente"}
-              className={`p-2 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold ${
-                agendamento.confirmadoInstrutor 
-                  ? 'bg-brand-blue/20 text-brand-blue-light border border-brand-blue/30' 
-                  : 'bg-brand-dark-3 text-gray-400 border border-brand-dark-5 hover:border-brand-blue'
-              }`}
-            >
-              <CheckCircle size={16} />
-              {agendamento.confirmadoInstrutor ? 'VISTO' : 'CONFIRMAR'}
-            </button>
-          ) : (
-            <>
-              <button 
-                onClick={handleToggleConfirmar}
-                title={agendamento.confirmado ? "Marcar como pendente" : "Confirmar agendamento"}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  agendamento.confirmado ? 'text-brand-green hover:bg-brand-green/10' : 'text-gray-500 hover:bg-gray-700'
-                }`}
-              >
-                <CheckCircle size={18} />
-              </button>
-              <button 
-                onClick={() => onEdit(agendamento)}
-                className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
-                title="Editar agendamento"
-              >
-                <Edit2 size={16} />
-              </button>
-              <button 
-                onClick={handleDelete}
-                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
-                title="Excluir agendamento"
-              >
-                <Trash2 size={16} />
-              </button>
-            </>
-          )}
+          <button 
+            onClick={handleToggleConfirmar}
+            title={agendamento.confirmado ? "Marcar como pendente" : "Confirmar agendamento"}
+            className={`p-1.5 rounded-lg transition-colors ${
+              agendamento.confirmado ? 'text-brand-green hover:bg-brand-green/10' : 'text-gray-500 hover:bg-gray-700'
+            }`}
+          >
+            <CheckCircle size={18} />
+          </button>
+          <button 
+            onClick={() => onEdit(agendamento)}
+            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg"
+            title="Editar agendamento"
+          >
+            <Edit2 size={16} />
+          </button>
+          <button 
+            onClick={handleDelete}
+            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg"
+            title="Excluir agendamento"
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
       </div>
 
@@ -166,21 +137,23 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
         <span className="text-brand-blue-light font-bold">
           {agendamento.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         </span>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onView(agendamento); }}
-          className="text-[10px] text-brand-blue hover:text-brand-blue-light font-bold uppercase tracking-wider transition-colors"
-        >
-          Confirmar p/ Cliente
-        </button>
 
-        {isInstrutor && agendamento.status === 'pendente' && (
+        <div className="flex gap-2">
+          {agendamento.status === 'pendente' && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); if (window.confirm('Marcar este laudo como realizado? Ele irá para o histórico.')) finalizarLaudo(agendamento.id); }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/20 text-brand-green-light border border-brand-green/30 rounded-lg text-[10px] font-black hover:bg-brand-green/30 transition-all"
+            >
+              <CheckCircle size={14} /> FINALIZAR
+            </button>
+          )}
           <button 
-            onClick={(e) => { e.stopPropagation(); if (window.confirm('Marcar este laudo como realizado? Ele irá para o seu histórico.')) finalizarLaudo(agendamento.id); }}
-            className="flex items-center gap-1 px-3 py-1.5 bg-brand-green/20 text-brand-green-light border border-brand-green/30 rounded-lg text-[10px] font-black hover:bg-brand-green/30 transition-all ml-2"
+            onClick={(e) => { e.stopPropagation(); onView(agendamento); }}
+            className="text-[10px] text-brand-blue hover:text-brand-blue-light font-bold uppercase tracking-wider transition-colors px-2"
           >
-            <CheckCircle size={14} /> FINALIZAR
+            CONFIRMAR
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

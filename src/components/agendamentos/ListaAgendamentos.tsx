@@ -4,40 +4,25 @@ import { useAuth } from '../../context/AuthContext';
 import { CardAgendamento } from './CardAgendamento';
 import { FormularioAgendamento } from './FormularioAgendamento';
 import { ModalConfirmacaoAgendamento } from './ModalConfirmacaoAgendamento';
-import { Plus, Search, Calendar, Filter, X, ArrowLeft } from 'lucide-react';
+import { Plus, Search, Calendar, ArrowLeft } from 'lucide-react';
 import { Agendamento, TipoAgendamento } from '../../types';
-import { useSearchParams } from 'react-router-dom';
 
 export function ListaAgendamentos() {
   const { usuario } = useAuth();
   const { agendamentos, estaCarregando } = useAgendamentos();
-  const [searchParams] = useSearchParams();
-  const instrutorFiltroId = searchParams.get('instrutorId');
   
   const [busca, setBusca] = useState('');
   const [statusFiltro, setStatusFiltro] = useState<'pendente' | 'realizado'>('pendente');
-  const [filtroTipo, setFiltroTipo] = useState<TipoAgendamento | 'Todos'>(
-    usuario?.role === 'instrutor' ? 'Tiro' : 'Todos'
-  );
+  const [filtroTipo, setFiltroTipo] = useState<TipoAgendamento | 'Todos'>('Todos');
   const [modo, setModo] = useState<'lista' | 'novo' | 'editar'>('lista');
   const [agendamentoEditando, setAgendamentoEditando] = useState<Agendamento | null>(null);
   const [agendamentoVisualizando, setAgendamentoVisualizando] = useState<Agendamento | null>(null);
 
-  const isInstrutor = usuario?.role === 'instrutor';
-  const isAdmin = usuario?.role === 'admin';
-
-  const agendamentosFiltrados = agendamentos.filter(a => {
+  const agendamentosFiltrados = (agendamentos || []).filter(a => {
     const matchBusca = a.clienteNome.toLowerCase().includes(busca.toLowerCase()) || 
                        a.clienteCPF.includes(busca);
     
-    // Filtro por Status (Pendente vs Realizado)
     if (a.status !== statusFiltro) return false;
-
-    // Se houver um filtro de instrutor na URL (Admin vendo agenda de terceiros)
-    if (instrutorFiltroId && a.usuarioId !== instrutorFiltroId) return false;
-
-    // Se for instrutor logado, já está filtrado no Contexto, mas mantemos por segurança
-    if (isInstrutor && a.usuarioId !== usuario?.id) return false;
 
     const matchTipo = filtroTipo === 'Todos' || a.tipo === filtroTipo;
     return matchBusca && matchTipo;
@@ -127,38 +112,24 @@ export function ListaAgendamentos() {
             />
           </div>
           
-          {isAdmin && (
-            <div className="flex items-center gap-2 pr-2">
-              <div className="w-[1px] h-6 bg-brand-dark-5 mx-2" />
-              {(['Todos', 'Psicológico', 'Tiro'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setFiltroTipo(t)}
-                  className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase transition-all ${
-                    filtroTipo === t 
-                      ? 'bg-brand-dark-4 text-brand-blue-light border border-brand-blue/20' 
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2 pr-2">
+            <div className="w-[1px] h-6 bg-brand-dark-5 mx-2" />
+            {(['Todos', 'Psicológico', 'Tiro'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setFiltroTipo(t)}
+                className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase transition-all ${
+                  filtroTipo === t 
+                    ? 'bg-brand-dark-4 text-brand-blue-light border border-brand-blue/20' 
+                    : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-
-      {instrutorFiltroId && isAdmin && (
-        <div className="bg-brand-blue/10 border border-brand-blue/20 p-3 rounded-xl flex items-center justify-between">
-          <p className="text-brand-blue-light text-sm font-medium">Filtrando por instrutor específico</p>
-          <button 
-            onClick={() => { searchParams.delete('instrutorId'); window.location.search = ''; }}
-            className="text-[10px] bg-brand-blue/20 hover:bg-brand-blue/40 text-brand-blue-light font-bold px-2 py-1 rounded-lg uppercase"
-          >
-            Limpar Filtro
-          </button>
-        </div>
-      )}
 
       {estaCarregando ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">

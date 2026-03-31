@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar, UserCheck
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
@@ -18,7 +18,6 @@ const links = [
   { to: '/recibos',   label: 'Recibos',           icon: Receipt },
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
   { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
-  { to: '/instrutores', label: 'Instrutores',     icon: UserCheck },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
@@ -38,20 +37,7 @@ export function Sidebar() {
     setSincronizando(false);
   };
 
-  const linksFiltrados = links.filter(link => {
-    if (usuario?.role === 'instrutor') {
-      return link.to === '/agendamentos';
-    }
-    // Suporte especial para o Guilherme (forçar exibição para teste)
-    if (link.to === '/instrutores' && usuario?.email === 'gui.gomesassis@gmail.com') {
-      return true;
-    }
-    // Oculta instrutores para quem não é admin
-    if (link.to === '/instrutores' && usuario?.role !== 'admin') {
-      return false;
-    }
-    return true;
-  });
+  const linksFiltrados = links;
 
   const isAdmin = usuario?.role === 'admin';
 
@@ -181,18 +167,7 @@ export function NavegacaoInferior() {
   const { usuario } = useAuth();
   const { itensFila } = useOrdens();
 
-  const linksFiltrados = links.filter(link => {
-    if (usuario?.role === 'instrutor') {
-      return link.to === '/agendamentos';
-    }
-    if (link.to === '/instrutores' && usuario?.email === 'gui.gomesassis@gmail.com') {
-      return true;
-    }
-    if (link.to === '/instrutores' && usuario?.role !== 'admin') {
-      return false;
-    }
-    return true;
-  });
+  const linksFiltrados = links;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-brand-dark-2 border-t border-brand-dark-5 flex sm:hidden">
