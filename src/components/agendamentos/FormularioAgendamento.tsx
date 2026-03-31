@@ -321,6 +321,16 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                   placeholder="00:00H"
                   value={form.horario}
                   onChange={e => handleHorario(e.target.value)}
+                  onBlur={() => {
+                    let h = form.horario.replace(/\D/g, '');
+                    if (h.length > 0 && h.length <= 2) {
+                      atualizar('horario', h.padStart(2, '0') + ':00H');
+                    } else if (h.length > 2 && h.length < 4) {
+                      atualizar('horario', h.slice(0, 2) + ':' + h.slice(2).padStart(2, '0') + 'H');
+                    } else if (h.length === 4 && !form.horario.includes('H')) {
+                      atualizar('horario', h.slice(0, 2) + ':' + h.slice(2) + 'H');
+                    }
+                  }}
                 />
               </div>
               {erros.horario && <p className="text-red-400 text-xs mt-1">{erros.horario}</p>}
