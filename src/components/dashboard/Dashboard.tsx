@@ -19,11 +19,12 @@ export function Dashboard() {
   const stats = {
     total:       ordens.length,
     aguardando:  ordens.filter(o => o.status === 'Aguardando Pagamento').length,
+    parcial:     ordens.filter(o => o.status === 'Parcialmente Pago').length,
     gratuidade:  ordens.filter(o => o.status === 'Gratuidade').length,
     pagas:       ordens.filter(o => o.status === 'Pago').length,
-    receita:     ordens.filter(o => o.status === 'Pago').reduce((s, o) => s + o.valor, 0),
-    taxas:       ordens.filter(o => o.status === 'Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
-    receitaTotal: ordens.reduce((s, o) => s + o.valor, 0),
+    receita:     ordens.reduce((s, o) => s + (o.valorPago || 0), 0),
+    taxas:       ordens.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
+    receitaPendente: ordens.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
   };
 
   const lucroReal = stats.receita - stats.taxas;
@@ -74,7 +75,7 @@ export function Dashboard() {
       </div>
 
       {/* ── Cards de Estatísticas ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard
           titulo="Total de OS"
           valor={stats.total}
@@ -87,6 +88,13 @@ export function Dashboard() {
           valor={stats.aguardando}
           icone={<Clock size={20} className="text-yellow-400" />}
           cor="yellow"
+          onClick={() => navigate('/ordens')}
+        />
+        <StatCard
+          titulo="Parciais"
+          valor={stats.parcial}
+          icone={<Clock size={20} className="text-orange-400" />}
+          cor="orange"
           onClick={() => navigate('/ordens')}
         />
         <StatCard
@@ -127,12 +135,12 @@ export function Dashboard() {
           {/* Breakdown Lateral */}
           <div className="grid grid-cols-2 md:block gap-4 md:space-y-4 min-w-[180px]">
             <div>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Faturamento Bruto</p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Recebido</p>
               <p className="text-lg font-bold text-brand-green-light">{formatarMoeda(stats.receita)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Taxas PF</p>
-              <p className="text-lg font-bold text-yellow-500/80">{formatarMoeda(stats.taxas)}</p>
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Aguardando Recebimento</p>
+              <p className="text-lg font-bold text-red-400">{formatarMoeda(stats.receitaPendente)}</p>
             </div>
           </div>
         </div>
@@ -287,7 +295,7 @@ function StatCard({
   titulo: string;
   valor: string | number;
   icone: React.ReactNode;
-  cor: 'blue' | 'green' | 'yellow' | 'red';
+  cor: 'blue' | 'green' | 'yellow' | 'red' | 'orange';
   onClick?: () => void;
   grande?: boolean;
 }) {
@@ -296,6 +304,7 @@ function StatCard({
     green:   'bg-brand-green/10 border-brand-green/20',
     yellow:  'bg-yellow-500/10 border-yellow-500/20',
     red:     'bg-red-500/10 border-red-500/20',
+    orange:  'bg-orange-500/10 border-orange-500/20',
   };
 
   return (

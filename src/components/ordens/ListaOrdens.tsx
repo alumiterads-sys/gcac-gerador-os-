@@ -8,6 +8,7 @@ import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStat
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
   { label: 'Todas',              valor: 'Todos' },
   { label: 'Aguardando',         valor: 'Aguardando Pagamento' },
+  { label: 'Parcial',            valor: 'Parcialmente Pago' },
   { label: 'Gratuidade',         valor: 'Gratuidade' },
   { label: 'Pagas',              valor: 'Pago' },
 ];
@@ -186,9 +187,14 @@ export function ListaOrdens() {
               </div>
 
               {/* Valor e Status */}
-              <div className="flex-shrink-0 text-right space-y-1">
-                <p className="text-sm font-bold text-brand-green">{formatarMoeda(ordem.valor)}</p>
-                <span className={classeStatus(ordem.status)}>{ordem.status}</span>
+              <div className="flex-shrink-0 text-right flex flex-col items-end gap-1">
+                <p className={`text-sm font-bold ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor)}</p>
+                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shadow-sm border ${classeStatus(ordem.status)}`}>
+                  {ordem.status}
+                </span>
+                {ordem.status === 'Parcialmente Pago' && (
+                  <p className="text-[8px] font-bold text-orange-400 uppercase">Falta {formatarMoeda(ordem.valor - (ordem.valorPago || 0))}</p>
+                )}
               </div>
 
               {/* Seta */}

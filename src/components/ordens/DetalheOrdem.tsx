@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List } from 'lucide-react';
 import { 
   OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, 
   StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO 
@@ -19,7 +19,7 @@ interface DetalheOrdemProps {
 
 export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const navigate = useNavigate();
-  const { deletarOrdem, atualizarStatusServico, atualizarOrdem, atualizarGruServico } = useOrdens();
+  const { deletarOrdem, atualizarStatusServico, atualizarOrdem, atualizarGruServico, registrarPagamento } = useOrdens();
   const { estaAutenticado } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -335,48 +335,120 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         )}
       </div>
 
-      {/* ── Valor e Pagamento ── */}
       <div className="card">
-        <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-4">Valores e Pagamento</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-brand-dark-4 rounded-lg p-3 border border-brand-dark-5 flex flex-col justify-center">
-            <div className="mb-2 space-y-0.5">
-              <p className="text-[9px] font-bold text-gray-500 uppercase">Honorários: <span className="text-white ml-1">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
-              <p className="text-[9px] font-bold text-gray-500 uppercase">Laudos: <span className="text-white ml-1">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
+        <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-4 flex justify-between items-center">
+          Valores e Pagamento
+          {ordem.status !== 'Gratuidade' && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+              ordem.status === 'Pago' ? 'bg-brand-green/20 text-brand-green border-brand-green/30' :
+              ordem.status === 'Parcialmente Pago' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+              'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+            }`}>
+              {ordem.status}
+            </span>
+          )}
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
+            <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Total da O.S.</p>
+            <p className="text-xl font-black text-white">{formatarMoeda(ordem.valor)}</p>
+            <div className="mt-2 pt-2 border-t border-brand-dark-5 space-y-1">
+              <p className="text-[9px] text-gray-500 uppercase flex justify-between">Honorários: <span className="text-gray-300">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
+              <p className="text-[9px] text-gray-500 uppercase flex justify-between">Laudos: <span className="text-gray-300">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
             </div>
-            <p className="text-[10px] text-gray-500 mb-0.5 font-black uppercase">Valor Total</p>
-            <p className="text-2xl font-black text-brand-green">{formatarMoeda(ordem.valor)}</p>
           </div>
-          <div className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5 relative">
-            <p className="text-xs text-gray-500 mb-1">FORMA DE PAGAMENTO</p>
-            
-            <button 
-              onClick={() => setDropdownFormaAberto(!dropdownFormaAberto)}
-              className="group flex items-center gap-2 text-lg font-bold text-white hover:text-brand-blue-light transition-colors text-left"
-            >
-              {ordem.formaPagamento}
-              <ChevronDown size={16} className={`text-gray-500 group-hover:text-brand-blue-light transition-all ${dropdownFormaAberto ? 'rotate-180' : ''}`} />
-            </button>
+          
+          <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
+            <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Valor Recebido</p>
+            <p className="text-xl font-black text-brand-green">{formatarMoeda(ordem.valorPago || 0)}</p>
+            <div className="mt-2 pt-2 border-t border-brand-dark-5">
+               <p className="text-[9px] text-gray-500 uppercase">Última forma: <span className="text-gray-300 font-bold">{ordem.formaPagamento}</span></p>
+            </div>
+          </div>
 
-            {dropdownFormaAberto && (
-              <div className="absolute left-0 bottom-full mb-1 z-30 w-52 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden py-1 animate-scale-up">
-                {FORMAS_PAGAMENTO.map(f => (
-                  <button
-                    key={f}
-                    onClick={() => handleMudarFormaPagamento(f)}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      ordem.formaPagamento === f 
-                        ? 'bg-brand-blue/20 text-brand-blue-light' 
-                        : 'text-gray-400 hover:bg-brand-dark-5 hover:text-white'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
+            <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Saldo Devedor</p>
+            <p className={`text-xl font-black ${(ordem.valor - (ordem.valorPago || 0)) > 0 ? 'text-red-400' : 'text-gray-500'}`}>
+              {formatarMoeda(Math.max(0, ordem.valor - (ordem.valorPago || 0)))}
+            </p>
+            <div className="mt-2 pt-2 border-t border-brand-dark-5">
+              <p className="text-[9px] text-gray-500 uppercase">Status: <span className="text-gray-300 font-bold">{ordem.status}</span></p>
+            </div>
           </div>
         </div>
+
+        {/* Histórico de Pagamentos */}
+        {ordem.status !== 'Gratuidade' && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                <List size={14} className="text-brand-blue" />
+                Histórico de Recebimentos
+              </h4>
+              
+              {ordem.valor > (ordem.valorPago || 0) && (
+                <div className="flex gap-2">
+                  <input 
+                    type="number" 
+                    id="quick-pag-valor"
+                    className="bg-brand-dark-3 border border-brand-dark-5 rounded px-2 py-1 text-xs text-white w-24 focus:border-brand-blue outline-none transition-colors"
+                    placeholder="Valor"
+                  />
+                  <select 
+                    id="quick-pag-metodo"
+                    className="bg-brand-dark-3 border border-brand-dark-5 rounded px-2 py-1 text-xs text-white focus:border-brand-blue outline-none transition-colors"
+                  >
+                    {FORMAS_PAGAMENTO.filter(f => f !== 'Pendente').map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={() => {
+                      const input = document.getElementById('quick-pag-valor') as HTMLInputElement;
+                      const metodo = (document.getElementById('quick-pag-metodo') as HTMLSelectElement).value as FormaPagamento;
+                      const valor = parseFloat(input.value);
+                      if (valor > 0) {
+                        registrarPagamento(ordem.id, valor, metodo);
+                        input.value = '';
+                      }
+                    }}
+                    className="bg-brand-blue hover:bg-brand-blue-light text-white text-[10px] font-bold px-3 py-1 rounded transition-colors"
+                  >
+                    REGISTRAR
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-brand-dark-3 rounded-xl border border-brand-dark-5 overflow-hidden">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-brand-dark-2 border-b border-brand-dark-5">
+                    <th className="px-4 py-2 font-bold text-gray-500 uppercase">Data</th>
+                    <th className="px-4 py-2 font-bold text-gray-500 uppercase">Método</th>
+                    <th className="px-4 py-2 font-bold text-gray-500 uppercase text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-brand-dark-5">
+                  {(ordem.historicoPagamentos && ordem.historicoPagamentos.length > 0) ? (
+                    ordem.historicoPagamentos.map((p) => (
+                      <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-4 py-3 text-gray-400">{new Date(p.data).toLocaleDateString('pt-BR')}</td>
+                        <td className="px-4 py-3 font-bold text-white uppercase">{p.metodo}</td>
+                        <td className="px-4 py-3 font-black text-brand-green text-right">{formatarMoeda(p.valor)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-8 text-center text-gray-500 italic">Nenhum pagamento registrado.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Observações ── */}

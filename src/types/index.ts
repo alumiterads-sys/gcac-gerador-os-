@@ -2,6 +2,7 @@
 
 export type StatusOS =
   | 'Aguardando Pagamento'
+  | 'Parcialmente Pago'
   | 'Gratuidade'
   | 'Pago';
 
@@ -79,6 +80,8 @@ export interface OrdemDeServico {
     categoria?: 'Honorário' | 'Laudo';
   }[];
   valor: number;
+  valorPago: number;
+  historicoPagamentos: PagamentoItem[];
   taxaPFTotal?: number; // Total de taxas para esta OS
   formaPagamento: FormaPagamento;
 
@@ -228,6 +231,7 @@ export const FORMAS_PAGAMENTO: FormaPagamento[] = [
 
 export const STATUS_OS: StatusOS[] = [
   'Aguardando Pagamento',
+  'Parcialmente Pago',
   'Gratuidade',
   'Pago',
 ];
@@ -245,6 +249,13 @@ export const STATUS_EXECUCAO_SERVICO: StatusExecucaoServico[] = [
   'Protocolado — Ag. PF',
   'Concluído',
 ];
+
+export interface PagamentoItem {
+  id: string;
+  valor: number;
+  metodo: FormaPagamento;
+  data: string;
+}
 
 export type TipoAgendamento = 'Psicológico' | 'Tiro';
 

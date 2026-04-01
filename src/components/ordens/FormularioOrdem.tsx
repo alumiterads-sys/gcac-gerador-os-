@@ -2,20 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Save, X, Eye, EyeOff, MessageCircle, Users, Phone, Search,
-  Mail, HelpCircle, CheckCircle, ChevronDown, List, Trash2
+  Mail, HelpCircle, CheckCircle, ChevronDown, List, Trash2, DollarSign
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
   FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig, StatusExecucaoServico,
-  STATUS_EXECUCAO_SERVICO
+  STATUS_EXECUCAO_SERVICO, PagamentoItem
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
 import { useServicos } from '../../context/ServicosContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
+import { classeStatusExecucao, iconeStatusExecucao, formatarMoeda } from '../../utils/formatters';
 
 interface FormularioOrdemProps {
   ordemExistente?: OrdemDeServico;
@@ -32,6 +32,7 @@ const ICONES_CANAL: Record<CanalAtendimento, React.ReactNode> = {
 // Cores dos botões de status de pagamento
 const ESTILO_STATUS: Record<StatusOS, string> = {
   'Aguardando Pagamento': 'bg-yellow-500/30 border-yellow-500/60 text-yellow-300',
+  'Parcialmente Pago':    'bg-orange-500/30 border-orange-500/60 text-orange-300',
   'Gratuidade':           'bg-brand-blue/30 border-brand-blue/60 text-brand-blue-light',
   'Pago':                 'bg-brand-green/30 border-brand-green/60 text-brand-green-light',
 };
@@ -162,11 +163,13 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     canalAtendimento:  (ordemExistente?.canalAtendimento ?? null) as CanalAtendimento | null,
     observacaoContato: ordemExistente?.observacaoContato ?? '',
     observacoes:       ordemExistente?.observacoes       ?? '',
+    valorPago:         ordemExistente?.valorPago ?? 0,
+    historicoPagamentos: ordemExistente?.historicoPagamentos ?? [] as PagamentoItem[],
   });
 
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  const atualizar = (campo: string, valor: string | number | boolean | null) => {
+  const atualizar = (campo: string, valor: any) => {
     setForm(f => ({ ...f, [campo]: valor }));
     setErros(e => { const novo = { ...e }; delete novo[campo]; return novo; });
   };
@@ -320,6 +323,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         canalAtendimento:  form.canalAtendimento,
         observacaoContato: form.observacaoContato.trim(),
         observacoes:       form.observacoes.trim(),
+        valorPago:         form.valorPago,
+        historicoPagamentos: form.historicoPagamentos,
       };
 
       // Salvamento silencioso do Cliente na agenda
@@ -644,7 +649,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="label">Valor Final Sugerido (R$)</label>
+            <label className="label">Valor Final (R$)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">R$</span>
               <input id="campo-valor" type="text" inputMode="decimal"
@@ -656,33 +661,147 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
             {erros.valor && <p className="text-red-400 text-xs mt-1">{erros.valor}</p>}
           </div>
           <div>
-            <label className="label label-required">Forma de Pagamento</label>
-            <select id="campo-pagamento" className="select" value={form.formaPagamento}
-              onChange={e => atualizar('formaPagamento', e.target.value as FormaPagamento)}
-              disabled={form.status === 'Gratuidade'}>
-              {FORMAS_PAGAMENTO.map((f: string) => <option key={f} value={f}>{f}</option>)}
-            </select>
+            <label className="label">Valor Pago (Saldo: {formatarMoeda(form.valor - form.valorPago)})</label>
+            <div className="bg-brand-dark-3 p-3 rounded-lg border border-brand-dark-5 flex justify-between items-center">
+              <span className="text-brand-green font-bold text-lg">{formatarMoeda(form.valorPago)}</span>
+              {form.valor > form.valorPago && form.status !== 'Gratuidade' && (
+                <span className="text-red-400 text-xs font-bold animate-pulse">PENDENTE: {formatarMoeda(form.valor - form.valorPago)}</span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Status de pagamento — 3 opções */}
+        {/* Gerenciamento de Pagamentos (Apenas na Edição ou se já tiver valor) */}
+        {form.valor > 0 && form.status !== 'Gratuidade' && (
+          <div className="space-y-3 mb-6 p-4 bg-brand-dark-3 rounded-xl border border-brand-dark-5">
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+              <DollarSign size={14} className="text-brand-green" />
+              Histórico de Pagamentos
+            </h4>
+            
+            {form.historicoPagamentos.length > 0 ? (
+              <div className="space-y-2">
+                {form.historicoPagamentos.map((p, idx) => (
+                  <div key={p.id} className="flex items-center justify-between p-2 bg-brand-dark-2 rounded border border-brand-dark-5 text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-500">{new Date(p.data).toLocaleDateString('pt-BR')}</span>
+                      <span className="font-bold text-white">{p.metodo}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-brand-green">{formatarMoeda(p.valor)}</span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const novoHist = form.historicoPagamentos.filter((_, i) => i !== idx);
+                          const novoTotal = novoHist.reduce((acc, curr) => acc + curr.valor, 0);
+                          atualizar('historicoPagamentos', novoHist);
+                          atualizar('valorPago', novoTotal);
+                          // Atualiza status se necessário
+                          if (novoTotal >= form.valor) atualizar('status', 'Pago');
+                          else if (novoTotal > 0) atualizar('status', 'Parcialmente Pago');
+                          else atualizar('status', 'Aguardando Pagamento');
+                        }}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[10px] text-gray-500 italic">Nenhum pagamento registrado ainda.</p>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t border-brand-dark-5">
+              <div className="flex-1">
+                <input 
+                  type="number" 
+                  id="add-pag-valor"
+                  className="input py-2 text-sm" 
+                  placeholder="Valor R$" 
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const input = e.currentTarget;
+                      const val = parseFloat(input.value);
+                      const metodo = (document.getElementById('add-pag-metodo') as HTMLSelectElement).value as FormaPagamento;
+                      if (val > 0) {
+                        const novoP = { id: crypto.randomUUID(), valor: val, metodo, data: new Date().toISOString() };
+                        const novoHist = [...form.historicoPagamentos, novoP];
+                        const novoTotal = novoHist.reduce((acc, curr) => acc + curr.valor, 0);
+                        atualizar('historicoPagamentos', novoHist);
+                        atualizar('valorPago', novoTotal);
+                        if (novoTotal >= form.valor) atualizar('status', 'Pago');
+                        else atualizar('status', 'Parcialmente Pago');
+                        input.value = '';
+                      }
+                    }
+                  }}
+                />
+              </div>
+              <select id="add-pag-metodo" className="select py-2 text-sm w-32">
+                {FORMAS_PAGAMENTO.filter(f => f !== 'Pendente').map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+              <button 
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById('add-pag-valor') as HTMLInputElement;
+                  const val = parseFloat(input.value);
+                  const metodo = (document.getElementById('add-pag-metodo') as HTMLSelectElement).value as FormaPagamento;
+                  if (val > 0) {
+                    const novoP = { id: crypto.randomUUID(), valor: val, metodo, data: new Date().toISOString() };
+                    const novoHist = [...form.historicoPagamentos, novoP];
+                    const novoTotal = novoHist.reduce((acc, curr) => acc + curr.valor, 0);
+                    atualizar('historicoPagamentos', novoHist);
+                    atualizar('valorPago', novoTotal);
+                    if (novoTotal >= form.valor) atualizar('status', 'Pago');
+                    else atualizar('status', 'Parcialmente Pago');
+                    input.value = '';
+                  }
+                }}
+                className="btn-primary px-3 py-0 h-10"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Status de pagamento */}
         <div>
           <label className="label">Status do Pagamento</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {STATUS_OS.map((s: any) => (
               <button key={s} type="button"
                 onClick={() => {
                   atualizar('status', s);
                   if (s === 'Aguardando Pagamento') {
-                    atualizar('formaPagamento', 'Pendente');
+                    atualizar('valorPago', 0);
+                    atualizar('historicoPagamentos', []);
+                  }
+                  if (s === 'Pago') {
+                    atualizar('valorPago', form.valor);
+                    // Se não tiver histórico, cria um único
+                    if (form.historicoPagamentos.length === 0 && form.valor > 0) {
+                      atualizar('historicoPagamentos', [{ 
+                        id: crypto.randomUUID(), 
+                        valor: form.valor, 
+                        metodo: 'PIX', 
+                        data: new Date().toISOString() 
+                      }]);
+                    }
                   }
                   if (s === 'Gratuidade') {
                     atualizar('valor', 0);
                     atualizar('valorTexto', '');
-                    atualizar('formaPagamento', 'A Combinar');
+                    atualizar('valorPago', 0);
+                    atualizar('historicoPagamentos', []);
                   }
                 }}
-                className={`py-2.5 px-2 rounded-lg text-sm font-semibold border transition-all text-center ${
+                className={`py-2.5 px-2 rounded-lg text-xs font-semibold border transition-all text-center ${
                   form.status === s
                     ? ESTILO_STATUS[s as StatusOS]
                     : 'bg-brand-dark-4 border-brand-dark-5 text-gray-400 hover:border-brand-metal'

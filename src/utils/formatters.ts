@@ -45,6 +45,7 @@ export function formatarNumeroOS(numero: number): string {
 export function classeStatus(status: StatusOS): string {
   switch (status) {
     case 'Aguardando Pagamento': return 'badge-pendente';
+    case 'Parcialmente Pago':    return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
     case 'Gratuidade':           return 'badge-andamento';
     case 'Pago':                 return 'badge-concluido';
     default:                     return 'badge';
@@ -54,6 +55,7 @@ export function classeStatus(status: StatusOS): string {
 export function corStatus(status: StatusOS): string {
   switch (status) {
     case 'Aguardando Pagamento': return '#eab308';
+    case 'Parcialmente Pago':    return '#f97316';
     case 'Gratuidade':           return '#2d8de0';
     case 'Pago':                 return '#6DBE45';
     default:                     return '#8A8A8A';

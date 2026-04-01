@@ -14,6 +14,7 @@ interface OrdensContextType {
   atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
+  registrarPagamento: (ordemId: string, valor: number, metodo: FormaPagamento) => Promise<void>;
   itensFila: number; // Temporary kept out as 0
 }
 
@@ -30,6 +31,8 @@ const mapFromDB = (row: any): OrdemDeServico => ({
   clubeFiliado: row.clube_filiado || '',
   servicos: row.servicos || [],
   valor: row.valor,
+  valorPago: row.valor_pago || 0,
+  historicoPagamentos: row.historico_pagamentos || [],
   formaPagamento: row.forma_pagamento as FormaPagamento,
   status: row.status as StatusOS,
   taxaPFTotal: row.taxa_pf_total || 0,
@@ -54,6 +57,8 @@ const mapToDB = (dados: any) => {
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   if (dados.servicos !== undefined) payload.servicos = dados.servicos;
   if (dados.valor !== undefined) payload.valor = dados.valor;
+  if (dados.valorPago !== undefined) payload.valor_pago = dados.valorPago;
+  if (dados.historicoPagamentos !== undefined) payload.historico_pagamentos = dados.historicoPagamentos;
   if (dados.formaPagamento !== undefined) payload.forma_pagamento = dados.formaPagamento;
   if (dados.status !== undefined) payload.status = dados.status;
   if (dados.canalAtendimento !== undefined) payload.canal_atendimento = dados.canalAtendimento;
@@ -170,7 +175,6 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
     await carregarOrdens();
   }, [carregarOrdens]);
-
   const buscarOrdem = useCallback(async (id: string) => {
     const { data, error } = await supabase
       .from('ordens')
@@ -182,6 +186,37 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     return mapFromDB(data);
   }, []);
 
+  const registrarPagamento = useCallback(async (ordemId: string, valor: number, metodo: FormaPagamento) => {
+    const ordem = ordens.find(o => o.id === ordemId);
+    if (!ordem) return;
+
+    const novoPagamento = {
+      id: crypto.randomUUID(),
+      valor,
+      metodo,
+      data: new Date().toISOString()
+    };
+
+    const novoHistorico = [...(ordem.historicoPagamentos || []), novoPagamento];
+    const novoValorPago = novoHistorico.reduce((acc, p) => acc + p.valor, 0);
+    
+    let novoStatus: StatusOS = ordem.status;
+    if (novoValorPago >= ordem.valor) {
+      novoStatus = 'Pago';
+    } else if (novoValorPago > 0) {
+      novoStatus = 'Parcialmente Pago';
+    } else {
+      novoStatus = 'Aguardando Pagamento';
+    }
+
+    await atualizarOrdem(ordemId, {
+      valorPago: novoValorPago,
+      historicoPagamentos: novoHistorico,
+      status: novoStatus,
+      formaPagamento: metodo // Atualiza forma principal com o último método
+    });
+  }, [ordens, atualizarOrdem]);
+
   return (
     <OrdensContext.Provider value={{
       ordens,
@@ -192,7 +227,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       atualizarGruServico,
       deletarOrdem,
       buscarOrdem,
-      itensFila: 0, // Fila depreciada pela arquitetura real-time
+      registrarPagamento,
+      itensFila: 0, 
     }}>
       {children}
     </OrdensContext.Provider>
