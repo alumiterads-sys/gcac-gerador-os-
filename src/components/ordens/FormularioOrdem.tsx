@@ -218,7 +218,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
     const novosServicos = [
       ...form.servicos,
-      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Não Iniciado' as StatusExecucaoServico }
+      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Não Iniciado' as StatusExecucaoServico, pagoGRU: false }
     ];
     
     // Auto-preenchimento: recalcula o total somando todos os valores individuais
@@ -256,6 +256,13 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     setForm(f => ({
       ...f,
       servicos: (f.servicos as any[]).map((s: any) => s.id === id ? { ...s, statusExecucao: novoStatus } : s)
+    }));
+  };
+
+  const atualizarGruServico = (id: string, pago: boolean) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => s.id === id ? { ...s, pagoGRU: pago } : s)
     }));
   };
 
@@ -574,6 +581,26 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                     </div>
                   </div>
                 </div>
+
+                {/* Controle de GRU */}
+                {(serv.taxaPF || 0) > 0 && (
+                  <div className="mb-3 flex items-center gap-3 bg-brand-dark-3/50 p-2 rounded-lg border border-brand-dark-5/50">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-brand-blue/30"
+                        checked={serv.pagoGRU || false}
+                        onChange={e => atualizarGruServico(serv.id, e.target.checked)}
+                      />
+                      <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">GRU (Taxa PF) - JÁ ESTÁ PAGA?</span>
+                    </label>
+                    {serv.pagoGRU ? (
+                      <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20 uppercase tracking-widest">Paga</span>
+                    ) : (
+                      <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">Pendente</span>
+                    )}
+                  </div>
+                )}
 
                 <textarea
                   className="input resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30"

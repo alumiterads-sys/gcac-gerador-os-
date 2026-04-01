@@ -74,6 +74,7 @@ export interface OrdemDeServico {
     taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
     valor?: number;  // Valor individual editável do serviço
     statusExecucao?: StatusExecucaoServico;
+    pagoGRU?: boolean;
   }[];
   valor: number;
   taxaPFTotal?: number; // Total de taxas para esta OS
@@ -102,6 +103,7 @@ export interface ServicoOrcamento {
   detalhes: string;
   valor: number;
   taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
+  pagoGRU?: boolean;
 }
 
 export interface Orcamento {

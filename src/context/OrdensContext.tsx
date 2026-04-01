@@ -11,6 +11,7 @@ interface OrdensContextType {
   criarOrdem: (dados: Omit<OrdemDeServico, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm' | 'driveArquivoJsonId' | 'drivePdfId' | 'ultimaSincronizacao' | 'pendenteSincronizacao'>) => Promise<string>;
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
   atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any) => Promise<void>;
+  atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
   itensFila: number; // Temporary kept out as 0
@@ -149,6 +150,16 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
 
     await atualizarOrdem(ordemId, { servicos: novosServicos });
   }, [ordens, atualizarOrdem]);
+  const atualizarGruServico = useCallback(async (ordemId: string, servicoId: string, pago: boolean) => {
+    const ordem = ordens.find(o => o.id === ordemId);
+    if (!ordem) return;
+
+    const novosServicos = ordem.servicos.map(s => 
+      s.id === servicoId ? { ...s, pagoGRU: pago } : s
+    );
+
+    await atualizarOrdem(ordemId, { servicos: novosServicos });
+  }, [ordens, atualizarOrdem]);
 
   const deletarOrdem = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -178,6 +189,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       criarOrdem,
       atualizarOrdem,
       atualizarStatusServico,
+      atualizarGruServico,
       deletarOrdem,
       buscarOrdem,
       itensFila: 0, // Fila depreciada pela arquitetura real-time
