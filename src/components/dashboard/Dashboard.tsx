@@ -23,11 +23,12 @@ export function Dashboard() {
   });
   
   const stats = {
-    total:       ordensParaStats.length,
-    aguardando:  ordensParaStats.filter(o => o.status === 'Aguardando Pagamento').length,
-    parcial:     ordensParaStats.filter(o => o.status === 'Parcialmente Pago').length,
-    gratuidade:  ordensParaStats.filter(o => o.status === 'Gratuidade').length,
-    pagas:       ordensParaStats.filter(o => o.status === 'Pago').length,
+    // Contagens Globais (Incluindo Migrados)
+    total:       ordens.length,
+    pendente:    ordens.filter(o => o.status === 'Aguardando Pagamento').length,
+    pagas:       ordens.filter(o => o.status === 'Pago' || o.status === 'Gratuidade').length,
+
+    // Financeiro Real (Apenas atual + futuro)
     receita:     ordensParaStats.reduce((s, o) => s + (o.valorPago || 0), 0),
     taxas:       ordensParaStats.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
     receitaPendente: ordensParaStats.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
@@ -43,7 +44,8 @@ export function Dashboard() {
   };
 
   // Estatísticas de Execução (Operacional)
-  const todosServicos = ordensParaStats.flatMap((o: any) => o.servicos || []);
+  // Estatísticas de Execução (Operacional - Total de serviços ativos no banco)
+  const todosServicos = ordens.flatMap((o: any) => o.servicos || []);
   const operStats = STATUS_EXECUCAO_SERVICO.reduce((acc, status) => {
     acc[status] = todosServicos.filter((s: any) => (s.statusExecucao || 'Não Iniciado') === status).length;
     return acc;
@@ -81,42 +83,34 @@ export function Dashboard() {
       </div>
 
       {/* ── Cards de Estatísticas ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard
-          titulo="Total de OS"
-          valor={stats.total}
-          icone={<FileText size={20} className="text-brand-blue-light" />}
-          cor="blue"
-          onClick={() => navigate('/ordens')}
-        />
-        <StatCard
-          titulo="Aguardando"
-          valor={stats.aguardando}
-          icone={<Clock size={20} className="text-yellow-400" />}
-          cor="yellow"
-          onClick={() => navigate('/ordens')}
-        />
-        <StatCard
-          titulo="Parciais"
-          valor={stats.parcial}
-          icone={<Clock size={20} className="text-orange-400" />}
-          cor="orange"
-          onClick={() => navigate('/ordens')}
-        />
-        <StatCard
-          titulo="Pagas"
-          valor={stats.pagas}
-          icone={<CheckCircle size={20} className="text-brand-green" />}
-          cor="green"
-          onClick={() => navigate('/ordens')}
-        />
-        <StatCard
-          titulo="Gratuidades"
-          valor={stats.gratuidade}
-          icone={<Gift size={20} className="text-brand-blue-light" />}
-          cor="blue"
-          onClick={() => navigate('/ordens')}
-        />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-1 h-4 bg-brand-blue rounded-full" />
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Detalhamento de Ordens de Serviço</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <StatCard
+            titulo="Total de OS"
+            valor={stats.total}
+            icone={<FileText size={20} className="text-brand-blue-light" />}
+            cor="blue"
+            onClick={() => navigate('/ordens')}
+          />
+          <StatCard
+            titulo="Pagamento Pendente"
+            valor={stats.pendente}
+            icone={<Clock size={20} className="text-yellow-400" />}
+            cor="yellow"
+            onClick={() => navigate('/ordens')}
+          />
+          <StatCard
+            titulo="Pagas"
+            valor={stats.pagas}
+            icone={<CheckCircle size={20} className="text-brand-green" />}
+            cor="green"
+            onClick={() => navigate('/ordens')}
+          />
+        </div>
       </div>
 
       {/* ── Banner de Receita e Lucro ── */}
