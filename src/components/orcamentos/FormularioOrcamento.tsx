@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Save, X, Users, CheckCircle, ChevronDown, List, Trash2, Eye, EyeOff, Search
 } from 'lucide-react';
@@ -119,6 +119,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
 // ── Formulário Principal ─────────────────────────────────────────────────
 export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { criarOrcamento, atualizarOrcamento } = useOrcamentos();
   const { clientes, criarCliente, clubesRegistrados } = useClientes();
   const { criarOrdem } = useOrdens();
@@ -141,6 +142,25 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     status:            (orcamentoExistente?.status           ?? 'Pendente') as StatusOrcamento,
     observacoes:       orcamentoExistente?.observacoes       ?? '',
   });
+
+  // Preenchimento automático vindo do perfil do cliente
+  useEffect(() => {
+    const state = location.state as { clientePreDefinido?: Cliente };
+    if (state?.clientePreDefinido && !orcamentoExistente) {
+      const c = state.clientePreDefinido;
+      setForm(f => ({
+        ...f,
+        nomeCliente: c.nome,
+        cpf: c.cpf,
+        contato: c.contato,
+        senhaGov: c.senhaGov,
+        filiadoProTiro: c.filiadoProTiro,
+        clubeFiliado: c.clubeFiliado || ''
+      }));
+      // Limpar o estado para não repetir o preenchimento se o usuário recarregar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location, orcamentoExistente]);
 
   const [erros, setErros] = useState<Record<string, string>>({});
 

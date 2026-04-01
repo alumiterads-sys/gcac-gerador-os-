@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAgendamentos } from '../../context/AgendamentosContext';
 import { useAuth } from '../../context/AuthContext';
 import { CardAgendamento } from './CardAgendamento';
@@ -9,6 +10,7 @@ import { Agendamento, TipoAgendamento } from '../../types';
 
 export function ListaAgendamentos() {
   const { usuario } = useAuth();
+  const location = useLocation();
   const { agendamentos, estaCarregando } = useAgendamentos();
   
   const [busca, setBusca] = useState('');
@@ -17,6 +19,14 @@ export function ListaAgendamentos() {
   const [modo, setModo] = useState<'lista' | 'novo' | 'editar'>('lista');
   const [agendamentoEditando, setAgendamentoEditando] = useState<Agendamento | null>(null);
   const [agendamentoVisualizando, setAgendamentoVisualizando] = useState<Agendamento | null>(null);
+  
+  // Se vier do perfil do cliente, abre o formulário automático
+  useEffect(() => {
+    const state = location.state as { clientePreDefinido?: any };
+    if (state?.clientePreDefinido) {
+      setModo('novo');
+    }
+  }, [location]);
 
   const agendamentosFiltrados = (agendamentos || []).filter(a => {
     const matchBusca = a.clienteNome.toLowerCase().includes(busca.toLowerCase()) || 

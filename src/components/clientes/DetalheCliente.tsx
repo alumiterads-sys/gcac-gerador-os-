@@ -1,0 +1,302 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  User, Mail, Phone, MapPin, Shield, Copy, Check, 
+  FileText, Receipt, Clock, Calendar, Plus, 
+  ArrowLeft, ChevronRight, ExternalLink
+} from 'lucide-react';
+import { Cliente } from '../../types';
+import { formatarCPF, formatarTelefone, formatarMoeda, formatarData } from '../../utils/formatters';
+import { useOrdens } from '../../context/OrdensContext';
+import { useOrcamentos } from '../../context/OrcamentosContext';
+import { useRecibos } from '../../context/RecibosContext';
+import { useAgendamentos } from '../../context/AgendamentosContext';
+
+interface DetalheClienteProps {
+  cliente: Cliente;
+}
+
+export function DetalheCliente({ cliente }: DetalheClienteProps) {
+  const navigate = useNavigate();
+  const { ordens } = useOrdens();
+  const { orcamentos } = useOrcamentos();
+  const { recibos } = useRecibos();
+  const { agendamentos } = useAgendamentos();
+  
+  const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos'>('ordens');
+  const [copiou, setCopiou] = useState(false);
+
+  // Filtros de histórico
+  const ordensCliente = ordens.filter(o => o.cpf === cliente.cpf);
+  const orcamentosCliente = orcamentos.filter(o => o.cpf === cliente.cpf);
+  const recibosCliente = recibos.filter(r => r.clienteCPF === cliente.cpf);
+  const agendamentosCliente = agendamentos.filter(a => a.clienteCPF === cliente.cpf);
+
+  const handleCopiarSenha = (senha: string) => {
+    navigator.clipboard.writeText(senha);
+    setCopiou(true);
+    setTimeout(() => setCopiou(false), 2000);
+  };
+
+  const acoesRapidas = [
+    { 
+      label: 'Gerar O.S.', 
+      icon: <FileText size={20} />, 
+      color: 'bg-brand-blue/10 text-brand-blue border-brand-blue/20',
+      path: '/ordens/nova'
+    },
+    { 
+      label: 'Gerar Orçamento', 
+      icon: <Receipt size={20} />, 
+      color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+      path: '/orcamentos/novo'
+    },
+    { 
+      label: 'Gerar Recibo', 
+      icon: <FileText size={20} />, 
+      color: 'bg-brand-green/10 text-brand-green border-brand-green/20',
+      path: '/recibos/novo'
+    },
+    { 
+      label: 'Agendar Laudo', 
+      icon: <Calendar size={20} />, 
+      color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+      path: '/agendamentos'
+    },
+  ];
+
+  const handleAcao = (path: string) => {
+    navigate(path, { state: { clientePreDefinido: cliente } });
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in pb-10">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/clientes')}
+            className="p-2 bg-brand-dark-3 border border-brand-dark-5 rounded-xl text-gray-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              {cliente.nome}
+            </h1>
+            <p className="text-gray-400 text-sm">Perfil do Cliente</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Coluna Esquerda: Cadastro ── */}
+        <div className="space-y-6">
+          <div className="card border-brand-blue/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-brand-blue" />
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Informações Pessoais</span>
+              <User size={16} className="text-brand-blue" />
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
+                <p className="text-white font-semibold text-lg">{cliente.nome}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">CPF</p>
+                  <p className="text-white font-medium">{formatarCPF(cliente.cpf)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Telefone</p>
+                  <p className="text-white font-medium">{formatarTelefone(cliente.contato)}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Filiação Pró-Tiro</p>
+                <p className="text-white font-medium">
+                  {cliente.filiadoProTiro ? (
+                    <span className="text-brand-green font-bold">Sim</span>
+                  ) : (
+                    <span className="text-gray-400">Não ({cliente.clubeFiliado || 'Sem clube'})</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card bg-brand-dark-3/50 border-brand-dark-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-brand-blue" />
+                <p className="text-xs text-white font-bold uppercase tracking-wider">Acesso GOV.BR</p>
+              </div>
+              <button 
+                onClick={() => handleCopiarSenha(cliente.senhaGov)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                  copiou ? 'bg-brand-green/20 text-brand-green border border-brand-green/30' : 'bg-brand-blue/20 text-brand-blue border border-brand-blue/30 hover:bg-brand-blue/30'
+                }`}
+              >
+                {copiou ? <Check size={12} /> : <Copy size={12} />}
+                {copiou ? 'Copiado!' : 'Copiar Senha'}
+              </button>
+            </div>
+            <div className="bg-brand-dark-2 p-3 rounded-lg border border-brand-dark-5 font-mono text-xl text-brand-blue-light tracking-widest text-center">
+              {cliente.senhaGov}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Coluna Direita: Ações e Histórico ── */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Ações Rápidas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {acoesRapidas.map((acao) => (
+              <button
+                key={acao.label}
+                onClick={() => handleAcao(acao.path)}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all hover:-translate-y-1 hover:shadow-lg ${acao.color}`}
+              >
+                <div className="mb-2">{acao.icon}</div>
+                <span className="text-[10px] font-black uppercase text-center leading-tight">{acao.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Histórico com Tabs */}
+          <div className="card p-0 overflow-hidden border-brand-dark-5">
+            <div className="flex bg-brand-dark-3 border-b border-brand-dark-5 overflow-x-auto">
+              <TabButton ativo={abaAtiva === 'ordens'} onClick={() => setAbaAtiva('ordens')} count={ordensCliente.length}>
+                O.S.
+              </TabButton>
+              <TabButton ativo={abaAtiva === 'orcamentos'} onClick={() => setAbaAtiva('orcamentos')} count={orcamentosCliente.length}>
+                Orçamentos
+              </TabButton>
+              <TabButton ativo={abaAtiva === 'recibos'} onClick={() => setAbaAtiva('recibos')} count={recibosCliente.length}>
+                Recibos
+              </TabButton>
+              <TabButton ativo={abaAtiva === 'agendamentos'} onClick={() => setAbaAtiva('agendamentos')} count={agendamentosCliente.length}>
+                Agendamentos
+              </TabButton>
+            </div>
+
+            <div className="p-4">
+              {abaAtiva === 'ordens' && (
+                <HistoryList 
+                  items={ordensCliente.map(o => ({ 
+                    id: o.id, 
+                    title: `OS #${String(o.numero).padStart(4, '0')}`, 
+                    date: o.criadoEm, 
+                    value: o.valor, 
+                    status: o.status,
+                    path: `/ordens/${o.id}`
+                  }))} 
+                  emptyMsg="Nenhuma ordem de serviço encontrada para este cliente."
+                />
+              )}
+              {abaAtiva === 'orcamentos' && (
+                <HistoryList 
+                  items={orcamentosCliente.map(o => ({ 
+                    id: o.id, 
+                    title: `Orçamento #${String(o.numero).padStart(4, '0')}`, 
+                    date: o.criadoEm, 
+                    value: o.valorTotal, 
+                    status: o.status,
+                    path: `/orcamentos/${o.id}`
+                  }))} 
+                  emptyMsg="Nenhum orçamento encontrado para este cliente."
+                />
+              )}
+              {abaAtiva === 'recibos' && (
+                <HistoryList 
+                  items={recibosCliente.map(r => ({ 
+                    id: r.id, 
+                    title: `Recibo #${String(r.numero).padStart(4, '0')}`, 
+                    date: r.criadoEm, 
+                    value: r.valorTotal, 
+                    status: 'Pago',
+                    path: `/recibos/${r.id}`
+                  }))} 
+                  emptyMsg="Nenhum recibo encontrado para este cliente."
+                />
+              )}
+              {abaAtiva === 'agendamentos' && (
+                <HistoryList 
+                  items={agendamentosCliente.map(a => ({ 
+                    id: a.id, 
+                    title: `${a.tipo} - ${a.local}`, 
+                    date: a.data, 
+                    value: a.valor, 
+                    status: a.confirmado ? 'Confirmado' : 'Pendente',
+                    path: '/agendamentos'
+                  }))} 
+                  emptyMsg="Nenhum agendamento encontrado para este cliente."
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ children, ativo, onClick, count }: { children: React.ReactNode, ativo: boolean, onClick: () => void, count: number }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`px-6 py-4 text-xs font-bold uppercase transition-all flex items-center gap-2 border-b-2 ${
+        ativo ? 'text-brand-blue border-brand-blue bg-brand-blue/5' : 'text-gray-500 border-transparent hover:text-gray-300'
+      }`}
+    >
+      {children}
+      {count > 0 && (
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] ${ativo ? 'bg-brand-blue text-white' : 'bg-brand-dark-5 text-gray-500'}`}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
+  const navigate = useNavigate();
+  if (items.length === 0) {
+    return (
+      <div className="py-10 text-center">
+        <p className="text-gray-500 text-sm">{emptyMsg}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.map((item) => (
+        <div 
+          key={item.id} 
+          onClick={() => navigate(item.path)}
+          className="flex items-center justify-between p-3 rounded-xl bg-brand-dark-3 border border-brand-dark-5 hover:border-brand-blue/30 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-brand-dark-2 flex items-center justify-center text-brand-blue group-hover:scale-110 transition-transform">
+              <FileText size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">{item.title}</p>
+              <p className="text-[10px] text-gray-500">{formatarData(item.date)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-bold text-white">{formatarMoeda(item.value)}</p>
+              <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">{item.status}</p>
+            </div>
+            <ChevronRight size={16} className="text-gray-600 transition-transform group-hover:translate-x-1" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

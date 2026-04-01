@@ -12,9 +12,10 @@ import { ListaOrdens } from './components/ordens/ListaOrdens';
 import { FormularioOrdem } from './components/ordens/FormularioOrdem';
 import { DetalheOrdem } from './components/ordens/DetalheOrdem';
 import { Configuracoes } from './components/config/Configuracoes';
-import { ClientesProvider } from './context/ClientesContext';
+import { ClientesProvider, useClientes } from './context/ClientesContext';
 import { ServicosProvider } from './context/ServicosContext';
 import { ListaClientes } from './components/clientes/ListaClientes';
+import { DetalheCliente } from './components/clientes/DetalheCliente';
 import { useOrdens } from './context/OrdensContext';
 import { useOrcamentos } from './context/OrcamentosContext';
 
@@ -124,6 +125,27 @@ function PaginaDetalheRecibo() {
   return <DetalheRecibo recibo={recibo} />;
 }
 
+// ── Páginas de Clientes ───────────────────────────────────────────────────
+
+function PaginaDetalheCliente() {
+  const { id } = useParams<{ id: string }>();
+  const { clientes } = useClientes();
+  const navigate = useNavigate();
+  
+  const cliente = clientes.find(c => c.id === id);
+
+  if (cliente === undefined) return <div className="text-center py-20 text-gray-400">Carregando...</div>;
+  if (!cliente) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-gray-400 mb-4">Cliente não encontrado</p>
+        <button onClick={() => navigate('/clientes')} className="btn-primary">← Voltar para lista</button>
+      </div>
+    );
+  }
+  return <DetalheCliente cliente={cliente} />;
+}
+
 // ── Guard de Autenticação ────────────────────────────────────────────────
 
 function RotaProtegida({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
@@ -186,6 +208,7 @@ export default function App() {
                       <Route path="ordens/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrdem /></RotaProtegida>} />
                       <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
                       <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
+                      <Route path="clientes/:id" element={<RotaProtegida adminOnly><PaginaDetalheCliente /></RotaProtegida>} />
                       <Route path="agendamentos" element={<ListaAgendamentos />} />
                       <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
                       

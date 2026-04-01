@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Save, X, Receipt, CheckCircle, ChevronDown, List, 
   Trash2, User, FileText, Search, CreditCard 
@@ -21,6 +21,7 @@ const EMITENTE = {
 
 export function FormularioRecibo() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { criarRecibo } = useRecibos();
   const { ordens, atualizarOrdem } = useOrdens();
   const { clientes } = useClientes();
@@ -40,6 +41,22 @@ export function FormularioRecibo() {
     formaPagamento: 'PIX' as FormaPagamento,
     observacoes: ''
   });
+
+  // Preenchimento automático vindo do perfil do cliente
+  useEffect(() => {
+    const state = location.state as { clientePreDefinido?: Cliente };
+    if (state?.clientePreDefinido) {
+      const c = state.clientePreDefinido;
+      setCenario('manual');
+      setForm(f => ({
+        ...f,
+        clienteNome: c.nome,
+        clienteCPF: c.cpf,
+      }));
+      // Limpar o estado para não repetir o preenchimento
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const [erros, setErros] = useState<Record<string, string>>({});
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Save, X, Users, Phone, MapPin, User, Crosshair, DollarSign, Calendar, Clock, Info, CheckCircle } from 'lucide-react';
 import { Agendamento, TipoAgendamento, Cliente } from '../../types';
 import { useAgendamentos } from '../../context/AgendamentosContext';
@@ -26,6 +27,7 @@ const DEFAULTS = {
 };
 
 export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCancel }: FormularioAgendamentoProps) {
+  const location = useLocation();
   const { criarAgendamento, atualizarAgendamento, buscarAgendamentoPorCPF } = useAgendamentos();
   const { clientes } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
@@ -49,6 +51,23 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     dataPsicologico:    agendamentoExistente?.dataPsicologico    ?? '',
     horarioPsicologico: agendamentoExistente?.horarioPsicologico ?? '',
   });
+
+  // Preenchimento automático vindo do perfil do cliente
+  useEffect(() => {
+    const state = location.state as { clientePreDefinido?: Cliente };
+    if (state?.clientePreDefinido && !agendamentoExistente) {
+      const c = state.clientePreDefinido;
+      setForm(f => ({
+        ...f,
+        clienteNome: c.nome,
+        clienteCPF: c.cpf,
+        clienteContato: c.contato,
+        clienteEndereco: ''
+      }));
+      // Limpar o estado para não repetir o preenchimento
+      window.history.replaceState({}, document.title);
+    }
+  }, [location, agendamentoExistente]);
 
   const [erros, setErros] = useState<Record<string, string>>({});
 

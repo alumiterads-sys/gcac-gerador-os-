@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useClientes } from '../../context/ClientesContext';
 import { Users, Search, Edit2, Trash2, Eye, Shield, Copy, Check } from 'lucide-react';
 import { Cliente } from '../../types';
@@ -6,6 +7,7 @@ import { formatarCPF, formatarTelefone } from '../../utils/formatters';
 import { FormularioCliente } from './FormularioCliente';
 
 export function ListaClientes() {
+  const navigate = useNavigate();
   const { clientes, deletarCliente } = useClientes();
   const [busca, setBusca] = useState('');
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
@@ -107,11 +109,29 @@ export function ListaClientes() {
                         </span>
                       )}
                     </td>
+                    <td className="px-4 py-3 cursor-pointer group" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                      <p className="font-bold text-white group-hover:text-brand-blue-light transition-colors">{cliente.nome}</p>
+                      <p className="text-xs text-brand-metal">{formatarCPF(cliente.cpf)}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">
+                      {formatarTelefone(cliente.contato)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {cliente.filiadoProTiro ? (
+                        <span className="bg-brand-green/20 text-brand-green border border-brand-green/30 px-2.5 py-1 rounded-full text-xs font-semibold">
+                          Sim
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">
+                          Não ({cliente.clubeFiliado || 'sem clube'})
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
                       <button
-                        onClick={() => setClienteVisualizando(cliente)}
+                        onClick={() => navigate(`/clientes/${cliente.id}`)}
                         className="p-1.5 text-gray-400 hover:text-white transition-colors"
-                        title="Visualizar"
+                        title="Ver Perfil"
                       >
                         <Eye size={16} />
                       </button>
