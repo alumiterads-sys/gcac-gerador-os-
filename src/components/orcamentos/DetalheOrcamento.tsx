@@ -214,8 +214,13 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
               ))}
             </div>
 
-            <div className="flex justify-end pt-2">
-              <div className="text-right p-4 bg-brand-dark-3 border border-brand-dark-5 rounded-xl w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-2">
+              <div className="space-y-1 text-right">
+                <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários: <span className="text-white ml-1">{formatarMoeda(orcamento.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase">Laudos: <span className="text-white ml-1">{formatarMoeda(orcamento.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+              </div>
+
+              <div className="text-right p-4 bg-brand-dark-3 border border-brand-dark-5 rounded-xl w-full sm:w-auto min-w-[180px]">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Total do Orçamento</p>
                 <p className="text-2xl font-black text-brand-green">{formatarMoeda(orcamento.valorTotal)}</p>
               </div>

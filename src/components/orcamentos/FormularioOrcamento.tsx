@@ -195,7 +195,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           detalhes: '', 
           valor: valorAplicado,
           taxaPF: serv.taxaPF,
-          pagoGRU: false
+          pagoGRU: false,
+          categoria: serv.categoria || 'Honorário'
         }
       ];
       const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
@@ -596,9 +597,15 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         </h3>
         
         <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center p-4 bg-brand-dark-2 rounded-xl border border-brand-dark-5 mb-5">
-          <div>
-            <p className="text-sm font-medium text-gray-400">Valor Total do Orçamento</p>
-            <p className="text-3xl font-black text-brand-green">{formatarMoeda(form.valorTotal)}</p>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="space-y-1 text-left sm:text-right">
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários: <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Laudos: <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-400">Valor Total do Orçamento</p>
+              <p className="text-3xl font-black text-brand-green">{formatarMoeda(form.valorTotal)}</p>
+            </div>
           </div>
           
           <div className="w-full md:w-auto">

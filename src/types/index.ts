@@ -39,6 +39,7 @@ export interface ServicoConfig {
   valorPadrao: number;
   valorFiliado: number;
   taxaPF: number;
+  categoria: 'Honorário' | 'Laudo';
   criadoEm: string;
 }
 
@@ -75,6 +76,7 @@ export interface OrdemDeServico {
     valor?: number;  // Valor individual editável do serviço
     statusExecucao?: StatusExecucaoServico;
     pagoGRU?: boolean;
+    categoria?: 'Honorário' | 'Laudo';
   }[];
   valor: number;
   taxaPFTotal?: number; // Total de taxas para esta OS
@@ -104,6 +106,7 @@ export interface ServicoOrcamento {
   valor: number;
   taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
   pagoGRU?: boolean;
+  categoria?: 'Honorário' | 'Laudo';
 }
 
 export interface Orcamento {

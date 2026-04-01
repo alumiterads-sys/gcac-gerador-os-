@@ -339,9 +339,13 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       <div className="card">
         <h3 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-4">Valores e Pagamento</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
-            <p className="text-xs text-gray-500 mb-1">VALOR</p>
-            <p className="text-2xl font-bold text-brand-green">{formatarMoeda(ordem.valor)}</p>
+          <div className="bg-brand-dark-4 rounded-lg p-3 border border-brand-dark-5 flex flex-col justify-center">
+            <div className="mb-2 space-y-0.5">
+              <p className="text-[9px] font-bold text-gray-500 uppercase">Honorários: <span className="text-white ml-1">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
+              <p className="text-[9px] font-bold text-gray-500 uppercase">Laudos: <span className="text-white ml-1">{formatarMoeda(ordem.servicos?.filter((s: any) => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
+            </div>
+            <p className="text-[10px] text-gray-500 mb-0.5 font-black uppercase">Valor Total</p>
+            <p className="text-2xl font-black text-brand-green">{formatarMoeda(ordem.valor)}</p>
           </div>
           <div className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5 relative">
             <p className="text-xs text-gray-500 mb-1">FORMA DE PAGAMENTO</p>

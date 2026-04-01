@@ -31,6 +31,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
           valorPadrao: row.valor_padrao,
           valorFiliado: row.valor_filiado,
           taxaPF: row.taxa_pf,
+          categoria: row.categoria || 'Honorário',
           criadoEm: row.criado_em
         })));
       }
@@ -52,7 +53,8 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
         nome: dados.nome,
         valor_padrao: dados.valorPadrao,
         valor_filiado: dados.valorFiliado,
-        taxa_pf: dados.taxaPF
+        taxa_pf: dados.taxaPF,
+        categoria: dados.categoria
       }]);
 
     if (error) throw error;
@@ -65,6 +67,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
     if (dados.valorPadrao !== undefined) payload.valor_padrao = dados.valorPadrao;
     if (dados.valorFiliado !== undefined) payload.valor_filiado = dados.valorFiliado;
     if (dados.taxaPF !== undefined) payload.taxa_pf = dados.taxaPF;
+    if (dados.categoria !== undefined) payload.categoria = dados.categoria;
 
     const { error } = await supabase
       .from('servicos_config')

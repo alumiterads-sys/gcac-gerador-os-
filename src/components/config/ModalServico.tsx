@@ -17,6 +17,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
   const [valorPadrao, setValorPadrao] = useState('');
   const [valorFiliado, setValorFiliado] = useState('');
   const [taxaPF, setTaxaPF] = useState('');
+  const [categoria, setCategoria] = useState<'Honorário' | 'Laudo'>('Honorário');
 
   useEffect(() => {
     if (servicoParaEditar) {
@@ -24,11 +25,13 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       setValorPadrao(servicoParaEditar.valorPadrao.toString().replace('.', ','));
       setValorFiliado(servicoParaEditar.valorFiliado?.toString().replace('.', ',') || '');
       setTaxaPF(servicoParaEditar.taxaPF.toString().replace('.', ','));
+      setCategoria(servicoParaEditar.categoria || 'Honorário');
     } else {
       setNome('');
       setValorPadrao('');
       setValorFiliado('');
       setTaxaPF('');
+      setCategoria('Honorário');
     }
   }, [servicoParaEditar, aberto]);
 
@@ -45,9 +48,9 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       const t = parseFloat(taxaPF.replace(',', '.')) || 0;
 
       if (servicoParaEditar) {
-        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, valorFiliado: vf, taxaPF: t });
+        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, categoria });
       } else {
-        await criarServico({ nome, valorPadrao: v, valorFiliado: vf, taxaPF: t });
+        await criarServico({ nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, categoria });
       }
       fechar();
     } catch (err) {
@@ -82,6 +85,18 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
               required
               autoFocus
             />
+          </div>
+
+          <div>
+            <label className="label text-brand-blue-light font-bold">Categoria do Serviço</label>
+            <select 
+              className="input bg-brand-dark-3 border-brand-blue/20"
+              value={categoria}
+              onChange={e => setCategoria(e.target.value as any)}
+            >
+              <option value="Honorário">HONORÁRIO / SERVIÇO</option>
+              <option value="Laudo">LAUDO / EXAME EXTERNO</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

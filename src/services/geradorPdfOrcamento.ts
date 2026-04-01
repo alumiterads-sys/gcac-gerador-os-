@@ -139,24 +139,36 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   y = secaoTitulo(doc, 'RESUMO GERAL', y, VERDE);
   y += 2;
 
-  // Caixa valor total
+  // Detalhamento de valores
+  const honorarios = orcamento.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0);
+  const laudos = orcamento.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0);
+
+  // Caixa valor total (aumentada para caber o detalhamento)
   doc.setFillColor('#EDF7ED');
   const cxY = y;
-  doc.roundedRect(largura - 70, cxY, 58, 20, 2, 2, 'F');
+  doc.roundedRect(largura - 75, cxY, 63, 26, 2, 2, 'F');
   doc.setDrawColor(VERDE);
   doc.setLineWidth(0.5);
-  doc.roundedRect(largura - 70, cxY, 58, 20, 2, 2, 'S');
+  doc.roundedRect(largura - 75, cxY, 63, 26, 2, 2, 'S');
   doc.setLineWidth(0.1); 
   
   doc.setTextColor(CINZA);
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL PREVISTO', largura - 41, cxY + 6, { align: 'center' });
-  doc.setTextColor('#16A34A');
-  doc.setFontSize(16);
-  doc.text(formatarMoeda(orcamento.valorTotal), largura - 41, cxY + 15, { align: 'center' });
+  doc.text(`HONORÁRIOS: ${formatarMoeda(honorarios)}`, largura - 43.5, cxY + 5, { align: 'center' });
+  doc.text(`LAUDOS/EXTERNOS: ${formatarMoeda(laudos)}`, largura - 43.5, cxY + 9, { align: 'center' });
+  
+  doc.setDrawColor('#CCE6CC');
+  doc.line(largura - 70, cxY + 11, largura - 17, cxY + 11);
 
-  y += 26;
+  doc.setTextColor(CINZA);
+  doc.setFontSize(8);
+  doc.text('TOTAL PREVISTO', largura - 43.5, cxY + 16, { align: 'center' });
+  doc.setTextColor('#16A34A');
+  doc.setFontSize(15);
+  doc.text(formatarMoeda(orcamento.valorTotal), largura - 43.5, cxY + 23, { align: 'center' });
+
+  y += 32;
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (orcamento.observacoes && orcamento.observacoes.trim()) {

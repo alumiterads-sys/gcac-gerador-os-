@@ -218,7 +218,16 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
     const novosServicos = [
       ...form.servicos,
-      { id: uuidv4(), nome: serv.nome, detalhes: '', taxaPF: serv.taxaPF, valor: valorAplicado, statusExecucao: 'Não Iniciado' as StatusExecucaoServico, pagoGRU: false }
+      { 
+        id: uuidv4(), 
+        nome: serv.nome, 
+        detalhes: '', 
+        taxaPF: serv.taxaPF, 
+        valor: valorAplicado, 
+        statusExecucao: 'Não Iniciado' as StatusExecucaoServico, 
+        pagoGRU: false,
+        categoria: serv.categoria || 'Honorário'
+      }
     ];
     
     // Auto-preenchimento: recalcula o total somando todos os valores individuais
@@ -621,9 +630,21 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           <span className="w-6 h-6 rounded-full bg-yellow-500/30 text-yellow-400 text-xs flex items-center justify-center font-bold">3</span>
           Valor e Pagamento
         </h3>
+        {/* Resumo de Custos Informacional */}
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          <div className="p-2 bg-brand-dark-3 rounded border border-brand-dark-5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários</p>
+            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</p>
+          </div>
+          <div className="p-2 bg-brand-dark-3 rounded border border-brand-dark-5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase">Laudos</p>
+            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="label">Valor (R$)</label>
+            <label className="label">Valor Final Sugerido (R$)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">R$</span>
               <input id="campo-valor" type="text" inputMode="decimal"
