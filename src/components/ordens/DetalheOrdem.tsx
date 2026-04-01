@@ -132,7 +132,12 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-white">{formatarNumeroOS(ordem.numero)}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white">{formatarNumeroOS(ordem.numero)}</h1>
+              {ordem.migrado && (
+                <span className="text-[10px] font-black text-brand-blue-light border border-brand-blue/30 px-2 py-0.5 rounded-md uppercase tracking-wider bg-brand-blue/5">Histórico</span>
+              )}
+            </div>
             <p className="text-sm text-gray-400">Criado em {formatarData(ordem.criadoEm)}</p>
           </div>
         </div>

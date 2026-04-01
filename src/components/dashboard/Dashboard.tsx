@@ -16,15 +16,21 @@ export function Dashboard() {
   const { usuario } = useAuth();
   const online = useStatusConexao();
 
+  const ordensParaStats = ordens.filter(o => {
+    // Só entra no painel se NÃO for migração
+    const ehMigracao = o.migrado === true || o.observacoes?.includes('[MIGRAÇÃO]');
+    return !ehMigracao;
+  });
+  
   const stats = {
-    total:       ordens.length,
-    aguardando:  ordens.filter(o => o.status === 'Aguardando Pagamento').length,
-    parcial:     ordens.filter(o => o.status === 'Parcialmente Pago').length,
-    gratuidade:  ordens.filter(o => o.status === 'Gratuidade').length,
-    pagas:       ordens.filter(o => o.status === 'Pago').length,
-    receita:     ordens.reduce((s, o) => s + (o.valorPago || 0), 0),
-    taxas:       ordens.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
-    receitaPendente: ordens.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
+    total:       ordensParaStats.length,
+    aguardando:  ordensParaStats.filter(o => o.status === 'Aguardando Pagamento').length,
+    parcial:     ordensParaStats.filter(o => o.status === 'Parcialmente Pago').length,
+    gratuidade:  ordensParaStats.filter(o => o.status === 'Gratuidade').length,
+    pagas:       ordensParaStats.filter(o => o.status === 'Pago').length,
+    receita:     ordensParaStats.reduce((s, o) => s + (o.valorPago || 0), 0),
+    taxas:       ordensParaStats.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
+    receitaPendente: ordensParaStats.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
   };
 
   const lucroReal = stats.receita - stats.taxas;
@@ -37,15 +43,15 @@ export function Dashboard() {
   };
 
   // Estatísticas de Execução (Operacional)
-  const todosServicos = ordens.flatMap((o: any) => o.servicos || []);
+  const todosServicos = ordensParaStats.flatMap((o: any) => o.servicos || []);
   const operStats = STATUS_EXECUCAO_SERVICO.reduce((acc, status) => {
     acc[status] = todosServicos.filter((s: any) => (s.statusExecucao || 'Não Iniciado') === status).length;
     return acc;
   }, {} as Record<StatusExecucaoServico, number>);
-
+ 
   const servicosNaoIniciados = operStats['Não Iniciado'];
-
-  const recentes = [...ordens].slice(0, 5);
+ 
+  const recentes = [...ordensParaStats].slice(0, 5);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -259,6 +265,9 @@ export function Dashboard() {
                 <div className="flex-shrink-0 w-12 text-center">
                   <p className="text-xs text-gray-500 leading-none">OS</p>
                   <p className="text-sm font-bold text-white">#{String(ordem.numero).padStart(4, '0')}</p>
+                  {ordem.migrado && (
+                    <span className="text-[8px] font-black text-brand-blue-light border border-brand-blue/30 px-1 rounded-sm mt-1 inline-block uppercase tracking-tighter">Histórico</span>
+                  )}
                 </div>
                 <div className="w-px h-8 bg-brand-dark-5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">

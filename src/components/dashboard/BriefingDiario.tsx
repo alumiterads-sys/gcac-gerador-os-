@@ -31,6 +31,8 @@ export function BriefingDiario() {
   const dataOntemStr = ontem.toDateString();
 
   const ordensOntem = ordens.filter(o => {
+    const ehMigracao = o.migrado === true || o.observacoes?.includes('[MIGRAÇÃO]');
+    if (ehMigracao) return false;
     const dataCriacao = new Date(o.criadoEm).toDateString();
     return dataCriacao === dataOntemStr;
   });

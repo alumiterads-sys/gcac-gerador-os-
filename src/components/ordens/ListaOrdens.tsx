@@ -138,6 +138,9 @@ export function ListaOrdens() {
               <div className="flex-shrink-0 w-14 text-center">
                 <p className="text-xs text-gray-500">OS</p>
                 <p className="text-base font-bold text-white">#{String(ordem.numero).padStart(4, '0')}</p>
+                {ordem.migrado && (
+                  <span className="text-[8px] font-black text-brand-blue-light border border-brand-blue/30 px-1 rounded-sm mt-1 inline-block uppercase tracking-tighter shadow-[0_0_5px_rgba(45,141,224,0.1)]">Histórico</span>
+                )}
               </div>
 
               {/* Divider */}

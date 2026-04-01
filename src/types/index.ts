@@ -91,6 +91,7 @@ export interface OrdemDeServico {
   observacaoContato: string;
   observacoes: string;
   protocolo?: string;
+  migrado?: boolean;
 
   // Sincronização
   driveArquivoJsonId: string | null;

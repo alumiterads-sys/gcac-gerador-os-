@@ -40,6 +40,7 @@ const mapFromDB = (row: any): OrdemDeServico => ({
   observacaoContato: row.observacao_contato || '',
   observacoes: row.observacoes || '',
   protocolo: row.protocolo || '',
+  migrado: row.migrado || false,
   driveArquivoJsonId: row.drive_arquivo_json_id || null,
   drivePdfId: row.drive_pdf_id || null,
   ultimaSincronizacao: row.ultima_sincronizacao || null,
@@ -66,6 +67,7 @@ const mapToDB = (dados: any) => {
   if (dados.observacaoContato !== undefined) payload.observacao_contato = dados.observacaoContato;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.protocolo !== undefined) payload.protocolo = dados.protocolo;
+  if (dados.migrado !== undefined) payload.migrado = dados.migrado;
   if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
   
   if (dados.driveArquivoJsonId !== undefined) payload.drive_arquivo_json_id = dados.driveArquivoJsonId;
