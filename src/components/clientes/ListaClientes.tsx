@@ -15,10 +15,17 @@ export function ListaClientes() {
   const [modalAberto, setModalAberto] = useState(false);
   const [copiou, setCopiou] = useState(false);
 
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    c.cpf.replace(/\D/g, '').includes(busca.replace(/\D/g, ''))
-  );
+  const clientesFiltrados = clientes.filter(c => {
+    const termo = busca.toLowerCase();
+    const cpfLimpo = c.cpf.replace(/\D/g, '');
+    const buscaLimpa = busca.replace(/\D/g, '');
+
+    const matchNome = c.nome.toLowerCase().includes(termo);
+    // Só filtra por CPF se o usuário digitou algum número na busca
+    const matchCPF = buscaLimpa.length > 0 && cpfLimpo.includes(buscaLimpa);
+
+    return matchNome || matchCPF;
+  });
 
   const handleExcluir = async (cliente: Cliente) => {
     if (window.confirm(`Tem certeza que deseja excluir o cliente ${cliente.nome}? Apenas o cadastro será apagado, as OS antigas continuam salvas.`)) {
@@ -91,24 +98,6 @@ export function ListaClientes() {
               <tbody className="divide-y divide-brand-dark-5">
                 {clientesFiltrados.map(cliente => (
                   <tr key={cliente.id} className="hover:bg-brand-dark-4 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-bold text-white">{cliente.nome}</p>
-                      <p className="text-xs text-brand-metal">{formatarCPF(cliente.cpf)}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-300">
-                      {formatarTelefone(cliente.contato)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {cliente.filiadoProTiro ? (
-                        <span className="bg-brand-green/20 text-brand-green border border-brand-green/30 px-2.5 py-1 rounded-full text-xs font-semibold">
-                          Sim
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">
-                          Não ({cliente.clubeFiliado || 'sem clube'})
-                        </span>
-                      )}
-                    </td>
                     <td className="px-4 py-3 cursor-pointer group" onClick={() => navigate(`/clientes/${cliente.id}`)}>
                       <p className="font-bold text-white group-hover:text-brand-blue-light transition-colors">{cliente.nome}</p>
                       <p className="text-xs text-brand-metal">{formatarCPF(cliente.cpf)}</p>
@@ -123,7 +112,7 @@ export function ListaClientes() {
                         </span>
                       ) : (
                         <span className="text-gray-400 text-xs">
-                          Não ({cliente.clubeFiliado || 'sem clube'})
+                          {cliente.clubeFiliado ? `Não (${cliente.clubeFiliado})` : 'Não'}
                         </span>
                       )}
                     </td>
