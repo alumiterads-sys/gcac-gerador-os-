@@ -6,11 +6,20 @@ import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
 
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
-  { label: 'Todas',              valor: 'Todos' },
-  { label: 'Aguardando',         valor: 'Aguardando Pagamento' },
-  { label: 'Parcial',            valor: 'Parcialmente Pago' },
-  { label: 'Gratuidade',         valor: 'Gratuidade' },
-  { label: 'Pagas',              valor: 'Pago' },
+  { label: 'Todas as Pagas',      valor: 'Todos' },
+  { label: 'Aguardando Pagamento', valor: 'Aguardando Pagamento' },
+  { label: 'Parciais',            valor: 'Parcialmente Pago' },
+  { label: 'Gratuidades',         valor: 'Gratuidade' },
+  { label: 'Pagas',               valor: 'Pago' },
+];
+
+const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico | 'Todos' }[] = [
+  { label: 'Todos os Status',     valor: 'Todos' },
+  { label: 'Não Iniciado',        valor: 'Não Iniciado' },
+  { label: 'Iniciado',            valor: 'Iniciado — Montando Processo' },
+  { label: 'Agd Documentos',      valor: 'Aguardando Documentos' },
+  { label: 'Protocolado',         valor: 'Protocolado — Ag. PF' },
+  { label: 'Concluídos',          valor: 'Concluído' },
 ];
 
 export function ListaOrdens() {
@@ -70,41 +79,46 @@ export function ListaOrdens() {
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {STATUS_FILTROS.map(({ label, valor }) => (
-            <button
-              key={valor}
-              onClick={() => setFiltroStatus(valor)}
-              className={`text-sm px-3 py-1.5 rounded-full whitespace-nowrap font-medium transition-all ${
-                filtroStatus === valor
-                  ? 'bg-brand-blue text-white'
-                  : 'bg-brand-dark-5 text-gray-400 hover:text-white'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Indicador de Filtro de Execução Ativo */}
-        {filtroStatusExec !== 'Todos' && (
-          <div className="flex items-center gap-2 pt-2 border-t border-brand-dark-5">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1">
-              <Filter size={10} /> Filtro Ativo:
-            </span>
-            <div className={`flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-bold border ${classeStatusExecucao(filtroStatusExec as StatusExecucaoServico)}`}>
-              <span>{iconeStatusExecucao(filtroStatusExec as StatusExecucaoServico)}</span>
-              <span>{filtroStatusExec === 'Iniciado — Montando Processo' ? 'Iniciado' : filtroStatusExec}</span>
-              <button 
-                onClick={() => setFiltroStatusExec('Todos')}
-                className="ml-1 p-0.5 hover:bg-white/10 rounded-full transition-colors"
-                title="Remover Filtro"
-              >
-                <X size={12} />
-              </button>
+        <div className="space-y-2.5">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Pagamento</span>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {STATUS_FILTROS.map(({ label, valor }) => (
+                <button
+                  key={valor}
+                  onClick={() => setFiltroStatus(valor)}
+                  className={`text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap font-bold uppercase tracking-wider transition-all border ${
+                    filtroStatus === valor
+                      ? 'bg-brand-blue/20 border-brand-blue text-brand-blue-light shadow-lg shadow-brand-blue/10'
+                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-500 hover:text-gray-300 hover:border-brand-metal'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Execução / Operacional</span>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {STATUS_EXEC_FILTROS.map(({ label, valor }) => (
+                <button
+                  key={valor}
+                  onClick={() => setFiltroStatusExec(valor)}
+                  className={`text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap font-bold uppercase tracking-wider transition-all border ${
+                    filtroStatusExec === valor
+                      ? 'bg-brand-blue/20 border-brand-blue text-brand-blue-light shadow-lg shadow-brand-blue/10'
+                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-500 hover:text-gray-300 hover:border-brand-metal'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* ── Lista ── */}
