@@ -36,7 +36,6 @@ const mapFromDB = (row: any): Agendamento => ({
   confirmado: row.confirmado,
   confirmadoInstrutor: row.confirmado_instrutor,
   despachante: row.despachante || 'GCAC / Guilherme',
-  enviadoPF: row.enviado_pf || false,
   usuarioId: row.usuario_id,
   status: row.status || 'pendente',
   criadoEm: row.criado_em,
@@ -60,7 +59,6 @@ const mapToDB = (dados: any) => {
   if (dados.confirmado !== undefined) payload.confirmado = dados.confirmado;
   if (dados.confirmadoInstrutor !== undefined) payload.confirmado_instrutor = dados.confirmadoInstrutor;
   if (dados.despachante !== undefined) payload.despachante = dados.despachante;
-  if (dados.enviadoPF !== undefined) payload.enviado_pf = dados.enviadoPF;
   if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
   if (dados.status !== undefined) payload.status = dados.status;
   return payload;

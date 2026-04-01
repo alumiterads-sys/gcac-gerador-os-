@@ -266,7 +266,6 @@ export interface Agendamento {
   confirmado: boolean;
   confirmadoInstrutor?: boolean;
   despachante?: string;
-  enviadoPF?: boolean;
   usuarioId?: string;
   status?: 'pendente' | 'realizado';
   criadoEm: string;

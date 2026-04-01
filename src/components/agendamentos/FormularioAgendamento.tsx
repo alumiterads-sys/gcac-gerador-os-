@@ -46,7 +46,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     profissional:       agendamentoExistente?.profissional      ?? (usuario?.role === 'instrutor' ? usuario.nome : DEFAULTS['Psicológico'].profissional),
     valor:              agendamentoExistente?.valor             ?? DEFAULTS['Psicológico'].valor,
     despachante:        agendamentoExistente?.despachante       ?? 'GCAC / Guilherme',
-    enviadoPF:          agendamentoExistente?.enviadoPF         ?? false,
     dataPsicologico:    agendamentoExistente?.dataPsicologico    ?? '',
     horarioPsicologico: agendamentoExistente?.horarioPsicologico ?? '',
   });
@@ -158,14 +157,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     return Object.keys(e).length === 0;
   };
 
-  const avisarInstrutor = (id: string) => {
-    const dataFmt = form.data.split('-').reverse().join('/');
-    const texto = `*Aviso de Novo Agendamento* ✅\n\nInstrutor Keoma, você tem um novo laudo de tiro agendado:\n\n*Cliente:* ${form.clienteNome}\n*CPF:* ${form.clienteCPF}\n*Arma:* ${form.arma}\n*Data:* ${dataFmt} às ${form.horario}\n*Local:* ${form.local}\n\nPor favor, confirme sua presença acessando o sistema.`;
-    
-    const fone = '5564999352661';
-    const url = `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}`;
-    window.open(url, '_blank');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,12 +173,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
         mostrar('sucesso', 'Agendamento criado com sucesso!');
       }
 
-      // Se for Tiro e o profissional for Keoma, oferece a notificação
-      if (form.tipo === 'Tiro' && form.profissional.toLowerCase().includes('keoma')) {
-        if (window.confirm('Agendamento salvo! Deseja enviar o aviso para o WhatsApp do Instrutor Keoma agora?')) {
-          avisarInstrutor(id!);
-        }
-      }
 
       setTimeout(() => onSuccess?.(), 1000);
     } catch (err: any) {
@@ -460,25 +445,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
               </div>
             </div>
 
-            <div className="sm:col-span-2 pt-2">
-              <label className="flex items-center gap-3 cursor-pointer group bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 hover:border-brand-blue/30 transition-all">
-                <div className="relative">
-                  <input 
-                    type="checkbox"
-                    className="sr-only"
-                    checked={form.enviadoPF}
-                    onChange={e => atualizar('enviadoPF', e.target.checked)}
-                  />
-                  <div className={`w-10 h-6 rounded-full transition-colors ${form.enviadoPF ? 'bg-brand-blue' : 'bg-gray-700'}`} />
-                  <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${form.enviadoPF ? 'translate-x-4' : ''}`} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-white group-hover:text-brand-blue-light transition-colors">Informamos a Polícia Federal?</p>
-                  <p className="text-[10px] text-gray-500 uppercase font-medium">Controle de envio de e-mail ao órgão fiscalizador</p>
-                </div>
-                {form.enviadoPF && <CheckCircle size={18} className="text-brand-blue animate-in zoom-in" />}
-              </label>
-            </div>
           </div>
         )}
 

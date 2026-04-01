@@ -124,12 +124,6 @@ export function CardAgendamento({ agendamento, onEdit, onView }: CardAgendamento
             <Users size={14} className="text-brand-green flex-shrink-0" />
             <span className="text-gray-300 text-[10px] font-bold uppercase tracking-tight">Despacho: {agendamento.despachante}</span>
           </div>
-          {agendamento.enviadoPF && (
-            <div className="flex items-center gap-1 bg-brand-blue/10 text-brand-blue-light px-1.5 py-0.5 rounded border border-brand-blue/20 animate-pulse">
-              <CheckCircle size={10} />
-              <span className="text-[8px] font-black uppercase">PF OK</span>
-            </div>
-          )}
         </div>
       </div>
       
