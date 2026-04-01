@@ -9,9 +9,10 @@ interface Props {
 }
 
 export function FormularioCliente({ clienteEditando, onFechar }: Props) {
-  const { criarCliente, atualizarCliente } = useClientes();
+  const { criarCliente, atualizarCliente, clubesRegistrados } = useClientes();
   const [salvando, setSalvando] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [focoClube, setFocoClube] = useState(false);
 
   const [form, setForm] = useState({
     nome: clienteEditando?.nome ?? '',
@@ -139,10 +140,32 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
             </div>
 
             {!form.filiadoProTiro && (
-              <div className="mt-3 animate-fade-in">
+              <div className="mt-3 animate-fade-in relative">
                 <label className="label label-required">Qual clube é filiado?</label>
-                <input type="text" className="input"
-                  value={form.clubeFiliado} onChange={e => atualizar('clubeFiliado', e.target.value)} />
+                <input type="text" className="input uppercase"
+                  value={form.clubeFiliado}
+                  onChange={e => atualizar('clubeFiliado', e.target.value.toUpperCase())}
+                  onFocus={() => setFocoClube(true)}
+                  onBlur={() => setTimeout(() => setFocoClube(false), 200)}
+                />
+
+                {focoClube && clubesRegistrados.length > 0 && (
+                  <div className="absolute left-0 top-[70px] z-50 w-full bg-brand-dark-3 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                    <div className="max-h-40 overflow-y-auto">
+                      {clubesRegistrados
+                        .filter(c => c.includes(form.clubeFiliado.toUpperCase()) || form.clubeFiliado === '')
+                        .map(clube => (
+                          <div
+                            key={clube}
+                            onClick={() => atualizar('clubeFiliado', clube)}
+                            className="px-4 py-2.5 border-b border-brand-dark-5 hover:bg-brand-blue/20 cursor-pointer transition-colors text-sm text-white font-medium"
+                          >
+                            {clube}
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -10,6 +10,7 @@ interface ClientesContextType {
   deletarCliente: (id: string) => Promise<void>;
   buscarCliente: (id: string) => Promise<Cliente | undefined>;
   buscarClientePorNomeExato: (nome: string) => Promise<Cliente | undefined>;
+  clubesRegistrados: string[];
 }
 
 const ClientesContext = createContext<ClientesContextType | null>(null);
@@ -115,6 +116,14 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     return mapFromDB(data);
   }, []);
 
+  const clubesRegistrados = React.useMemo(() => {
+    const todosClubes = clientes
+      .map(c => c.clubeFiliado)
+      .filter(c => c && c.trim().length > 0 && c.toUpperCase() !== 'NÃO RELATADO');
+    
+    return Array.from(new Set(todosClubes.map(c => c.toUpperCase()))).sort();
+  }, [clientes]);
+
   return (
     <ClientesContext.Provider value={{
       clientes,
@@ -123,6 +132,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       deletarCliente,
       buscarCliente,
       buscarClientePorNomeExato,
+      clubesRegistrados,
     }}>
       {children}
     </ClientesContext.Provider>

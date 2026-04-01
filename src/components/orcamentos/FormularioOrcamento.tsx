@@ -120,11 +120,12 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
 export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoProps) {
   const navigate = useNavigate();
   const { criarOrcamento, atualizarOrcamento } = useOrcamentos();
-  const { clientes, criarCliente } = useClientes();
+  const { clientes, criarCliente, clubesRegistrados } = useClientes();
   const { criarOrdem } = useOrdens();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [salvando, setSalvando] = useState(false);
   const [focoNome, setFocoNome] = useState(false);
+  const [focoClube, setFocoClube] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const [form, setForm] = useState({
@@ -465,16 +466,36 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
             </div>
 
             {!form.filiadoProTiro && (
-              <div className="mt-3 pt-3 border-t border-brand-dark-5 animate-fade-in">
+              <div className="mt-3 pt-3 border-t border-brand-dark-5 animate-fade-in relative">
                 <label className="label label-required">Qual clube é filiado?</label>
                 <input
                   type="text"
-                  className={`input ${erros.clubeFiliado ? 'input-error' : ''}`}
+                  className={`input uppercase ${erros.clubeFiliado ? 'input-error' : ''}`}
                   placeholder="Nome do clube de tiro onde é filiado..."
                   value={form.clubeFiliado}
-                  onChange={e => atualizar('clubeFiliado', e.target.value)}
+                  onChange={e => atualizar('clubeFiliado', e.target.value.toUpperCase())}
+                  onFocus={() => setFocoClube(true)}
+                  onBlur={() => setTimeout(() => setFocoClube(false), 200)}
                 />
                 {erros.clubeFiliado && <p className="text-red-400 text-xs mt-1">{erros.clubeFiliado}</p>}
+
+                {focoClube && clubesRegistrados.length > 0 && (
+                  <div className="absolute left-0 top-[75px] z-50 w-full bg-brand-dark-3 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                    <div className="max-h-40 overflow-y-auto">
+                      {clubesRegistrados
+                        .filter(c => c.includes(form.clubeFiliado.toUpperCase()) || form.clubeFiliado === '')
+                        .map(clube => (
+                          <div
+                            key={clube}
+                            onClick={() => atualizar('clubeFiliado', clube)}
+                            className="px-4 py-2.5 border-b border-brand-dark-5 hover:bg-brand-blue/20 cursor-pointer transition-colors text-sm text-white font-medium"
+                          >
+                            {clube}
+                          </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
