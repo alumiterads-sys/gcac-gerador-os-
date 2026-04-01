@@ -137,6 +137,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     clubeFiliado:      orcamentoExistente?.clubeFiliado      ?? '',
     servicos:          orcamentoExistente?.servicos          ?? [],
     valorTotal:        orcamentoExistente?.valorTotal        ?? 0,
+    formaPagamento:    (orcamentoExistente as any)?.formaPagamento ?? 'Pendente',
     status:            (orcamentoExistente?.status           ?? 'Pendente') as StatusOrcamento,
     observacoes:       orcamentoExistente?.observacoes       ?? '',
   });

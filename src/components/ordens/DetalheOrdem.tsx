@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown } from 'lucide-react';
-import { OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, StatusExecucaoServico } from '../../types';
+import { 
+  OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, 
+  StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO 
+} from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useAuth } from '../../context/AuthContext';
 import { baixarPdf, imprimirPdf } from '../../services/geradorPdf';
@@ -16,7 +19,7 @@ interface DetalheOrdemProps {
 
 export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const navigate = useNavigate();
-  const { deletarOrdem, atualizarStatusServico } = useOrdens();
+  const { deletarOrdem, atualizarStatusServico, atualizarOrdem } = useOrdens();
   const { estaAutenticado } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -24,6 +27,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [imprimindo, setImprimindo] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
   const [statusAberto, setStatusAberto] = useState<string | null>(null);
+  const [dropdownPagoAberto, setDropdownPagoAberto] = useState(false);
+  const [dropdownFormaAberto, setDropdownFormaAberto] = useState(false);
 
   const servicos = ordem.servicos || [];
   const totalServicos = servicos.length;
@@ -85,6 +90,30 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     }
   };
 
+  const handleMudarStatusOS = async (novoStatus: StatusOS) => {
+    try {
+      const dados: Partial<OrdemDeServico> = { status: novoStatus };
+      if (novoStatus === 'Aguardando Pagamento') dados.formaPagamento = 'Pendente';
+      if (novoStatus === 'Gratuidade') dados.formaPagamento = 'A Combinar';
+      
+      await atualizarOrdem(ordem.id, dados);
+      setDropdownPagoAberto(false);
+      mostrar('sucesso', 'Status da OS atualizado!');
+    } catch {
+      mostrar('erro', 'Erro ao atualizar o status da OS.');
+    }
+  };
+
+  const handleMudarFormaPagamento = async (novaForma: FormaPagamento) => {
+    try {
+      await atualizarOrdem(ordem.id, { formaPagamento: novaForma });
+      setDropdownFormaAberto(false);
+      mostrar('sucesso', 'Forma de pagamento atualizada!');
+    } catch {
+      mostrar('erro', 'Erro ao atualizar a forma de pagamento.');
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* ── Header ── */}
@@ -98,7 +127,35 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
             <p className="text-sm text-gray-400">Criado em {formatarData(ordem.criadoEm)}</p>
           </div>
         </div>
-        <span className={classeStatus(ordem.status)}>{ordem.status}</span>
+        
+        {/* Dropdown Status de Pagamento */}
+        <div className="relative">
+          <button 
+            onClick={() => setDropdownPagoAberto(!dropdownPagoAberto)}
+            className={`${classeStatus(ordem.status)} cursor-pointer flex items-center gap-2 hover:brightness-110 transition-all`}
+          >
+            {ordem.status}
+            <ChevronDown size={14} className={`transition-transform ${dropdownPagoAberto ? 'rotate-180' : ''}`} />
+          </button>
+
+          {dropdownPagoAberto && (
+            <div className="absolute right-0 top-full mt-1 z-30 w-48 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden py-1 animate-scale-up">
+              {STATUS_OS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleMudarStatusOS(s)}
+                  className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    ordem.status === s 
+                      ? 'bg-brand-blue/20 text-brand-blue-light' 
+                      : 'text-gray-400 hover:bg-brand-dark-5 hover:text-white'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Ações ── */}
@@ -256,9 +313,34 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
             <p className="text-xs text-gray-500 mb-1">VALOR</p>
             <p className="text-2xl font-bold text-brand-green">{formatarMoeda(ordem.valor)}</p>
           </div>
-          <div className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5">
+          <div className="bg-brand-dark-4 rounded-lg p-4 border border-brand-dark-5 relative">
             <p className="text-xs text-gray-500 mb-1">FORMA DE PAGAMENTO</p>
-            <p className="text-lg font-bold text-white">{ordem.formaPagamento}</p>
+            
+            <button 
+              onClick={() => setDropdownFormaAberto(!dropdownFormaAberto)}
+              className="group flex items-center gap-2 text-lg font-bold text-white hover:text-brand-blue-light transition-colors text-left"
+            >
+              {ordem.formaPagamento}
+              <ChevronDown size={16} className={`text-gray-500 group-hover:text-brand-blue-light transition-all ${dropdownFormaAberto ? 'rotate-180' : ''}`} />
+            </button>
+
+            {dropdownFormaAberto && (
+              <div className="absolute left-0 bottom-full mb-1 z-30 w-52 bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl overflow-hidden py-1 animate-scale-up">
+                {FORMAS_PAGAMENTO.map(f => (
+                  <button
+                    key={f}
+                    onClick={() => handleMudarFormaPagamento(f)}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      ordem.formaPagamento === f 
+                        ? 'bg-brand-blue/20 text-brand-blue-light' 
+                        : 'text-gray-400 hover:bg-brand-dark-5 hover:text-white'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

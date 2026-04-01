@@ -16,7 +16,8 @@ export type FormaPagamento =
   | 'Cartão de Crédito'
   | 'Cartão de Débito'
   | 'Transferência'
-  | 'A Combinar';
+  | 'A Combinar'
+  | 'Pendente';
 
 export type CanalAtendimento =
   | 'WhatsApp'
@@ -217,6 +218,7 @@ export const FORMAS_PAGAMENTO: FormaPagamento[] = [
   'Cartão de Débito',
   'Transferência',
   'A Combinar',
+  'Pendente',
 ];
 
 export const STATUS_OS: StatusOS[] = [

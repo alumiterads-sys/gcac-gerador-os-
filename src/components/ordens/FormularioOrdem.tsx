@@ -157,7 +157,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     servicos:          ordemExistente?.servicos          ?? [],
     valor:             ordemExistente?.valor             ?? 0,
     valorTexto:        ordemExistente ? String(ordemExistente.valor).replace('.', ',') : '',
-    formaPagamento:    (ordemExistente?.formaPagamento   ?? 'PIX') as FormaPagamento,
+    formaPagamento:    (ordemExistente?.formaPagamento   ?? 'Pendente') as FormaPagamento,
     status:            (ordemExistente?.status           ?? 'Aguardando Pagamento') as StatusOS,
     canalAtendimento:  (ordemExistente?.canalAtendimento ?? null) as CanalAtendimento | null,
     observacaoContato: ordemExistente?.observacaoContato ?? '',
@@ -625,9 +625,13 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
               <button key={s} type="button"
                 onClick={() => {
                   atualizar('status', s);
+                  if (s === 'Aguardando Pagamento') {
+                    atualizar('formaPagamento', 'Pendente');
+                  }
                   if (s === 'Gratuidade') {
                     atualizar('valor', 0);
                     atualizar('valorTexto', '');
+                    atualizar('formaPagamento', 'A Combinar');
                   }
                 }}
                 className={`py-2.5 px-2 rounded-lg text-sm font-semibold border transition-all text-center ${
