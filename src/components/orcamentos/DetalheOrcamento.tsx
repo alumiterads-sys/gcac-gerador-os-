@@ -93,6 +93,8 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           detalhes: s.detalhes
         })),
         valor: orcamento.valorTotal,
+        valorPago: 0,
+        historicoPagamentos: [],
         formaPagamento: 'PIX', // Padrão
         status: 'Aguardando Pagamento',
         canalAtendimento: 'WhatsApp',

@@ -173,6 +173,8 @@ export async function sincronizarPendentes(): Promise<{ ok: number; erro: number
       clubeFiliado: row.clube_filiado || '',
       servicos: row.servicos || [],
       valor: row.valor,
+      valorPago: row.valor_pago || 0,
+      historicoPagamentos: row.historico_pagamentos || [],
       formaPagamento: row.forma_pagamento as any,
       status: row.status as any,
       canalAtendimento: row.canal_atendimento as any,
