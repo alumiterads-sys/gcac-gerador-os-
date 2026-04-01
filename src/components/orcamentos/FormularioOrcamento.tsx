@@ -278,6 +278,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           taxaPF: s.taxaPF
         })),
         valor: dados.valorTotal,
+        valorPago: 0,
+        historicoPagamentos: [],
         formaPagamento: 'PIX',
         status: 'Aguardando Pagamento',
         canalAtendimento: 'WhatsApp',
@@ -523,7 +525,10 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         ) : (
           <div className="space-y-3">
             {form.servicos.map((serv) => (
-              <div key={serv.id} className="relative bg-brand-dark-4 border border-brand-dark-5 p-4 rounded-xl animate-scale-up grid grid-cols-1 md:grid-cols-[1fr,150px] gap-4">
+              <div 
+                key={serv.id} 
+                className="relative bg-brand-dark-4 border border-brand-dark-5 p-4 rounded-xl animate-scale-up grid grid-cols-1 md:grid-cols-[1fr,150px] gap-4"
+              >
                 <button
                   type="button"
                   onClick={() => removerServico(serv.id)}

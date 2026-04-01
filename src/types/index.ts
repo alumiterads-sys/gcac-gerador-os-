@@ -108,7 +108,6 @@ export interface ServicoOrcamento {
   detalhes: string;
   valor: number;
   taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
-  pagoGRU?: boolean;
   categoria?: 'Honorário' | 'Laudo';
 }
 

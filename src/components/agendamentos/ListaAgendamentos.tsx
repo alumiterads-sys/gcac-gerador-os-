@@ -149,15 +149,58 @@ export function ListaAgendamentos() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {agendamentosFiltrados.map(a => (
-            <CardAgendamento 
-              key={a.id} 
-              agendamento={a} 
-              onEdit={a => { setAgendamentoEditando(a); setModo('editar'); }}
-              onView={a => setAgendamentoVisualizando(a)}
-            />
-          ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Coluna: Laudos de Tiro */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <div className="w-2 h-6 bg-orange-500 rounded-full" />
+              <h2 className="text-sm font-black uppercase tracking-widest text-white">Laudo de Tiro</h2>
+              <span className="ml-auto bg-brand-dark-3 px-2 py-0.5 rounded text-[10px] font-bold text-gray-500 border border-brand-dark-5">
+                {agendamentosFiltrados.filter(a => a.tipo === 'Tiro').length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {agendamentosFiltrados.filter(a => a.tipo === 'Tiro').map(a => (
+                <CardAgendamento 
+                  key={a.id} 
+                  agendamento={a} 
+                  onEdit={a => { setAgendamentoEditando(a); setModo('editar'); }}
+                  onView={a => setAgendamentoVisualizando(a)}
+                />
+              ))}
+              {agendamentosFiltrados.filter(a => a.tipo === 'Tiro').length === 0 && (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center bg-brand-dark-2/50 border border-dashed border-brand-dark-5 rounded-2xl">
+                  <p className="text-gray-600 text-[10px] font-bold uppercase tracking-tighter">Sem agendamentos de tiro</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna: Laudos Psicológicos */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-2 px-2">
+              <div className="w-2 h-6 bg-purple-500 rounded-full" />
+              <h2 className="text-sm font-black uppercase tracking-widest text-white">Laudo Psicológico</h2>
+              <span className="ml-auto bg-brand-dark-3 px-2 py-0.5 rounded text-[10px] font-bold text-gray-500 border border-brand-dark-5">
+                {agendamentosFiltrados.filter(a => a.tipo === 'Psicológico').length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {agendamentosFiltrados.filter(a => a.tipo === 'Psicológico').map(a => (
+                <CardAgendamento 
+                  key={a.id} 
+                  agendamento={a} 
+                  onEdit={a => { setAgendamentoEditando(a); setModo('editar'); }}
+                  onView={a => setAgendamentoVisualizando(a)}
+                />
+              ))}
+              {agendamentosFiltrados.filter(a => a.tipo === 'Psicológico').length === 0 && (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center bg-brand-dark-2/50 border border-dashed border-brand-dark-5 rounded-2xl">
+                  <p className="text-gray-600 text-[10px] font-bold uppercase tracking-tighter">Sem agendamentos psicológicos</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
