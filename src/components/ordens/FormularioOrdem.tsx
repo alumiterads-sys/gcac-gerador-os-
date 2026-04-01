@@ -120,9 +120,9 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
                   onClick={() => handleSelecionar(servico)}
                   className="w-full text-left px-3 py-2.5 text-sm text-gray-200 hover:bg-brand-blue/20 hover:text-white transition-colors border-b border-brand-dark-5/50 last:border-0"
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="truncate pr-2">{servico.nome}</span>
-                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green flex-shrink-0">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="pr-2 leading-relaxed">{servico.nome}</span>
+                    <span className="text-[10px] bg-brand-dark-4 px-1.5 py-0.5 rounded text-brand-green flex-shrink-0 mt-0.5">
                       R$ {servico.valorPadrao.toFixed(2).replace('.', ',')}
                     </span>
                   </div>
