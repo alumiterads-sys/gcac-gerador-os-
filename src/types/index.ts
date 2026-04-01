@@ -90,6 +90,7 @@ export interface OrdemDeServico {
   canalAtendimento: CanalAtendimento | null;
   observacaoContato: string;
   observacoes: string;
+  protocolo?: string;
 
   // Sincronização
   driveArquivoJsonId: string | null;
