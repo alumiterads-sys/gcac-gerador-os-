@@ -543,6 +543,9 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
         </div>
       </form>
       <Notificacao {...notif} onFechar={fechar} />
+      <div className="mt-8 text-center opacity-10 pointer-events-none select-none">
+        <span className="text-[10px] text-gray-600">v1.1.0-shortcut-active</span>
+      </div>
     </div>
   );
 }
