@@ -175,7 +175,9 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
       nomeCliente: c.nome,
       cpf: c.cpf,
       contato: c.contato,
-      senhaGov: c.senhaGov || f.senhaGov
+      senhaGov: c.senhaGov || f.senhaGov,
+      filiadoProTiro: c.filiadoProTiro,
+      clubeFiliado: c.clubeFiliado || ''
     }));
     setFocoNome(false);
   };

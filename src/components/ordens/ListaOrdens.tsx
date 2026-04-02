@@ -7,16 +7,14 @@ import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStat
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
-const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
-  { label: 'Todas as Pagas',      valor: 'Todos' },
+const STATUS_FILTROS: { label: string; valor: StatusOS }[] = [
   { label: 'Aguardando Pagamento', valor: 'Aguardando Pagamento' },
   { label: 'Parciais',            valor: 'Parcialmente Pago' },
   { label: 'Gratuidades',         valor: 'Gratuidade' },
   { label: 'Pagas',               valor: 'Pago' },
 ];
 
-const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico | 'Todos' }[] = [
-  { label: 'Todos os Status',     valor: 'Todos' },
+const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico }[] = [
   { label: 'Não Iniciado',        valor: 'Não Iniciado' },
   { label: 'Iniciado',            valor: 'Iniciado — Montando Processo' },
   { label: 'Agd Documentos',      valor: 'Aguardando Documentos' },
@@ -29,10 +27,11 @@ export function ListaOrdens() {
   const location = useLocation();
   const { ordens, deletarOrdem } = useOrdens();
   const { estado: notif, mostrar, fechar } = useNotificacao();
-  const [busca, setBusca] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<StatusOS | 'Todos'>('Todos');
-  const [filtroStatusExec, setFiltroStatusExec] = useState<StatusExecucaoServico | 'Todos'>('Todos');
+  const [filtrosStatus, setFiltrosStatus] = useState<StatusOS[]>([]);
+  const [filtrosStatusExec, setFiltrosStatusExec] = useState<StatusExecucaoServico[]>([]);
+  const [filtroGru, setFiltroGru] = useState<'Todos' | 'Pagas' | 'Pendentes'>('Todos');
   const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
+  const [expandirFiltros, setExpandirFiltros] = useState(false);
 
   const handleDeletar = async () => {
     if (!confirmandoDelete) return;
@@ -58,11 +57,40 @@ export function ListaOrdens() {
   const ordensFiltradas = ordens.filter(o => {
     const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, String(o.numero)]
       .some(v => v.toLowerCase().includes(busca.toLowerCase()));
-    const matchStatus = filtroStatus === 'Todos' || o.status === filtroStatus;
-    const matchStatusExec = filtroStatusExec === 'Todos' || (o.servicos && o.servicos.some((s: any) => (s.statusExecucao || 'Não Iniciado') === filtroStatusExec));
     
-    return matchBusca && matchStatus && matchStatusExec;
+    const matchStatus = filtrosStatus.length === 0 || filtrosStatus.includes(o.status);
+    const matchStatusExec = filtrosStatusExec.length === 0 || 
+      (o.servicos && o.servicos.some((s: any) => filtrosStatusExec.includes(s.statusExecucao || 'Não Iniciado')));
+    
+    // Filtro GRU
+    let matchGru = true;
+    const servicosComTaxa = (o.servicos || []).filter((s: any) => (s.taxaPF || 0) > 0);
+    if (filtroGru !== 'Todos') {
+      if (servicosComTaxa.length === 0) {
+        matchGru = (filtroGru === 'Pagas'); // OS sem taxas são consideradas "limpas/pagas"
+      } else {
+        const todasPagas = servicosComTaxa.every((s: any) => s.pagoGRU === true);
+        matchGru = (filtroGru === 'Pagas') ? todasPagas : !todasPagas;
+      }
+    }
+    
+    return matchBusca && matchStatus && matchStatusExec && matchGru;
   });
+
+  const toggleFiltroStatus = (val: StatusOS) => {
+    setFiltrosStatus(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const toggleFiltroStatusExec = (val: StatusExecucaoServico) => {
+    setFiltrosStatusExec(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const limparFiltros = () => {
+    setFiltrosStatus([]);
+    setFiltrosStatusExec([]);
+    setFiltroGru('Todos');
+    setBusca('');
+  };
 
   return (
     <div className="space-y-4">
@@ -83,58 +111,130 @@ export function ListaOrdens() {
       </div>
 
       {/* ── Busca e Filtros ── */}
-      <div className="card space-y-3">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            className="input pl-9"
-            placeholder="Buscar por nome, CPF, número ou serviço..."
-            value={busca}
-            onChange={e => setBusca(e.target.value)}
-          />
+      <div className="card space-y-4">
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              className="input pl-9"
+              placeholder="Buscar por nome, CPF, número ou serviço..."
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+            />
+          </div>
+          <button
+            onClick={() => setExpandirFiltros(!expandirFiltros)}
+            className={`px-4 flex items-center gap-2 rounded-xl border transition-all ${
+              expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtroGru !== 'Todos'
+                ? 'bg-brand-blue/10 border-brand-blue text-brand-blue-light'
+                : 'bg-brand-dark-5 border-brand-dark-5 text-gray-400'
+            }`}
+          >
+            <Filter size={16} />
+            <span className="hidden sm:inline">Filtros</span>
+            {(filtrosStatus.length + filtrosStatusExec.length + (filtroGru !== 'Todos' ? 1 : 0)) > 0 && (
+              <span className="w-5 h-5 rounded-full bg-brand-blue text-white text-[10px] flex items-center justify-center font-bold">
+                {filtrosStatus.length + filtrosStatusExec.length + (filtroGru !== 'Todos' ? 1 : 0)}
+              </span>
+            )}
+          </button>
         </div>
 
-        <div className="space-y-2.5">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Pagamento</span>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {STATUS_FILTROS.map(({ label, valor }) => (
-                <button
-                  key={valor}
-                  onClick={() => setFiltroStatus(valor)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap font-bold uppercase tracking-wider transition-all border ${
-                    filtroStatus === valor
-                      ? 'bg-brand-blue/20 border-brand-blue text-brand-blue-light shadow-lg shadow-brand-blue/10'
-                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-500 hover:text-gray-300 hover:border-brand-metal'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        {(expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtroGru !== 'Todos') && (
+          <div className="pt-4 border-t border-brand-dark-5 animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Status Pagamento */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                  Pagamento
+                  {filtrosStatus.length > 0 && <button onClick={() => setFiltrosStatus([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {STATUS_FILTROS.map(({ label, valor }) => (
+                    <label key={valor} className="flex items-center gap-3 group cursor-pointer">
+                      <div 
+                        onClick={() => toggleFiltroStatus(valor)}
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                          filtrosStatus.includes(valor) ? 'bg-brand-blue border-brand-blue' : 'bg-brand-dark-5 border-brand-dark-5 group-hover:border-brand-metal'
+                        }`}
+                      >
+                        {filtrosStatus.includes(valor) && <CheckCircle size={12} className="text-white" />}
+                      </div>
+                      <span className={`text-xs font-semibold transition-colors ${filtrosStatus.includes(valor) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                        {label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status Execução */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                  Execução / Operacional
+                  {filtrosStatusExec.length > 0 && <button onClick={() => setFiltrosStatusExec([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {STATUS_EXEC_FILTROS.map(({ label, valor }) => (
+                    <label key={valor} className="flex items-center gap-3 group cursor-pointer">
+                      <div 
+                        onClick={() => toggleFiltroStatusExec(valor)}
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                          filtrosStatusExec.includes(valor) ? 'bg-brand-blue border-brand-blue' : 'bg-brand-dark-5 border-brand-dark-5 group-hover:border-brand-metal'
+                        }`}
+                      >
+                        {filtrosStatusExec.includes(valor) && <CheckCircle size={12} className="text-white" />}
+                      </div>
+                      <span className={`text-xs font-semibold transition-colors ${filtrosStatusExec.includes(valor) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                        {label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status GRU */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  Status da GRU (Taxa PF)
+                </p>
+                <div className="flex flex-col gap-2">
+                  {['Todos', 'Pagas', 'Pendentes'].map((opt) => (
+                    <label key={opt} className="flex items-center gap-3 group cursor-pointer">
+                      <input
+                        type="radio"
+                        name="filtroGru"
+                        className="hidden"
+                        checked={filtroGru === opt}
+                        onChange={() => setFiltroGru(opt as any)}
+                      />
+                      <div 
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                          filtroGru === opt ? 'bg-brand-blue border-brand-blue' : 'bg-brand-dark-5 border-brand-dark-5 group-hover:border-brand-metal'
+                        }`}
+                      >
+                        {filtroGru === opt && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+                      </div>
+                      <span className={`text-xs font-semibold transition-colors ${filtroGru === opt ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                        {opt}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                
+                <div className="pt-4 mt-2">
+                  <button 
+                    onClick={limparFiltros}
+                    className="text-[10px] font-bold text-red-400/70 hover:text-red-400 underline underline-offset-4 uppercase tracking-wider transition-all"
+                  >
+                    Resetar Todos os Filtros
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Execução / Operacional</span>
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {STATUS_EXEC_FILTROS.map(({ label, valor }) => (
-                <button
-                  key={valor}
-                  onClick={() => setFiltroStatusExec(valor)}
-                  className={`text-[11px] px-3 py-1.5 rounded-lg whitespace-nowrap font-bold uppercase tracking-wider transition-all border ${
-                    filtroStatusExec === valor
-                      ? 'bg-brand-blue/20 border-brand-blue text-brand-blue-light shadow-lg shadow-brand-blue/10'
-                      : 'bg-brand-dark-5 border-brand-dark-5 text-gray-500 hover:text-gray-300 hover:border-brand-metal'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
+        )}
       </div>
 
       {/* ── Lista ── */}
@@ -145,11 +245,11 @@ export function ListaOrdens() {
           </div>
           <p className="text-gray-400 font-medium">Nenhuma OS encontrada</p>
           <p className="text-sm text-gray-500 mt-1">
-            {busca || filtroStatus !== 'Todos'
+            {busca || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtroGru !== 'Todos'
               ? 'Tente ajustar os filtros de busca'
               : 'Clique em "Nova OS" para criar a primeira ordem'}
           </p>
-          {!busca && filtroStatus === 'Todos' && (
+          {!busca && filtrosStatus.length === 0 && filtrosStatusExec.length === 0 && filtroGru === 'Todos' && (
             <button onClick={() => navigate('/ordens/nova')} className="btn-primary mt-4 mx-auto">
               <Plus size={16} />
               Criar primeira OS
