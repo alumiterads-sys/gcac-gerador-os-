@@ -96,7 +96,11 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
         servicos: orcamento.servicos.map(s => ({
           id: s.id,
           nome: s.nome,
-          detalhes: s.detalhes
+          detalhes: s.detalhes,
+          valor: s.valor,
+          categoria: s.categoria || 'Honorário',
+          statusExecucao: 'Não Iniciado',
+          pagoGRU: false
         })),
         valor: orcamento.valorTotal,
         valorPago: 0,
