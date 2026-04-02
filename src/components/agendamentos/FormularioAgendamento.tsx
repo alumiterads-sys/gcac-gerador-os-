@@ -115,7 +115,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
       clienteNome: c.nome,
       clienteCPF: c.cpf,
       clienteContato: c.contato,
-      clienteEndereco: '', // Endereço não costuma estar no objeto Cliente, mas pode ser adicionado
+      clienteEndereco: '', 
     }));
     setFocoNome(false);
   };
@@ -143,7 +143,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
   };
 
   const handleHorario = (v: string) => {
-    // Remove tudo que não é número
     let n = v.replace(/\D/g, '').slice(0, 4);
     let f = n;
     if (n.length > 2) {
@@ -179,7 +178,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     return Object.keys(e).length === 0;
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validar()) return;
@@ -208,9 +206,16 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
   const prepararAgendamentoTiro = () => {
     const dataPsi = form.data;
     const horarioPsi = form.horario;
+    const infoCliente = {
+      clienteNome: form.clienteNome,
+      clienteCPF: form.clienteCPF,
+      clienteContato: form.clienteContato,
+      clienteEndereco: form.clienteEndereco
+    };
     
     setForm(f => ({
       ...f,
+      ...infoCliente,
       tipo: 'Tiro',
       local: DEFAULTS['Tiro'].local,
       profissional: DEFAULTS['Tiro'].profissional,
@@ -226,42 +231,43 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     mostrar('info', 'Dados do cliente mantidos. Agora defina a data do laudo de tiro.');
   };
 
-  if (foiSalvo) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in-95 duration-500">
-        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
-          <CheckCircle size={40} className="text-green-500" />
-        </div>
-        
-        <h2 className="text-2xl font-bold text-white mb-2">Agendamento Realizado!</h2>
-        <p className="text-gray-400 max-w-sm mb-10">
-          O laudo {ultimoTipoSalvo?.toLowerCase()} foi agendado com sucesso e já está na sua lista.
-        </p>
-
-        <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
-          {ultimoTipoSalvo === 'Psicológico' && (
-            <button
-              onClick={prepararAgendamentoTiro}
-              className="btn-primary py-4 flex items-center justify-center gap-2 shadow-lg shadow-brand-blue/20"
-            >
-              <Crosshair size={20} />
-              Agendar Laudo de Tiro
-            </button>
-          )}
-          
-          <button
-            onClick={() => onSuccess?.()}
-            className="btn-ghost py-4 border border-brand-dark-5 hover:bg-brand-dark-4"
-          >
-            Concluir e Voltar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="relative animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* Overlay de Sucesso com Atalho */}
+      {foiSalvo && (
+        <div className="absolute inset-x-[-10px] inset-y-[-10px] z-[100] bg-brand-dark/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in-95 duration-500 rounded-3xl border-2 border-brand-blue/20 shadow-2xl">
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
+            <CheckCircle size={40} className="text-green-500" />
+          </div>
+          
+          <h2 className="text-2xl font-bold text-white mb-2">Agendamento Realizado!</h2>
+          <p className="text-gray-400 max-w-sm mb-10">
+            O laudo {ultimoTipoSalvo?.toLowerCase()} foi agendado com sucesso e já está na sua lista.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
+            {ultimoTipoSalvo === 'Psicológico' && (
+              <button
+                type="button"
+                onClick={prepararAgendamentoTiro}
+                className="btn-primary py-4 flex items-center justify-center gap-2 shadow-lg shadow-brand-blue/20"
+              >
+                <Crosshair size={20} />
+                Agendar Laudo de Tiro
+              </button>
+            )}
+            
+            <button
+              type="button"
+              onClick={() => onSuccess?.()}
+              className="btn-ghost py-4 border border-brand-dark-5 hover:bg-brand-dark-4"
+            >
+              Concluir e Voltar
+            </button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tipo de Agendamento */}
         <div className="flex gap-2 p-1 bg-brand-dark-3 rounded-xl border border-brand-dark-5">
@@ -284,10 +290,13 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
 
         {/* Dados do Cliente */}
         <div className="card space-y-4">
-          <h3 className="text-white font-bold flex items-center gap-2 mb-2">
-            <Users size={18} className="text-brand-blue" />
-            Dados do Cliente
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-white font-bold flex items-center gap-2 mb-2">
+              <Users size={18} className="text-brand-blue" />
+              Dados do Cliente
+            </h3>
+            <span className="text-[10px] text-gray-700 select-none font-bold">VER: 1.2.0</span>
+          </div>
           
           <div className="relative">
             <label className="label label-required">Nome Completo</label>
@@ -520,7 +529,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                 />
               </div>
             </div>
-
           </div>
         )}
 
@@ -543,9 +551,6 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
         </div>
       </form>
       <Notificacao {...notif} onFechar={fechar} />
-      <div className="mt-8 text-center opacity-10 pointer-events-none select-none">
-        <span className="text-[10px] text-gray-600">v1.1.0-shortcut-active</span>
-      </div>
     </div>
   );
 }
