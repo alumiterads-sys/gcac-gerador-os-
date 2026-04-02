@@ -146,6 +146,41 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   }
 
   y += 2;
+
+  // ── Aviso de Renovação CRAF (Condicional) ────────────────────────────────
+  const temRenovacaoCRAF = orcamento.servicos.some(s => s.nome.toUpperCase().includes('RENOVAÇÃO DE CRAF'));
+  if (temRenovacaoCRAF) {
+    if (y + 35 > 275) {
+      doc.addPage();
+      y = 15;
+    }
+    
+    doc.setFillColor('#FFFBEB');
+    doc.setDrawColor('#F59E0B');
+    doc.roundedRect(12, y, largura - 24, 30, 2, 2, 'FD');
+    
+    doc.setTextColor('#B45309');
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AVISO DE EXIGÊNCIAS PARA RENOVAÇÃO DE CRAF', 17, y + 6);
+    
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    const msgRenovacao = [
+      '• Tiro Desportivo (Nível 1): 8 habitualidades/tipo de arma nos ciclos 27/12/23 a 27/12/24 e 8 habitualidades de 27/12/24 a 27/12/25.',
+      '• Caça: Comprovar 18 meses de SIMAF/IBAMA ativos.',
+      '(Base Legal: Decreto 11.615/23, arts. 35 e 37; Portaria 166-COLOG/23, arts. 12, 16 e 17).'
+    ];
+    
+    doc.text(msgRenovacao[0], 17, y + 12);
+    doc.text(msgRenovacao[1], 17, y + 17);
+    doc.setFontSize(6.5);
+    doc.setTextColor('#D97706');
+    doc.text(msgRenovacao[2], 17, y + 24);
+    
+    y += 36;
+  }
+
   // ── Resumo Geral ─────────────────────────────────────────────────────────
   y = secaoTitulo(doc, 'RESUMO GERAL', y, VERDE);
   y += 2;
