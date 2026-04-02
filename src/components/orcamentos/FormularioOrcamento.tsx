@@ -295,7 +295,11 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           id: s.id,
           nome: s.nome,
           detalhes: s.detalhes,
-          taxaPF: s.taxaPF
+          valor: s.valor,
+          categoria: s.categoria || 'Honorário',
+          taxaPF: s.taxaPF,
+          statusExecucao: 'Não Iniciado',
+          pagoGRU: false
         })),
         valor: dados.valorTotal,
         valorPago: 0,
