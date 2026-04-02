@@ -35,6 +35,9 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
   const [focoNome, setFocoNome] = useState(false);
 
   const { usuario } = useAuth();
+  const [foiSalvo, setFoiSalvo] = useState(false);
+  const [ultimoTipoSalvo, setUltimoTipoSalvo] = useState<TipoAgendamento | null>(null);
+
   const [form, setForm] = useState({
     tipo:               (agendamentoExistente?.tipo               ?? 'Psicológico') as TipoAgendamento,
     clienteNome:        agendamentoExistente?.clienteNome       ?? '',
@@ -183,17 +186,16 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     
     setSalvando(true);
     try {
-      let id = agendamentoExistente?.id;
       if (agendamentoExistente) {
         await atualizarAgendamento(agendamentoExistente.id, form);
         mostrar('sucesso', 'Agendamento atualizado com sucesso!');
+        setTimeout(() => onSuccess?.(), 1000);
       } else {
-        id = await criarAgendamento(form);
+        await criarAgendamento(form);
+        setUltimoTipoSalvo(form.tipo);
+        setFoiSalvo(true);
         mostrar('sucesso', 'Agendamento criado com sucesso!');
       }
-
-
-      setTimeout(() => onSuccess?.(), 1000);
     } catch (err: any) {
       console.error('Erro ao salvar agendamento:', err);
       const msg = err.message || 'Erro ao salvar agendamento.';
@@ -202,6 +204,61 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
       setSalvando(false);
     }
   };
+
+  const prepararAgendamentoTiro = () => {
+    const dataPsi = form.data;
+    const horarioPsi = form.horario;
+    
+    setForm(f => ({
+      ...f,
+      tipo: 'Tiro',
+      local: DEFAULTS['Tiro'].local,
+      profissional: DEFAULTS['Tiro'].profissional,
+      valor: DEFAULTS['Tiro'].valor,
+      data: '',
+      horario: '',
+      dataPsicologico: dataPsi,
+      horarioPsicologico: horarioPsi
+    }));
+    
+    setFoiSalvo(false);
+    setUltimoTipoSalvo(null);
+    mostrar('info', 'Dados do cliente mantidos. Agora defina a data do laudo de tiro.');
+  };
+
+  if (foiSalvo) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 border border-green-500/30">
+          <CheckCircle size={40} className="text-green-500" />
+        </div>
+        
+        <h2 className="text-2xl font-bold text-white mb-2">Agendamento Realizado!</h2>
+        <p className="text-gray-400 max-w-sm mb-10">
+          O laudo {ultimoTipoSalvo?.toLowerCase()} foi agendado com sucesso e já está na sua lista.
+        </p>
+
+        <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
+          {ultimoTipoSalvo === 'Psicológico' && (
+            <button
+              onClick={prepararAgendamentoTiro}
+              className="btn-primary py-4 flex items-center justify-center gap-2 shadow-lg shadow-brand-blue/20"
+            >
+              <Crosshair size={20} />
+              Agendar Laudo de Tiro
+            </button>
+          )}
+          
+          <button
+            onClick={() => onSuccess?.()}
+            className="btn-ghost py-4 border border-brand-dark-5 hover:bg-brand-dark-4"
+          >
+            Concluir e Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
