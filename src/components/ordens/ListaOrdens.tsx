@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2 } from 'lucide-react';
+import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
@@ -49,7 +49,7 @@ export function ListaOrdens() {
   useEffect(() => {
     const state = location.state as { filtroStatusExecucao?: StatusExecucaoServico };
     if (state?.filtroStatusExecucao) {
-      setFiltroStatusExec(state.filtroStatusExecucao);
+      setFiltrosStatusExec([state.filtroStatusExecucao]);
       // Limpar o estado para evitar comportamentos inesperados ao recarregar
       window.history.replaceState({}, document.title);
     }
