@@ -27,6 +27,7 @@ export function ListaOrdens() {
   const location = useLocation();
   const { ordens, deletarOrdem } = useOrdens();
   const { estado: notif, mostrar, fechar } = useNotificacao();
+  const [busca, setBusca] = useState('');
   const [filtrosStatus, setFiltrosStatus] = useState<StatusOS[]>([]);
   const [filtrosStatusExec, setFiltrosStatusExec] = useState<StatusExecucaoServico[]>([]);
   const [filtroGru, setFiltroGru] = useState<'Todos' | 'Pagas' | 'Pendentes'>('Todos');
