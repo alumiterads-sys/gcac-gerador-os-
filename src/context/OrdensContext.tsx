@@ -15,6 +15,7 @@ interface OrdensContextType {
   deletarOrdem: (id: string) => Promise<void>;
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
   registrarPagamento: (ordemId: string, valor: number, metodo: FormaPagamento) => Promise<void>;
+  removerPagamento: (ordemId: string, pagamentoId: string) => Promise<void>;
   itensFila: number; // Temporary kept out as 0
 }
 
@@ -193,6 +194,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
   const registrarPagamento = useCallback(async (ordemId: string, valor: number, metodo: FormaPagamento) => {
     const ordem = ordens.find(o => o.id === ordemId);
     if (!ordem) return;
+    
+    // ... (rest of registrarPagamento is fine, but I'll add removerPagamento below)
 
     const novoPagamento = {
       id: crypto.randomUUID(),
@@ -221,6 +224,27 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     });
   }, [ordens, atualizarOrdem]);
 
+  const removerPagamento = useCallback(async (ordemId: string, pagamentoId: string) => {
+    const ordem = ordens.find(o => o.id === ordemId);
+    if (!ordem) return;
+
+    const novoHistorico = (ordem.historicoPagamentos || []).filter(p => p.id !== pagamentoId);
+    const novoValorPago = novoHistorico.reduce((acc, p) => acc + p.valor, 0);
+    
+    let novoStatus: StatusOS = 'Aguardando Pagamento';
+    if (novoValorPago >= ordem.valor) {
+      novoStatus = 'Pago';
+    } else if (novoValorPago > 0) {
+      novoStatus = 'Parcialmente Pago';
+    }
+
+    await atualizarOrdem(ordemId, {
+      valorPago: novoValorPago,
+      historicoPagamentos: novoHistorico,
+      status: novoStatus
+    });
+  }, [ordens, atualizarOrdem]);
+
   return (
     <OrdensContext.Provider value={{
       ordens,
@@ -232,6 +256,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       deletarOrdem,
       buscarOrdem,
       registrarPagamento,
+      removerPagamento,
       itensFila: 0, 
     }}>
       {children}

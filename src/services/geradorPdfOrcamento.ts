@@ -91,20 +91,31 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
     y += 10;
   } else {
     arrayServicos.forEach((serv) => {
-      // Quebra de página
-      if (y > 270) {
-        doc.addPage();
-        y = 15;
-      }
+      const nomeFormatado = serv.nome.toUpperCase();
+      
+      // Configura fonte para o nome
+      doc.setFontSize(10.5);
+      doc.setFont('helvetica', 'bold');
+      
+      // Quebra o nome em linhas se for muito longo (largura - 75 para dar espaço generoso ao valor)
+      const linhasNome = doc.splitTextToSize(nomeFormatado, largura - 75);
+      const alturaNome = linhasNome.length * 5;
 
       // Calcula linhas do detalhe
       doc.setFontSize(9.5);
-      const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 60) : [];
-      let alturaBloco = serv.detalhes ? (10 + (linhasDetalhe.length * 4.5)) : 11;
+      const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
+      let alturaBloco = 8 + alturaNome + (linhasDetalhe.length * 4.5);
       
       // Ajusta se bloco ficar pequeno 
       if (alturaBloco < 11) alturaBloco = 11;
 
+      // Quebra de página se não couber o bloco inteiro
+      if (y + alturaBloco > 275) {
+        doc.addPage();
+        y = 15;
+      }
+
+      // Card do serviço
       doc.setFillColor('#F8F9FA');
       doc.setDrawColor(LINHA);
       doc.roundedRect(12, y, largura - 24, alturaBloco, 2, 2, 'F');
@@ -114,21 +125,21 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       doc.setTextColor(ESCURO);
       doc.setFontSize(10.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(serv.nome.toUpperCase(), 17, y + 6);
+      doc.text(linhasNome, 17, y + 6);
+
+      // Valor à direita do bloco (alinhado com a primeira linha do nome)
+      doc.setTextColor(VERDE);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatarMoeda(serv.valor), largura - 16, y + 6, { align: 'right' });
 
       // Detalhes
       if (serv.detalhes && serv.detalhes.trim()) {
         doc.setFontSize(9.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor('#444444');
-        doc.text(linhasDetalhe, 17, y + 11);
+        doc.text(linhasDetalhe, 17, y + 6 + alturaNome);
       }
-
-      // Valor à direita do bloco
-      doc.setTextColor(VERDE);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(formatarMoeda(serv.valor), largura - 16, y + 9, { align: 'right' });
       
       y += alturaBloco + 2; // espaçamento de um card pro outro
     });

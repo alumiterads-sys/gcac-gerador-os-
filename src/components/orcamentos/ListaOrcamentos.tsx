@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, FileText, ChevronRight } from 'lucide-react';
+import { Search, Plus, FileText, ChevronRight, Trash2 } from 'lucide-react';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { StatusOrcamento } from '../../types';
 import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../utils/formatters';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
+import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 const STATUS_FILTROS: { label: string; valor: StatusOrcamento | 'Todos' }[] = [
   { label: 'Todos',              valor: 'Todos' },
@@ -14,9 +16,23 @@ const STATUS_FILTROS: { label: string; valor: StatusOrcamento | 'Todos' }[] = [
 
 export function ListaOrcamentos() {
   const navigate = useNavigate();
-  const { orcamentos } = useOrcamentos();
+  const { orcamentos, deletarOrcamento } = useOrcamentos();
+  const { estado: notif, mostrar, fechar } = useNotificacao();
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<StatusOrcamento | 'Todos'>('Todos');
+  const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
+
+  const handleDeletar = async () => {
+    if (!confirmandoDelete) return;
+    try {
+      await deletarOrcamento(confirmandoDelete);
+      setConfirmandoDelete(null);
+      mostrar('sucesso', 'Orçamento excluído com sucesso.');
+    } catch (error) {
+      console.error(error);
+      mostrar('erro', 'Falha ao excluir o orçamento.');
+    }
+  };
 
   const orcamentosFiltrados = orcamentos.filter(o => {
     const matchBusca = !busca || [
@@ -131,12 +147,34 @@ export function ListaOrcamentos() {
                 <span className={classeStatusOrcamento(orcamento.status)}>{orcamento.status}</span>
               </div>
 
-              {/* Seta */}
-              <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+              {/* Botões de Ação */}
+              <div className="flex flex-col items-center gap-2">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmandoDelete(orcamento.id);
+                  }}
+                  className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  title="Excluir Orçamento"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+              </div>
             </div>
           ))}
         </div>
       )}
+      <Notificacao {...notif} onFechar={fechar} />
+      
+      <DialogConfirmacao
+        aberto={!!confirmandoDelete}
+        titulo="Excluir Orçamento"
+        mensagem="Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita."
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleDeletar}
+        onCancelar={() => setConfirmandoDelete(null)}
+      />
     </div>
   );
 }

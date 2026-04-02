@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Plus, Filter, ChevronRight, FileText, X } from 'lucide-react';
+import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2 } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
+import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 const STATUS_FILTROS: { label: string; valor: StatusOS | 'Todos' }[] = [
   { label: 'Todas as Pagas',      valor: 'Todos' },
@@ -25,10 +27,24 @@ const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico | 'Todo
 export function ListaOrdens() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { ordens } = useOrdens();
+  const { ordens, deletarOrdem } = useOrdens();
+  const { estado: notif, mostrar, fechar } = useNotificacao();
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<StatusOS | 'Todos'>('Todos');
   const [filtroStatusExec, setFiltroStatusExec] = useState<StatusExecucaoServico | 'Todos'>('Todos');
+  const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
+
+  const handleDeletar = async () => {
+    if (!confirmandoDelete) return;
+    try {
+      await deletarOrdem(confirmandoDelete);
+      setConfirmandoDelete(null);
+      mostrar('sucesso', 'Ordem de serviço excluída com sucesso.');
+    } catch (error) {
+      console.error(error);
+      mostrar('erro', 'Falha ao excluir a O.S.');
+    }
+  };
 
   useEffect(() => {
     const state = location.state as { filtroStatusExecucao?: StatusExecucaoServico };
@@ -214,12 +230,34 @@ export function ListaOrdens() {
                 )}
               </div>
 
-              {/* Seta */}
-              <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+              {/* Ações */}
+              <div className="flex flex-col items-center gap-2">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmandoDelete(ordem.id);
+                  }}
+                  className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                  title="Excluir O.S."
+                >
+                  <Trash2 size={16} />
+                </button>
+                <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+              </div>
             </div>
           ))}
         </div>
       )}
+      <Notificacao {...notif} onFechar={fechar} />
+      
+      <DialogConfirmacao
+        aberto={!!confirmandoDelete}
+        titulo="Excluir Ordem de Serviço"
+        mensagem="Tem certeza que deseja excluir esta O.S.? Esta ação não pode ser desfeita."
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleDeletar}
+        onCancelar={() => setConfirmandoDelete(null)}
+      />
     </div>
   );
 }

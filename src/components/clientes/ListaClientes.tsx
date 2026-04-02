@@ -5,15 +5,19 @@ import { Users, Search, Edit2, Trash2, Eye, Shield, Copy, Check } from 'lucide-r
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone } from '../../utils/formatters';
 import { FormularioCliente } from './FormularioCliente';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
+import { Notificacao, useNotificacao } from '../common/Notificacao';
 
 export function ListaClientes() {
   const navigate = useNavigate();
   const { clientes, deletarCliente } = useClientes();
+  const { estado: notif, mostrar, fechar } = useNotificacao();
   const [busca, setBusca] = useState('');
   const [clienteEditando, setClienteEditando] = useState<Cliente | null>(null);
   const [clienteVisualizando, setClienteVisualizando] = useState<Cliente | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [copiou, setCopiou] = useState(false);
+  const [confirmandoDelete, setConfirmandoDelete] = useState<Cliente | null>(null);
 
   const clientesFiltrados = clientes.filter(c => {
     const termo = busca.toLowerCase();
@@ -27,9 +31,15 @@ export function ListaClientes() {
     return matchNome || matchCPF;
   });
 
-  const handleExcluir = async (cliente: Cliente) => {
-    if (window.confirm(`Tem certeza que deseja excluir o cliente ${cliente.nome}? Apenas o cadastro será apagado, as OS antigas continuam salvas.`)) {
-      await deletarCliente(cliente.id);
+  const handleExcluir = async () => {
+    if (!confirmandoDelete) return;
+    try {
+      await deletarCliente(confirmandoDelete.id);
+      setConfirmandoDelete(null);
+      mostrar('sucesso', 'Cliente excluído com sucesso.');
+    } catch (error) {
+      console.error(error);
+      mostrar('erro', 'Falha ao excluir o cliente.');
     }
   };
 
@@ -132,7 +142,7 @@ export function ListaClientes() {
                         <Edit2 size={16} />
                       </button>
                       <button
-                        onClick={() => handleExcluir(cliente)}
+                        onClick={() => setConfirmandoDelete(cliente)}
                         className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
                         title="Excluir"
                       >
@@ -233,6 +243,16 @@ export function ListaClientes() {
           </div>
         </div>
       )}
+      <Notificacao {...notif} onFechar={fechar} />
+
+      <DialogConfirmacao
+        aberto={!!confirmandoDelete}
+        titulo="Excluir Cliente"
+        mensagem={`Tem certeza que deseja excluir o cadastro de ${confirmandoDelete?.nome}? Apenas o cadastro será removido, os dados vinculados em O.S. permanecem.`}
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleExcluir}
+        onCancelar={() => setConfirmandoDelete(null)}
+      />
     </div>
   );
 }

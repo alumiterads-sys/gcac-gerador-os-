@@ -115,10 +115,14 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
       y = 20;
     }
 
+    // Nome em Negrito e Quebrado
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(s.nome.toUpperCase(), 18, y + 7);
+    const linhasNome = doc.splitTextToSize(s.nome.toUpperCase(), largura - 60);
+    doc.text(linhasNome, 18, y + 7);
+    const alturaNome = linhasNome.length * 5;
     
+    // Valor à direita (alinhado com o topo do nome)
     doc.setFontSize(11);
     doc.text(formatarMoeda(s.valor), largura - 18, y + 7, { align: 'right' });
 
@@ -127,14 +131,14 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
       doc.setFontSize(8);
       doc.setTextColor(CINZA_TEXTO);
       const detalhes = doc.splitTextToSize(s.detalhes, largura - 60);
-      doc.text(detalhes, 18, y + 12);
-      y += (detalhes.length * 4) + 12;
+      doc.text(detalhes, 18, y + 6 + alturaNome);
+      y += alturaNome + (detalhes.length * 4) + 6;
     } else {
-      y += 12;
+      y += alturaNome + 4;
     }
 
     doc.setDrawColor(LINHA_LEVE);
-    doc.line(12, y, largura - 12, y);
+  doc.line(12, y, largura - 12, y);
   });
 
   // 4. Totais e Pagamento (Box Cinza/Claro)

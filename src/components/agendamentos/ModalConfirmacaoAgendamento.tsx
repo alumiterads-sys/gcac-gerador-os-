@@ -1,8 +1,10 @@
 import React from 'react';
 import { Agendamento } from '../../types';
 import { gerarTextoAgendamento } from '../../utils/agendamentoFormatador';
-import { X, Copy, Share2, FileText, Printer, Check } from 'lucide-react';
+import { X, Copy, Share2, FileText, Printer, Check, Trash2 } from 'lucide-react';
 import { baixarPdfAgendamento } from '../../services/geradorPdfAgendamento';
+import { useAgendamentos } from '../../context/AgendamentosContext';
+import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 
 interface ModalConfirmacaoAgendamentoProps {
   agendamento: Agendamento;
@@ -10,7 +12,9 @@ interface ModalConfirmacaoAgendamentoProps {
 }
 
 export function ModalConfirmacaoAgendamento({ agendamento, onClose }: ModalConfirmacaoAgendamentoProps) {
+  const { deletarAgendamento } = useAgendamentos();
   const [copiado, setCopiado] = React.useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = React.useState(false);
   const texto = gerarTextoAgendamento(agendamento);
 
   const handleCopiar = () => {
@@ -20,10 +24,7 @@ export function ModalConfirmacaoAgendamento({ agendamento, onClose }: ModalConfi
   };
 
   const handleWhatsApp = () => {
-    // Remove caracteres não numéricos do contato
-    const foneLimpo = agendamento.clienteContato.replace(/\D/g, '');
-    const link = `https://wa.me/55${foneLimpo}?text=${encodeURIComponent(texto)}`;
-    window.open(link, '_blank');
+    setModalWhatsAppAberto(true);
   };
 
   const handlePDF = async () => {
@@ -38,6 +39,18 @@ export function ModalConfirmacaoAgendamento({ agendamento, onClose }: ModalConfi
   const handleImprimir = () => {
     // Para imprimir, abrimos o PDF em uma nova aba e deixamos o navegador gerenciar
     handlePDF();
+  };
+
+  const handleDeletar = async () => {
+    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
+      try {
+        await deletarAgendamento(agendamento.id);
+        onClose();
+      } catch (error) {
+        console.error('Erro ao deletar agendamento:', error);
+        alert('Falha ao excluir o agendamento.');
+      }
+    }
   };
 
   return (
@@ -100,20 +113,28 @@ export function ModalConfirmacaoAgendamento({ agendamento, onClose }: ModalConfi
             </button>
             <button 
               onClick={handleImprimir}
-              className="sm:col-span-2 flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold rounded-xl transition-all"
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold rounded-xl transition-all"
             >
               <Printer size={20} />
               Imprimir Confirmação
             </button>
+            <button 
+              onClick={handleDeletar}
+              className="sm:col-span-2 flex items-center justify-center gap-2 py-2 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-bold rounded-xl transition-all text-xs"
+            >
+              <Trash2 size={16} />
+              Excluir Agendamento
+            </button>
           </div>
         </div>
-        
-        <div className="px-6 py-4 bg-brand-dark-3 border-t border-brand-dark-5">
-           <p className="text-[10px] text-center text-gray-500 font-medium italic">
-             Dica: O texto do WhatsApp já inclui todos os detalhes e emojis profissionais.
-           </p>
-        </div>
       </div>
+
+      <ModalEscolhaWhatsApp 
+        aberto={modalWhatsAppAberto}
+        onFechar={() => setModalWhatsAppAberto(false)}
+        telefone={agendamento.clienteContato}
+        mensagem={texto}
+      />
     </div>
   );
 }

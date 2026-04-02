@@ -12,6 +12,7 @@ import { sincronizarOrdem } from '../../services/driveSync';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
+import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -19,7 +20,10 @@ interface DetalheOrdemProps {
 
 export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const navigate = useNavigate();
-  const { deletarOrdem, atualizarStatusServico, atualizarOrdem, atualizarGruServico, registrarPagamento } = useOrdens();
+  const { 
+    deletarOrdem, atualizarStatusServico, atualizarOrdem, 
+    atualizarGruServico, registrarPagamento, removerPagamento 
+  } = useOrdens();
   const { estaAutenticado } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -29,6 +33,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [statusAberto, setStatusAberto] = useState<string | null>(null);
   const [dropdownPagoAberto, setDropdownPagoAberto] = useState(false);
   const [dropdownFormaAberto, setDropdownFormaAberto] = useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
+  const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
 
   const servicos = ordem.servicos || [];
   const totalServicos = servicos.length;
@@ -81,6 +87,30 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     navigate('/ordens');
   };
 
+  const handleWhatsApp = () => {
+    let msg = `* GCAC | Despachante Bélico *\n_Ordem de Serviço ${formatarNumeroOS(ordem.numero)}_\n\n`;
+    msg += `Olá, *${ordem.nomeCliente}*!\n`;
+    msg += `Seguem os detalhes da sua O.S.:\n\n`;
+    
+    (ordem.servicos || []).forEach(s => {
+      const icon = s.statusExecucao === 'Concluído' ? '✅' : '🔹';
+      msg += `${icon} *${s.nome}*\n`;
+      msg += `   Status: _${s.statusExecucao || 'Não Iniciado'}_\n`;
+      if (s.pagoGRU) msg += `   GRU: _Paga_\n`;
+      msg += `\n`;
+    });
+    
+    msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n`;
+    msg += `💳 *Status Pagamento:* ${ordem.status}\n\n`;
+    
+    if (ordem.protocolo) msg += `📑 *Protocolo:* ${ordem.protocolo}\n\n`;
+    
+    msg += `Qualquer dúvida, estamos à disposição!`;
+    
+    setMensagemWhatsApp(msg);
+    setModalWhatsAppAberto(true);
+  };
+
   const handleMudarStatus = async (servicoId: string, novoStatus: StatusExecucaoServico) => {
     try {
       await atualizarStatusServico(ordem.id, servicoId, novoStatus);
@@ -131,6 +161,13 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           <button onClick={() => navigate(-1)} className="btn-ghost btn-sm">
             <ArrowLeft size={16} />
           </button>
+          <button 
+            onClick={() => setConfirmandoDelete(true)}
+            className="p-1 px-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500 hover:text-white transition-all group"
+            title="Excluir O.S."
+          >
+            <Trash2 size={14} className="group-hover:scale-110 transition-transform" />
+          </button>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-white">{formatarNumeroOS(ordem.numero)}</h1>
@@ -174,6 +211,10 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
 
       {/* ── Ações ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button onClick={handleWhatsApp} className="btn-ghost btn-sm justify-center bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20">
+          <MessageCircle size={15} />
+          WhatsApp
+        </button>
         <button onClick={handleBaixarPdf} disabled={gerandoPdf} className="btn-ghost btn-sm justify-center">
           <FileDown size={15} />
           {gerandoPdf ? 'Gerando...' : 'Baixar PDF'}
@@ -186,9 +227,12 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           <Edit size={15} />
           Editar
         </button>
-        <button onClick={() => setConfirmandoDelete(true)} className="btn btn-sm bg-red-600/20 text-red-400 hover:bg-red-600/40 border border-red-600/30 justify-center">
-          <Trash2 size={15} />
-          Excluir
+        <button 
+          onClick={() => setConfirmandoDelete(true)} 
+          className="btn-danger-soft w-full justify-center text-sm font-black uppercase tracking-wider"
+        >
+          <Trash2 size={16} />
+          Excluir Ordem de Serviço
         </button>
       </div>
 
@@ -434,6 +478,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                     <th className="px-4 py-2 font-bold text-gray-500 uppercase">Data</th>
                     <th className="px-4 py-2 font-bold text-gray-500 uppercase">Método</th>
                     <th className="px-4 py-2 font-bold text-gray-500 uppercase text-right">Valor</th>
+                    <th className="px-4 py-2 font-bold text-gray-500 uppercase text-right w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-dark-5">
@@ -443,6 +488,19 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                         <td className="px-4 py-3 text-gray-400">{new Date(p.data).toLocaleDateString('pt-BR')}</td>
                         <td className="px-4 py-3 font-bold text-white uppercase">{p.metodo}</td>
                         <td className="px-4 py-3 font-black text-brand-green text-right">{formatarMoeda(p.valor)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button 
+                            onClick={() => {
+                              if (window.confirm(`Tem certeza que deseja excluir o pagamento de ${formatarMoeda(p.valor)}?`)) {
+                                removerPagamento(ordem.id, p.id);
+                              }
+                            }}
+                            className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                            title="Remover Pagamento"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
                       </tr>
                     ))
                   ) : (
@@ -497,6 +555,13 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         textoBotaoConfirmar="Sim, excluir"
         onConfirmar={handleDeletar}
         onCancelar={() => setConfirmandoDelete(false)}
+      />
+
+      <ModalEscolhaWhatsApp 
+        aberto={modalWhatsAppAberto}
+        onFechar={() => setModalWhatsAppAberto(false)}
+        telefone={ordem.contato}
+        mensagem={mensagemWhatsApp}
       />
     </div>
   );

@@ -8,6 +8,10 @@ import {
 import { Recibo } from '../../types';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
 import { baixarPdfRecibo } from '../../services/geradorPdfRecibo';
+import { useRecibos } from '../../context/RecibosContext';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
+import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
+import { MessageCircle } from 'lucide-react';
 
 interface DetalheReciboProps {
   recibo: Recibo;
@@ -15,7 +19,11 @@ interface DetalheReciboProps {
 
 export function DetalheRecibo({ recibo }: DetalheReciboProps) {
   const navigate = useNavigate();
+  const { deletarRecibo } = useRecibos();
   const [gerandoPdf, setGerandoPdf] = React.useState(false);
+  const [confirmandoDelete, setConfirmandoDelete] = React.useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = React.useState(false);
+  const [mensagemWhatsApp, setMensagemWhatsApp] = React.useState('');
 
   const handleBaixarPdf = async () => {
     setGerandoPdf(true);
@@ -31,6 +39,33 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
 
   const handleImprimir = () => {
     window.print();
+  };
+
+  const handleDeletar = async () => {
+    try {
+      await deletarRecibo(recibo.id);
+      navigate('/recibos');
+    } catch (err) {
+      console.error('Erro ao deletar recibo:', err);
+      alert('Falha ao excluir o recibo.');
+    }
+  };
+
+  const handleWhatsApp = () => {
+    let msg = `* GCAC | Despachante Bélico *\n_Recibo de Pagamento #${String(recibo.numero).padStart(4, '0')}_\n\n`;
+    msg += `Olá, *${recibo.clienteNome}*!\n`;
+    msg += `Confirmamos o recebimento do valor de *${formatarMoeda(recibo.valorTotal)}* referente aos serviços:\n\n`;
+    
+    recibo.servicos.forEach(s => {
+      msg += `🔹 *${s.nome}*\n`;
+    });
+    
+    msg += `\n📅 *Data:* ${formatarData(recibo.criadoEm)}\n`;
+    msg += `💳 *Forma:* ${recibo.formaPagamento}\n\n`;
+    msg += `Agradecemos a confiança!`;
+    
+    setMensagemWhatsApp(msg);
+    setModalWhatsAppAberto(true);
   };
 
   const handleCompartilhar = () => {
@@ -66,12 +101,29 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
         </button>
         <div className="flex gap-2">
           <button 
+            onClick={handleWhatsApp}
+            className="btn-ghost bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20"
+          >
+            <MessageCircle size={18} />
+            WhatsApp
+          </button>
+
+          <button 
+            onClick={() => setConfirmandoDelete(true)}
+            className="btn-ghost border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg shadow-red-500/5"
+          >
+            <Trash2 size={18} />
+            Excluir
+          </button>
+          
+          <button 
             onClick={handleCompartilhar}
             className="btn-ghost"
           >
             <Share2 size={18} />
             Compartilhar
           </button>
+
           <button 
             onClick={handleBaixarPdf}
             disabled={gerandoPdf}
@@ -84,6 +136,7 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
             )}
             {gerandoPdf ? 'Gerando...' : 'Baixar PDF'}
           </button>
+
           <button 
             onClick={handleImprimir}
             className="btn-primary"
@@ -201,15 +254,23 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
             </div>
           </div>
         </div>
-
-        {/* Rodapé Interno */}
-        <div className="mt-16 pt-8 border-t border-brand-dark-5 text-center print:mt-12">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-loose">
-            Este recibo é um documento de quitação de pagamento emitido eletronicamente pela plataforma GCAC Gerador de O.S.<br/>
-            Sistemas Portal Gcac &copy; {new Date().getFullYear()} — Todos os direitos reservados.
-          </p>
-        </div>
       </div>
+
+      <DialogConfirmacao
+        aberto={confirmandoDelete}
+        titulo="Excluir Recibo"
+        mensagem={`Tem certeza que deseja excluir o recibo #${String(recibo.numero).padStart(4, '0')}? Esta ação não pode ser desfeita.`}
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleDeletar}
+        onCancelar={() => setConfirmandoDelete(false)}
+      />
+
+      <ModalEscolhaWhatsApp 
+        aberto={modalWhatsAppAberto}
+        onFechar={() => setModalWhatsAppAberto(false)}
+        telefone={recibo.clienteCPF.length > 15 ? '' : recibo.clienteCPF} 
+        mensagem={mensagemWhatsApp}
+      />
     </div>
   );
 }

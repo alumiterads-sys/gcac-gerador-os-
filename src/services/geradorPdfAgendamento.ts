@@ -100,8 +100,14 @@ export async function gerarPdfAgendamentoBlob(agendamento: Agendamento): Promise
   doc.setTextColor(ESCURO_BRAND);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text(`LOCAL: ${agendamento.local}`, 18, y + 48);
-  doc.text(`${agendamento.tipo === 'Psicológico' ? 'PSICÓLOGA' : 'INSTRUTOR'}: ${agendamento.profissional}`, 18, y + 56);
+  
+  const linhasLocal = doc.splitTextToSize(`LOCAL: ${agendamento.local}`, largura - 30);
+  doc.text(linhasLocal, 18, y + 48);
+  
+  const yProf = y + 48 + (linhasLocal.length * 5);
+  const labelProf = agendamento.tipo === 'Psicológico' ? 'PSICÓLOGA' : 'INSTRUTOR';
+  const linhasProf = doc.splitTextToSize(`${labelProf}: ${agendamento.profissional}`, largura - 30);
+  doc.text(linhasProf, 18, yProf);
 
   if (agendamento.tipo === 'Tiro' && agendamento.dataPsicologico) {
     doc.setFont('helvetica', 'italic');

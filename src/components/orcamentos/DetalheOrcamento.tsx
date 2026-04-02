@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FileText, MessageCircle, FileDown, ArrowLeft, Edit2, CheckCircle, Smartphone, User, DollarSign, Calendar, ChevronRight, Printer, ExternalLink
+  FileText, MessageCircle, FileDown, ArrowLeft, Edit2, CheckCircle, Smartphone, User, DollarSign, Calendar, ChevronRight, Printer, ExternalLink, Trash2
 } from 'lucide-react';
 import { Orcamento } from '../../types';
 import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../utils/formatters';
@@ -9,7 +9,9 @@ import { baixarPdfOrcamento, imprimirPdfOrcamento } from '../../services/gerador
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useClientes } from '../../context/ClientesContext';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
+import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 
 interface DetalheOrcamentoProps {
   orcamento: Orcamento;
@@ -18,41 +20,45 @@ interface DetalheOrcamentoProps {
 export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
   const navigate = useNavigate();
   const { criarOrdem } = useOrdens();
-  const { atualizarOrcamento } = useOrcamentos();
+  const { atualizarOrcamento, deletarOrcamento } = useOrcamentos();
   const { clientes, criarCliente } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [convertendo, setConvertendo] = useState(false);
+  const [confirmandoDelete, setConfirmandoDelete] = useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
+  const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
+
+  const handleDeletar = async () => {
+    try {
+      await deletarOrcamento(orcamento.id);
+      navigate('/orcamentos');
+    } catch (error) {
+      console.error('Erro ao deletar orçamento:', error);
+      mostrar('erro', 'Falha ao excluir o orçamento.');
+    }
+  };
 
   const enviarParaWhatsApp = () => {
-    // Retira caracteres não numéricos do telefone
-    const numeroLimpo = orcamento.contato.replace(/\D/g, '');
-    
-    let mensagem = `* GCAC | Despachante Bélico *\n_Orçamento ORC-${String(orcamento.numero).padStart(4, '0')}_\n\n`;
-    mensagem += `Olá, *${orcamento.nomeCliente}*!\n`;
-    mensagem += `Segue o resumo do seu orçamento:\n\n`;
+    let msg = `* GCAC | Despachante Bélico *\n_Orçamento ORC-${String(orcamento.numero).padStart(4, '0')}_\n\n`;
+    msg += `Olá, *${orcamento.nomeCliente}*!\n`;
+    msg += `Segue o resumo do seu orçamento:\n\n`;
     
     orcamento.servicos.forEach(s => {
-      mensagem += `🔹 *${s.nome}*\n`;
-      if (s.detalhes) mensagem += `   ${s.detalhes}\n`;
-      mensagem += `   _Valor: ${formatarMoeda(s.valor)}_\n\n`;
+      msg += `🔹 *${s.nome}*\n`;
+      if (s.detalhes) msg += `   ${s.detalhes}\n`;
+      msg += `   _Valor: ${formatarMoeda(s.valor)}_\n\n`;
     });
     
-    mensagem += `🧾 *Valor Total Previsto:* ${formatarMoeda(orcamento.valorTotal)}\n\n`;
+    msg += `🧾 *Valor Total Previsto:* ${formatarMoeda(orcamento.valorTotal)}\n\n`;
     
     if (orcamento.observacoes) {
-      mensagem += `⚠️ *Observações:*\n${orcamento.observacoes}\n\n`;
+      msg += `⚠️ *Observações:*\n${orcamento.observacoes}\n\n`;
     }
     
-    mensagem += `Qualquer dúvida, estou à disposição!`;
-
-    const textoCodificado = encodeURIComponent(mensagem);
+    msg += `Qualquer dúvida, estou à disposição!`;
     
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const linkZAP = isMobile
-      ? `whatsapp://send?phone=55${numeroLimpo}&text=${textoCodificado}`
-      : `https://web.whatsapp.com/send?phone=55${numeroLimpo}&text=${textoCodificado}`;
-    
-    window.open(linkZAP, '_blank');
+    setMensagemWhatsApp(msg);
+    setModalWhatsAppAberto(true);
   };
 
   const converterEmOS = async () => {
@@ -131,9 +137,17 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
         <button onClick={() => navigate('/orcamentos')} className="btn-ghost px-2 gap-1 text-sm">
           <ArrowLeft size={16} /> Voltar
         </button>
-        <button onClick={() => navigate(`/orcamentos/${orcamento.id}/editar`)} className="btn-primary py-1.5 px-3 text-sm">
-          <Edit2 size={14} /> Editar Orçamento
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => navigate(`/orcamentos/${orcamento.id}/editar`)} className="btn-primary py-1.5 px-3 text-sm">
+            <Edit2 size={14} /> Editar Orçamento
+          </button>
+          <button 
+            onClick={() => setConfirmandoDelete(true)}
+            className="btn-danger-soft px-3 py-1.5 text-sm font-black uppercase tracking-wider"
+          >
+            <Trash2 size={16} /> Excluir Orçamento
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -267,7 +281,6 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
                 Baixar PDF
               </button>
 
-              {/* Botão Imprimir */}
               <button 
                 onClick={() => imprimirPdfOrcamento(orcamento)}
                 className="btn-ghost w-full justify-start border-gray-700 hover:border-brand-blue hover:text-brand-blue-light"
@@ -318,6 +331,23 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           </div>
         </div>
       </div>
+      <Notificacao {...notif} onFechar={fechar} />
+      
+      <DialogConfirmacao
+        aberto={confirmandoDelete}
+        titulo="Excluir Orçamento"
+        mensagem={`Tem certeza que deseja excluir o orçamento ORC-${String(orcamento.numero).padStart(4, '0')}? Esta ação não pode ser desfeita.`}
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleDeletar}
+        onCancelar={() => setConfirmandoDelete(false)}
+      />
+
+      <ModalEscolhaWhatsApp 
+        aberto={modalWhatsAppAberto}
+        onFechar={() => setModalWhatsAppAberto(false)}
+        telefone={orcamento.contato}
+        mensagem={mensagemWhatsApp}
+      />
     </div>
   );
 }

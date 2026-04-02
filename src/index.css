@@ -76,6 +76,14 @@
     @apply btn bg-red-600 hover:bg-red-500 text-white focus:ring-red-500 active:scale-95;
   }
 
+  .btn-danger-ghost {
+    @apply btn bg-transparent text-red-500 border border-red-500/20 hover:bg-red-500/10 hover:border-red-500/40;
+  }
+
+  .btn-danger-soft {
+    @apply btn bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all;
+  }
+
   .btn-ghost {
     @apply btn bg-transparent hover:bg-brand-dark-5 text-gray-300 hover:text-white
            focus:ring-brand-metal border border-brand-dark-5 hover:border-brand-metal;

@@ -92,16 +92,26 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.' }];
 
   arrayServicos.forEach((serv) => {
-    // Quebra de página caso ultrapasse muito do limite folha
-    if (y > 270) {
-      doc.addPage();
-      y = 15;
-    }
+    const nomeFormatado = serv.nome.toUpperCase();
+    
+    // Configura fonte para o nome
+    doc.setFontSize(10.5);
+    doc.setFont('helvetica', 'bold');
+    
+    // Quebra o nome em linhas se for muito longo
+    const linhasNome = doc.splitTextToSize(nomeFormatado, largura - 45);
+    const alturaNome = linhasNome.length * 5;
 
     // Calcula linhas do bloco de detalhe e altura final
     doc.setFontSize(9.5);
     const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
-    const alturaBloco = serv.detalhes ? (10 + (linhasDetalhe.length * 4.5)) : 11;
+    const alturaBloco = 8 + alturaNome + (linhasDetalhe.length * 4.5);
+
+    // Quebra de página se não couber o bloco inteiro
+    if (y + alturaBloco > 275) {
+      doc.addPage();
+      y = 15;
+    }
 
     doc.setFillColor('#F8F9FA');
     doc.setDrawColor(LINHA);
@@ -112,14 +122,14 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     doc.setTextColor(ESCURO);
     doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(serv.nome.toUpperCase(), 17, y + 6);
+    doc.text(linhasNome, 17, y + 6);
 
     // Imprimir Detalhes em NORMAL, alinhados sutilmente
     if (serv.detalhes && serv.detalhes.trim()) {
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor('#444444');
-      doc.text(linhasDetalhe, 17, y + 11);
+      doc.text(linhasDetalhe, 17, y + 6 + alturaNome);
     }
     
     y += alturaBloco + 2; // espaçamento de um card pro outro

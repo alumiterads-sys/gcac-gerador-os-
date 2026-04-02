@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Phone, MapPin, Shield, Copy, Check, 
   FileText, Receipt, Clock, Calendar, Plus, 
-  ArrowLeft, ChevronRight, ExternalLink
+  ArrowLeft, ChevronRight, ExternalLink, MessageCircle, Trash2
 } from 'lucide-react';
+import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone, formatarMoeda, formatarData } from '../../utils/formatters';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useRecibos } from '../../context/RecibosContext';
 import { useAgendamentos } from '../../context/AgendamentosContext';
+import { useClientes } from '../../context/ClientesContext';
+import { DialogConfirmacao } from '../common/DialogConfirmacao';
 
 interface DetalheClienteProps {
   cliente: Cliente;
@@ -22,9 +25,12 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const { orcamentos } = useOrcamentos();
   const { recibos } = useRecibos();
   const { agendamentos } = useAgendamentos();
+  const { deletarCliente } = useClientes();
   
   const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos'>('ordens');
   const [copiou, setCopiou] = useState(false);
+  const [confirmandoDelete, setConfirmandoDelete] = useState(false);
+  const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
 
   // Filtros de histórico
   const ordensCliente = ordens.filter(o => o.cpf === cliente.cpf);
@@ -63,10 +69,30 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
       color: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
       path: '/agendamentos'
     },
+    { 
+      label: 'Iniciar Conversa', 
+      icon: <MessageCircle size={20} />, 
+      color: 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20',
+      onClick: () => setModalWhatsAppAberto(true)
+    },
   ];
 
-  const handleAcao = (path: string) => {
-    navigate(path, { state: { clientePreDefinido: cliente } });
+  const handleAcao = (acao: any) => {
+    if (acao.onClick) {
+      acao.onClick();
+    } else {
+      navigate(acao.path, { state: { clientePreDefinido: cliente } });
+    }
+  };
+
+  const handleDeletar = async () => {
+    try {
+      await deletarCliente(cliente.id);
+      navigate('/clientes');
+    } catch (error) {
+      console.error('Erro ao deletar cliente:', error);
+      alert('Falha ao excluir o cliente. Verifique se existem registros vinculados.');
+    }
   };
 
   return (
@@ -87,6 +113,14 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
             <p className="text-gray-400 text-sm">Perfil do Cliente</p>
           </div>
         </div>
+
+        <button 
+          onClick={() => setConfirmandoDelete(true)}
+          className="btn-danger-soft px-3 py-1.5 text-sm font-black uppercase tracking-wider"
+        >
+          <Trash2 size={16} />
+          Excluir Cliente
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -156,7 +190,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
             {acoesRapidas.map((acao) => (
               <button
                 key={acao.label}
-                onClick={() => handleAcao(acao.path)}
+                onClick={() => handleAcao(acao)}
                 className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all hover:-translate-y-1 hover:shadow-lg ${acao.color}`}
               >
                 <div className="mb-2">{acao.icon}</div>
@@ -239,6 +273,22 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           </div>
         </div>
       </div>
+
+      <ModalEscolhaWhatsApp 
+        aberto={modalWhatsAppAberto}
+        onFechar={() => setModalWhatsAppAberto(false)}
+        telefone={cliente.contato}
+        mensagem={`Olá, ${cliente.nome}!`}
+      />
+
+      <DialogConfirmacao
+        aberto={confirmandoDelete}
+        titulo="Excluir Cliente"
+        mensagem={`Tem certeza que deseja excluir o cadastro de ${cliente.nome}? Esta ação apagará permanentemente os dados do cliente.`}
+        textoBotaoConfirmar="Sim, excluir"
+        onConfirmar={handleDeletar}
+        onCancelar={() => setConfirmandoDelete(false)}
+      />
     </div>
   );
 }
