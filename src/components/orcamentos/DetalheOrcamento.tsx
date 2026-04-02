@@ -19,14 +19,17 @@ interface DetalheOrcamentoProps {
 
 export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
   const navigate = useNavigate();
-  const { criarOrdem } = useOrdens();
+  const { criarOrdem, ordens } = useOrdens();
   const { atualizarOrcamento, deletarOrcamento } = useOrcamentos();
   const { clientes, criarCliente } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
+  const [abaAtiva, setAbaAtiva] = useState<'dados' | 'servicos'>('dados');
   const [convertendo, setConvertendo] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
   const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
+
+  const osVinculada = orcamento.convertidoOsId ? ordens.find(o => o.id === orcamento.convertidoOsId) : null;
 
   const handleDeletar = async () => {
     try {
@@ -297,12 +300,12 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
 
               {/* Botão Converter OS */}
               <div className="pt-2">
-                {orcamento.convertidoOsId ? (
+                {osVinculada ? (
                   <>
                     <p className="text-xs text-center text-brand-green mb-2">Este orçamento já possui uma O.S.</p>
                     <button 
-                      onClick={() => navigate(`/ordens/${orcamento.convertidoOsId}/editar`)}
-                      className="btn w-full justify-center bg-brand-green/20 text-brand-green border-brand-green/30 hover:bg-brand-green hover:text-white transition-all"
+                      onClick={() => navigate(`/ordens/${osVinculada.id}`)}
+                      className="btn w-full justify-center bg-brand-green/20 text-brand-green border-brand-green/30 hover:bg-brand-green hover:text-white transition-all shadow-[0_0_10px_rgba(109,190,69,0.1)]"
                     >
                       <ExternalLink size={16} />
                       Ver O.S. Vinculada
@@ -310,7 +313,9 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
                   </>
                 ) : (
                   <>
-                    <p className="text-xs text-center text-gray-400 mb-2">Cliente aprovou o serviço?</p>
+                    <p className="text-xs text-center text-gray-400 mb-2">
+                      {orcamento.status === 'Aprovado' ? 'Gere a nova O.S. agora!' : 'Cliente aprovou o serviço?'}
+                    </p>
                     <button 
                       onClick={converterEmOS}
                       disabled={convertendo}
