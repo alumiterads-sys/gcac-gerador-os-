@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar, BarChart3
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar, BarChart3, ListTodo, Bell
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
@@ -9,25 +9,33 @@ import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { sincronizarPendentes } from '../../services/driveSync';
 import { useNotificacoesSistema } from '../../context/NotificacoesSistemaContext';
 import { NotificacoesDropdown } from './NotificacoesDropdown';
-import { Bell } from 'lucide-react';
 
 const links = [
-  { to: '/dashboard', label: 'Painel',         icon: LayoutDashboard },
-  { to: '/financeiro', label: 'Financeiro',    icon: BarChart3 },
-  { to: '/orcamentos',label: 'Orçamentos',     icon: Receipt },
-  { to: '/ordens',    label: 'Ordens de Serviço', icon: FileText },
-  { to: '/recibos',   label: 'Recibos',           icon: Receipt },
+  { to: '/dashboard', label: 'Painel',          icon: LayoutDashboard },
+  { to: '/rotina',    label: 'Rotina Diária',   icon: ListTodo },
+  { to: '/financeiro', label: 'Financeiro',     icon: BarChart3 },
+  { to: '/orcamentos', label: 'Orçamentos',     icon: Receipt },
+  { to: '/ordens',     label: 'Ordens de Serviço', icon: FileText },
+  { to: '/recibos',    label: 'Recibos',           icon: Receipt },
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
-  { to: '/clientes',  label: 'Meus Clientes',     icon: Users },
+  { to: '/clientes',   label: 'Meus Clientes',     icon: Users },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
 
 export function Sidebar() {
   const { usuario, logout } = useAuth();
-  const { itensFila } = useOrdens();
+  const { ordens, itensFila } = useOrdens();
   const { naoLidas } = useNotificacoesSistema();
   const online = useStatusConexao();
   const navigate = useNavigate();
+
+  // Cálculo de pendências para a Rotina Diária
+  const totalRotina = ordens.reduce((acc, o) => {
+    const temProtocolado = o.servicos?.some(s => s.statusExecucao === 'Protocolado — Ag. PF');
+    const temGruPendente = o.servicos?.some(s => (s.taxaPF || 0) > 0 && !s.pagoGRU);
+    if (temProtocolado || temGruPendente) return acc + 1;
+    return acc;
+  }, 0);
   const [sincronizando, setSincronizando] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState(false);
 
@@ -87,7 +95,12 @@ export function Sidebar() {
             className={({ isActive }) => isActive ? 'nav-link-active' : 'nav-link'}
           >
             <Icon size={18} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {to === '/rotina' && totalRotina > 0 && (
+              <span className="bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
+                {totalRotina}
+              </span>
+            )}
           </NavLink>
         ))}
 

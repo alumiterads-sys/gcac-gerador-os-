@@ -36,6 +36,7 @@ import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
 import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContext';
 import { FinanceiroProvider } from './context/FinanceiroContext';
 import { Financeiro } from './components/financeiro/Financeiro';
+import { RotinaDiaria } from './components/operacional/RotinaDiaria';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -214,6 +215,7 @@ export default function App() {
                               <Route path="clientes/:id" element={<RotaProtegida adminOnly><PaginaDetalheCliente /></RotaProtegida>} />
                               <Route path="agendamentos" element={<ListaAgendamentos />} />
                               <Route path="financeiro" element={<RotaProtegida adminOnly><Financeiro /></RotaProtegida>} />
+                              <Route path="rotina" element={<RotaProtegida adminOnly><RotinaDiaria /></RotaProtegida>} />
                               <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
                               
                               {/* Orçamentos */}

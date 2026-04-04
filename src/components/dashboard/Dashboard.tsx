@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle, TrendingDown } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle, TrendingDown, AlertCircle } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { StatusExecucaoServico, STATUS_EXECUCAO_SERVICO } from '../../types';
@@ -48,6 +48,11 @@ export function Dashboard() {
   const margemServicos = stats.receita - stats.taxas;
   const lucroLiquido = margemServicos - valorDespesas;
 
+  // Alertas de Rotina
+  const totalPF = ordens.filter(o => o.servicos?.some(s => s.statusExecucao === 'Protocolado — Ag. PF')).length;
+  const totalGRU = ordens.filter(o => o.servicos?.some(s => (s.taxaPF || 0) > 0 && !s.pagoGRU)).length;
+  const possuiAlertas = totalPF > 0 || totalGRU > 0;
+
   const orcStats = {
     total:       orcamentos.length,
     pendente:    orcamentos.filter((o: any) => o.status === 'Pendente').length,
@@ -93,6 +98,40 @@ export function Dashboard() {
           )}
         </div>
       </div>
+      {/* ── Widget de Atenção (Rotina Diária) ── */}
+      {possuiAlertas && (
+        <div 
+          onClick={() => navigate('/rotina')}
+          className="bg-brand-blue/10 border border-brand-blue/30 rounded-2xl p-4 flex items-center justify-between cursor-pointer group hover:bg-brand-blue/20 transition-all shadow-[0_0_15px_rgba(45,141,224,0.1)]"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-brand-blue/20 flex items-center justify-center text-brand-blue-light animate-pulse">
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-sm">Resumo de Atenção Diária</h3>
+              <div className="flex gap-4 mt-0.5">
+                {totalPF > 0 && (
+                  <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
+                    <div className="w-1 h-1 bg-brand-blue rounded-full" />
+                    {totalPF} processos aguardando conferência na PF
+                  </span>
+                )}
+                {totalGRU > 0 && (
+                  <span className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
+                    <div className="w-1 h-1 bg-orange-500 rounded-full" />
+                    {totalGRU} taxas GRU pendentes de pagamento
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-brand-blue-light font-bold text-[10px] uppercase tracking-widest group-hover:translate-x-1 transition-transform">
+            Ver Rotina
+            <ChevronRight size={14} />
+          </div>
+        </div>
+      )}
 
       {/* ── Cards de Estatísticas ── */}
       <div className="space-y-3">
