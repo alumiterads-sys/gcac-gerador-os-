@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle } from 'lucide-react';
+import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
@@ -33,6 +33,16 @@ export function ListaOrdens() {
   const [filtroGru, setFiltroGru] = useState<'Todos' | 'Pagas' | 'Pendentes'>('Todos');
   const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
   const [expandirFiltros, setExpandirFiltros] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState<'ativas' | 'concluidas'>('ativas');
+
+  const isConcluida = (o: any) => {
+    // Uma OS é considerada concluída se:
+    // 1. O status financeiro for 'Pago' ou 'Gratuidade'
+    // 2. TODOS os serviços dentro dela tiverem status 'Concluído'
+    const financeiraConcluida = o.status === 'Pago' || o.status === 'Gratuidade';
+    const execucaoConcluida = (o.servicos || []).every((s: any) => s.statusExecucao === 'Concluído');
+    return financeiraConcluida && execucaoConcluida;
+  };
 
   const handleDeletar = async () => {
     if (!confirmandoDelete) return;
@@ -56,6 +66,11 @@ export function ListaOrdens() {
   }, [location]);
 
   const ordensFiltradas = ordens.filter(o => {
+    // Primeiro filtro: Aba Ativa vs Concluída
+    const statusConclusao = isConcluida(o);
+    if (abaAtiva === 'ativas' && statusConclusao) return false;
+    if (abaAtiva === 'concluidas' && !statusConclusao) return false;
+
     const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, String(o.numero)]
       .some(v => v.toLowerCase().includes(busca.toLowerCase()));
     
@@ -108,6 +123,34 @@ export function ListaOrdens() {
         >
           <Plus size={16} />
           Nova OS
+        </button>
+      </div>
+
+      {/* ── Seletor de Abas ── */}
+      <div className="flex gap-1 p-1 bg-brand-dark-3 border border-brand-dark-5 rounded-xl w-fit">
+        <button 
+          onClick={() => setAbaAtiva('ativas')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${
+            abaAtiva === 'ativas' ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          <Clock size={14} />
+          Em Aberto
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaAtiva === 'ativas' ? 'bg-white/20' : 'bg-brand-dark-5'}`}>
+            {ordens.filter(o => !isConcluida(o)).length}
+          </span>
+        </button>
+        <button 
+          onClick={() => setAbaAtiva('concluidas')}
+          className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${
+            abaAtiva === 'concluidas' ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          <CheckCircle size={14} />
+          Histórico / Concluídas
+          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaAtiva === 'concluidas' ? 'bg-white/20' : 'bg-brand-dark-5'}`}>
+            {ordens.filter(o => isConcluida(o)).length}
+          </span>
         </button>
       </div>
 
