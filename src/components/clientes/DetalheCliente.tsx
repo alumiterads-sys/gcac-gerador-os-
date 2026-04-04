@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Phone, MapPin, Shield, Copy, Check, 
   FileText, Receipt, Clock, Calendar, Plus, 
-  ArrowLeft, ChevronRight, ExternalLink, MessageCircle, Trash2
+  ArrowLeft, ChevronRight, ExternalLink, MessageCircle, Trash2, Pencil
 } from 'lucide-react';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
+import { FormularioCliente } from './FormularioCliente';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone, formatarMoeda, formatarData } from '../../utils/formatters';
 import { useOrdens } from '../../context/OrdensContext';
@@ -29,6 +30,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   
   const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos'>('ordens');
   const [copiou, setCopiou] = useState(false);
+  const [editando, setEditando] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
 
@@ -114,13 +116,23 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           </div>
         </div>
 
-        <button 
-          onClick={() => setConfirmandoDelete(true)}
-          className="btn-danger-soft px-3 py-1.5 text-sm font-black uppercase tracking-wider"
-        >
-          <Trash2 size={16} />
-          Excluir Cliente
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setEditando(true)}
+            className="btn-ghost px-3 py-1.5 text-sm font-black uppercase tracking-wider flex items-center gap-2 border border-brand-dark-5"
+          >
+            <Pencil size={16} />
+            Editar Cadastro
+          </button>
+          
+          <button 
+            onClick={() => setConfirmandoDelete(true)}
+            className="btn-danger-soft px-3 py-1.5 text-sm font-black uppercase tracking-wider"
+          >
+            <Trash2 size={16} />
+            Excluir Cliente
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -289,6 +301,13 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
         onConfirmar={handleDeletar}
         onCancelar={() => setConfirmandoDelete(false)}
       />
+
+      {editando && (
+        <FormularioCliente 
+          clienteEditando={cliente}
+          onFechar={() => setEditando(false)}
+        />
+      )}
     </div>
   );
 }

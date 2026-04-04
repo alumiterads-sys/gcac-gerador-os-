@@ -1,40 +1,52 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, Gift, Plus, ChevronRight, Loader, Receipt, XCircle, TrendingDown } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { StatusExecucaoServico, STATUS_EXECUCAO_SERVICO } from '../../types';
+import { isSameMonth, parseISO } from 'date-fns';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusOrcamento, classeStatusExecucao, iconeStatusExecucao } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
+import { useFinanceiro } from '../../context/FinanceiroContext';
 import { BriefingDiario } from './BriefingDiario';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { ordens, itensFila } = useOrdens();
   const { orcamentos } = useOrcamentos();
+  const { despesas } = useFinanceiro();
   const { usuario } = useAuth();
   const online = useStatusConexao();
+
+  const dataAtual = new Date();
 
   const ordensParaStats = ordens.filter(o => {
     // Só entra no painel se NÃO for migração
     const ehMigracao = o.migrado === true || o.observacoes?.includes('[MIGRAÇÃO]');
-    return !ehMigracao;
+    if (ehMigracao) return false;
+
+    // Filtro por mês atual
+    return isSameMonth(parseISO(o.criadoEm), dataAtual);
   });
+
+  const despesasMes = despesas.filter(d => isSameMonth(parseISO(d.data), dataAtual));
+  const valorDespesas = despesasMes.reduce((s, d) => s + (d.valor || 0), 0);
   
   const stats = {
-    // Contagens Globais (Incluindo Migrados)
-    total:       ordens.length,
-    pendente:    ordens.filter(o => o.status === 'Aguardando Pagamento').length,
-    pagas:       ordens.filter(o => o.status === 'Pago' || o.status === 'Gratuidade').length,
+    // Contagens Globais (Mês Atual)
+    total:       ordensParaStats.length,
+    pendente:    ordensParaStats.filter(o => o.status === 'Aguardando Pagamento').length,
+    pagas:       ordensParaStats.filter(o => o.status === 'Pago' || o.status === 'Gratuidade').length,
 
-    // Financeiro Real (Apenas atual + futuro)
+    // Financeiro Bruto (Mês Atual)
     receita:     ordensParaStats.reduce((s, o) => s + (o.valorPago || 0), 0),
     taxas:       ordensParaStats.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
     receitaPendente: ordensParaStats.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
   };
 
-  const lucroReal = stats.receita - stats.taxas;
+  const margemServicos = stats.receita - stats.taxas;
+  const lucroLiquido = margemServicos - valorDespesas;
 
   const orcStats = {
     total:       orcamentos.length,
@@ -118,29 +130,36 @@ export function Dashboard() {
         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-green/5 rounded-full blur-3xl -mr-16 -mt-16" />
         
         <div className="flex flex-col md:flex-row items-stretch gap-6 relative z-10">
-          {/* Lucro Real - Principal */}
+          {/* Margem Operacional - Principal */}
           <div className="flex-1">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Lucro Real Estimado (Líquido)</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Margem Operacional (Lucro Bruto)</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-4xl font-black text-white">{formatarMoeda(lucroReal)}</p>
+              <p className="text-4xl font-black text-white">{formatarMoeda(margemServicos)}</p>
               <span className="text-xs font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full">
-                {stats.receita > 0 ? ((lucroReal / stats.receita) * 100).toFixed(0) : 0}% de margem
+                {stats.receita > 0 ? ((margemServicos / stats.receita) * 100).toFixed(0) : 0}% de margem
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-2 italic">Reflete o faturamento das OS pagas menos as taxas da PF cadastradas.</p>
+            <p className="text-xs text-gray-500 mt-2 italic">Reflete faturamento menos taxas da PF (Mês atual).</p>
           </div>
 
           <div className="hidden md:block w-px bg-brand-dark-5" />
 
-          {/* Breakdown Lateral */}
-          <div className="grid grid-cols-2 md:block gap-4 md:space-y-4 min-w-[180px]">
+          {/* Lucro Líquido e Breakdown */}
+          <div className="grid grid-cols-2 md:block gap-4 md:space-y-4 min-w-[200px]">
             <div>
-              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total Recebido</p>
-              <p className="text-lg font-bold text-brand-green-light">{formatarMoeda(stats.receita)}</p>
+              <p className="text-[10px] font-bold text-brand-blue uppercase tracking-wider">Lucro Líquido Real</p>
+              <p className="text-lg font-bold text-white">{formatarMoeda(lucroLiquido)}</p>
+              <p className="text-[9px] text-gray-500">Já subtraídas as despesas PJ</p>
             </div>
-            <div>
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider">Aguardando Recebimento</p>
-              <p className="text-lg font-bold text-red-400">{formatarMoeda(stats.receitaPendente)}</p>
+            <div className="flex gap-4">
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Despesas PJ</p>
+                <p className="text-xs font-bold text-red-400">-{formatarMoeda(valorDespesas)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-brand-green uppercase tracking-wider">Total Recebido</p>
+                <p className="text-xs font-bold text-brand-green-light">{formatarMoeda(stats.receita)}</p>
+              </div>
             </div>
           </div>
         </div>

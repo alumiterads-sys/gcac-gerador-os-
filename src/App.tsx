@@ -34,6 +34,8 @@ import { DetalheRecibo } from './components/recibos/DetalheRecibo';
 import { AgendamentosProvider } from './context/AgendamentosContext';
 import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
 import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContext';
+import { FinanceiroProvider } from './context/FinanceiroContext';
+import { Financeiro } from './components/financeiro/Financeiro';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -183,64 +185,67 @@ export default function App() {
                 <ServicosProvider>
                   <RecibosProvider>
                     <AgendamentosProvider>
-                    <BrowserRouter>
-                    <Routes>
-                    {/* Login */}
-                    <Route path="/login" element={<PaginaLoginGuard />} />
+                      <FinanceiroProvider>
+                        <BrowserRouter>
+                          <Routes>
+                            {/* Login */}
+                            <Route path="/login" element={<PaginaLoginGuard />} />
 
-                    {/* App protegido */}
-                    <Route path="/" element={
-                      <RotaProtegida>
-                        <AppShell />
-                      </RotaProtegida>
-                    }>
-                      <Route index element={<ProtecaoIndex />} />
-                      <Route path="dashboard" element={<RotaProtegida adminOnly><Dashboard /></RotaProtegida>} />
-                      <Route path="ordens" element={<RotaProtegida adminOnly><ListaOrdens /></RotaProtegida>} />
-                      <Route path="ordens/nova" element={
-                        <RotaProtegida adminOnly>
-                          <div>
-                            <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
-                            <FormularioOrdem />
-                          </div>
-                        </RotaProtegida>
-                      } />
-                      <Route path="ordens/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrdem /></RotaProtegida>} />
-                      <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
-                      <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
-                      <Route path="clientes/:id" element={<RotaProtegida adminOnly><PaginaDetalheCliente /></RotaProtegida>} />
-                      <Route path="agendamentos" element={<ListaAgendamentos />} />
-                      <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
-                      
-                      {/* Orçamentos */}
-                      <Route path="orcamentos" element={<RotaProtegida adminOnly><ListaOrcamentos /></RotaProtegida>} />
-                      <Route path="orcamentos/novo" element={
-                        <RotaProtegida adminOnly>
-                          <div>
-                            <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
-                            <FormularioOrcamento />
-                          </div>
-                        </RotaProtegida>
-                      } />
-                      <Route path="orcamentos/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrcamento /></RotaProtegida>} />
-                      <Route path="orcamentos/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrcamento /></RotaProtegida>} />
+                            {/* App protegido */}
+                            <Route path="/" element={
+                              <RotaProtegida>
+                                <AppShell />
+                              </RotaProtegida>
+                            }>
+                              <Route index element={<ProtecaoIndex />} />
+                              <Route path="dashboard" element={<RotaProtegida adminOnly><Dashboard /></RotaProtegida>} />
+                              <Route path="ordens" element={<RotaProtegida adminOnly><ListaOrdens /></RotaProtegida>} />
+                              <Route path="ordens/nova" element={
+                                <RotaProtegida adminOnly>
+                                  <div>
+                                    <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
+                                    <FormularioOrdem />
+                                  </div>
+                                </RotaProtegida>
+                              } />
+                              <Route path="ordens/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrdem /></RotaProtegida>} />
+                              <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
+                              <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
+                              <Route path="clientes/:id" element={<RotaProtegida adminOnly><PaginaDetalheCliente /></RotaProtegida>} />
+                              <Route path="agendamentos" element={<ListaAgendamentos />} />
+                              <Route path="financeiro" element={<RotaProtegida adminOnly><Financeiro /></RotaProtegida>} />
+                              <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
+                              
+                              {/* Orçamentos */}
+                              <Route path="orcamentos" element={<RotaProtegida adminOnly><ListaOrcamentos /></RotaProtegida>} />
+                              <Route path="orcamentos/novo" element={
+                                <RotaProtegida adminOnly>
+                                  <div>
+                                    <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
+                                    <FormularioOrcamento />
+                                  </div>
+                                </RotaProtegida>
+                              } />
+                              <Route path="orcamentos/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrcamento /></RotaProtegida>} />
+                              <Route path="orcamentos/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrcamento /></RotaProtegida>} />
 
-                      {/* Recibos */}
-                      <Route path="recibos" element={<RotaProtegida adminOnly><ListaRecibos /></RotaProtegida>} />
-                      <Route path="recibos/novo" element={
-                        <RotaProtegida adminOnly>
-                          <div>
-                            <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
-                            <FormularioRecibo />
-                          </div>
-                        </RotaProtegida>
-                      } />
-                      <Route path="recibos/:id" element={<RotaProtegida adminOnly><PaginaDetalheRecibo /></RotaProtegida>} />
-                    </Route>
+                              {/* Recibos */}
+                              <Route path="recibos" element={<RotaProtegida adminOnly><ListaRecibos /></RotaProtegida>} />
+                              <Route path="recibos/novo" element={
+                                <RotaProtegida adminOnly>
+                                  <div>
+                                    <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
+                                    <FormularioRecibo />
+                                  </div>
+                                </RotaProtegida>
+                              } />
+                              <Route path="recibos/:id" element={<RotaProtegida adminOnly><PaginaDetalheRecibo /></RotaProtegida>} />
+                            </Route>
 
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                  </Routes>
-                </BrowserRouter>
+                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                          </Routes>
+                        </BrowserRouter>
+                      </FinanceiroProvider>
                     </AgendamentosProvider>
                   </RecibosProvider>
                 </ServicosProvider>
