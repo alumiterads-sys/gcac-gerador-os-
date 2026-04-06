@@ -67,6 +67,11 @@ export function LembretesProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     carregarLembretes();
+    
+    // Pedir permissão para notificações nativas (Cards no celular/computador)
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, [carregarLembretes]);
 
   // Lógica de Verificação de Notificações
@@ -92,6 +97,16 @@ export function LembretesProvider({ children }: { children: React.ReactNode }) {
               tipo: lembrete.prioridade === 'alta' ? 'alerta' : 'info',
               link: '/agenda'
             });
+
+            // --- Disparo da Notificação Nativa (Card no Sistema) ---
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              new Notification(`Lembrete: ${lembrete.titulo}`, {
+                body: lembrete.descricao || 'Tarefa para hoje.',
+                icon: '/Logo oficial.png',
+                vibrate: [200, 100, 200]
+              });
+            }
+            
             localStorage.setItem(key, 'true');
           }
         }
