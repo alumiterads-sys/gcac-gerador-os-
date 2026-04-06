@@ -8,7 +8,9 @@ export function WidgetLembretes() {
   const navigate = useNavigate();
   const { lembretes, marcarConcluido } = useLembretes();
   
-  const hoje = new Date().toISOString().split('T')[0];
+  const agora = new Date();
+  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+  
   const tarefasHoje = lembretes
     .filter(l => l.data === hoje && !l.concluido)
     .slice(0, 4);

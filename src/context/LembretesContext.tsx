@@ -75,7 +75,7 @@ export function LembretesProvider({ children }: { children: React.ReactNode }) {
 
     const checarNotificacoes = () => {
       const agora = new Date();
-      const hojeStr = agora.toISOString().split('T')[0];
+      const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
       const horaMinuto = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
 
       lembretes.forEach(lembrete => {

@@ -40,7 +40,8 @@ export function Sidebar() {
     return acc;
   }, 0);
 
-  const hojeStr = new Date().toISOString().split('T')[0];
+  const agora = new Date();
+  const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
   const tarefasPendentesHoje = lembretes.filter(l => l.data === hojeStr && !l.concluido).length;
   const [sincronizando, setSincronizando] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState(false);

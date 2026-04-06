@@ -141,8 +141,10 @@ export function ListaLembretes() {
 }
 
 function CardLembrete({ lembrete, onEdit, onDelete, onToggle, onWpp }: any) {
-  const isHoje = lembrete.data === new Date().toISOString().split('T')[0];
-  const isAtrasado = !lembrete.concluido && lembrete.data < new Date().toISOString().split('T')[0];
+  const agora = new Date();
+  const hojeLocal = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+  const isHoje = lembrete.data === hojeLocal;
+  const isAtrasado = !lembrete.concluido && lembrete.data < hojeLocal;
 
   return (
     <div className={`card overflow-hidden group shadow-lg transition-all hover:border-brand-blue/30 border-l-4 ${
