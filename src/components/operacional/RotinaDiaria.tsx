@@ -5,7 +5,6 @@ import {
   Copy, 
   ExternalLink, 
   CheckCircle, 
-  AlertCircle, 
   Search,
   User,
   Key,
@@ -20,7 +19,11 @@ import { formatarMoeda, formatarNumeroOS } from '../../utils/formatters';
 
 export function RotinaDiaria() {
   const navigate = useNavigate();
-  const { ordens, atualizarGruServico, atualizarStatusServico } = useOrdens();
+  const { 
+    ordens, 
+    atualizarGruServico, 
+    atualizarStatusServico
+  } = useOrdens();
 
   // 1. Filtro: Conferência na PF (Protocolados)
   const conferenciasPF = useMemo(() => {
@@ -42,9 +45,10 @@ export function RotinaDiaria() {
     }));
   }, [ordens]);
 
+
+
   const copiarParaTransferencia = (texto: string, tipo: string) => {
     navigator.clipboard.writeText(texto);
-    // Aqui poderíamos ter um toast, mas vamos manter simples por agora
   };
 
   const handleConcluirServico = async (ordemId: string, servicoId: string) => {
@@ -88,12 +92,15 @@ export function RotinaDiaria() {
               conferenciasPF.map(o => (
                 <div key={o.id} className="card bg-brand-dark-3/50 border-brand-dark-5 hover:border-brand-blue/30 transition-all p-4 space-y-4 group">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div 
+                      onClick={() => navigate(`/ordens/${o.id}`)}
+                      className="cursor-pointer group/header"
+                    >
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">#{formatarNumeroOS(o.numero)}</p>
                         {o.filiadoProTiro && <span className="text-[9px] bg-brand-blue/20 text-brand-blue-light px-1.5 py-0.5 rounded font-black uppercase">Filiado</span>}
                       </div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-brand-blue-light transition-colors">{o.nomeCliente}</h3>
+                      <h3 className="text-sm font-bold text-white group-hover/header:text-brand-blue-light transition-colors">{o.nomeCliente}</h3>
                     </div>
                     <button 
                       onClick={() => navigate(`/ordens/${o.id}`)}
@@ -215,12 +222,15 @@ export function RotinaDiaria() {
               pendenciasGRU.map(o => (
                 <div key={o.id} className="card bg-brand-dark-3/50 border-brand-dark-5 hover:border-orange-500/30 transition-all p-4 space-y-4 group">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div 
+                      onClick={() => navigate(`/ordens/${o.id}`)}
+                      className="cursor-pointer group/header"
+                    >
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">#{formatarNumeroOS(o.numero)}</p>
                         {o.filiadoProTiro && <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-black uppercase">Filiado</span>}
                       </div>
-                      <h3 className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">{o.nomeCliente}</h3>
+                      <h3 className="text-sm font-bold text-white group-hover/header:text-orange-400 transition-colors">{o.nomeCliente}</h3>
                     </div>
                     <button 
                       onClick={() => navigate(`/ordens/${o.id}`)}

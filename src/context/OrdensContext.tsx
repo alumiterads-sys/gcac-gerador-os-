@@ -16,7 +16,7 @@ interface OrdensContextType {
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
   registrarPagamento: (ordemId: string, valor: number, metodo: FormaPagamento) => Promise<void>;
   removerPagamento: (ordemId: string, pagamentoId: string) => Promise<void>;
-  itensFila: number; // Temporary kept out as 0
+  itensFila: number; 
 }
 
 const OrdensContext = createContext<OrdensContextType | null>(null);
@@ -257,7 +257,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       buscarOrdem,
       registrarPagamento,
       removerPagamento,
-      itensFila: 0, 
+      itensFila: 0,
     }}>
       {children}
     </OrdensContext.Provider>

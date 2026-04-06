@@ -37,6 +37,8 @@ import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContex
 import { FinanceiroProvider } from './context/FinanceiroContext';
 import { Financeiro } from './components/financeiro/Financeiro';
 import { RotinaDiaria } from './components/operacional/RotinaDiaria';
+import { LembretesProvider } from './context/LembretesContext';
+import { ListaLembretes } from './components/lembretes/ListaLembretes';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -187,7 +189,8 @@ export default function App() {
                   <RecibosProvider>
                     <AgendamentosProvider>
                       <FinanceiroProvider>
-                        <BrowserRouter>
+                        <LembretesProvider>
+                          <BrowserRouter>
                           <Routes>
                             {/* Login */}
                             <Route path="/login" element={<PaginaLoginGuard />} />
@@ -216,6 +219,7 @@ export default function App() {
                               <Route path="agendamentos" element={<ListaAgendamentos />} />
                               <Route path="financeiro" element={<RotaProtegida adminOnly><Financeiro /></RotaProtegida>} />
                               <Route path="rotina" element={<RotaProtegida adminOnly><RotinaDiaria /></RotaProtegida>} />
+                              <Route path="agenda" element={<RotaProtegida adminOnly><ListaLembretes /></RotaProtegida>} />
                               <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
                               
                               {/* Orçamentos */}
@@ -247,16 +251,17 @@ export default function App() {
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
                           </Routes>
                         </BrowserRouter>
-                      </FinanceiroProvider>
-                    </AgendamentosProvider>
-                  </RecibosProvider>
-                </ServicosProvider>
-              </ClientesProvider>
-            </OrcamentosProvider>
-          </OrdensProvider>
-        </NotificacoesSistemaProvider>
-      </AuthProvider>
-    </GoogleOAuthProvider>
+                      </LembretesProvider>
+                    </FinanceiroProvider>
+                  </AgendamentosProvider>
+                </RecibosProvider>
+              </ServicosProvider>
+            </ClientesProvider>
+          </OrcamentosProvider>
+        </OrdensProvider>
+      </NotificacoesSistemaProvider>
+    </AuthProvider>
+  </GoogleOAuthProvider>
 );
 }
 

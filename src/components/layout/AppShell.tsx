@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar, NavegacaoInferior } from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
@@ -10,7 +10,13 @@ export function AppShell() {
   const { estaAutenticado } = useAuth();
   const { itensFila } = useOrdens();
   const online = useStatusConexao();
+  const location = useLocation();
   const [jaSincronizou, setJaSincronizou] = React.useState(false);
+  // Scroll to top on route change (Default behavior)
+  React.useEffect(() => {
+    const main = document.getElementById('scroll-main');
+    if (main) main.scrollTop = 0;
+  }, [location.pathname]);
 
   // Auto-sync quando volta a ficar online com itens pendentes
   React.useEffect(() => {
@@ -31,7 +37,7 @@ export function AppShell() {
       </div>
 
       {/* Conteúdo principal */}
-      <main className="flex-1 overflow-y-auto">
+      <main id="scroll-main" className="flex-1 overflow-y-auto">
         {/* Banner offline */}
         {!online && (
           <div className="bg-yellow-500/20 border-b border-yellow-500/30 px-4 py-2 text-center">

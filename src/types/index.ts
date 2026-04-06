@@ -303,3 +303,17 @@ export interface NotificacaoSistema {
   link?: string;
   criadoEm: string;
 }
+
+export interface Lembrete {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  data: string;     // YYYY-MM-DD
+  horario?: string; // HH:mm
+  concluido: boolean;
+  prioridade: 'baixa' | 'media' | 'alta';
+  clienteId?: string;
+  clienteNome?: string;
+  usuarioId: string;
+  criadoEm: string;
+}

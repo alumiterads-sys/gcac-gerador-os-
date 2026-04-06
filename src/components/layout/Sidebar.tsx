@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, Menu, X, Users, Receipt, Calendar, BarChart3, ListTodo, Bell
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, X, Users, Receipt, Calendar, BarChart3, ListTodo, Bell
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
+import { useLembretes } from '../../context/LembretesContext';
 import { sincronizarPendentes } from '../../services/driveSync';
 import { useNotificacoesSistema } from '../../context/NotificacoesSistemaContext';
 import { NotificacoesDropdown } from './NotificacoesDropdown';
@@ -13,6 +14,7 @@ import { NotificacoesDropdown } from './NotificacoesDropdown';
 const links = [
   { to: '/dashboard', label: 'Painel',          icon: LayoutDashboard },
   { to: '/rotina',    label: 'Rotina Diária',   icon: ListTodo },
+  { to: '/agenda',    label: 'Agenda / Lembretes', icon: ListTodo },
   { to: '/financeiro', label: 'Financeiro',     icon: BarChart3 },
   { to: '/orcamentos', label: 'Orçamentos',     icon: Receipt },
   { to: '/ordens',     label: 'Ordens de Serviço', icon: FileText },
@@ -25,6 +27,7 @@ const links = [
 export function Sidebar() {
   const { usuario, logout } = useAuth();
   const { ordens, itensFila } = useOrdens();
+  const { lembretes } = useLembretes();
   const { naoLidas } = useNotificacoesSistema();
   const online = useStatusConexao();
   const navigate = useNavigate();
@@ -36,6 +39,9 @@ export function Sidebar() {
     if (temProtocolado || temGruPendente) return acc + 1;
     return acc;
   }, 0);
+
+  const hojeStr = new Date().toISOString().split('T')[0];
+  const tarefasPendentesHoje = lembretes.filter(l => l.data === hojeStr && !l.concluido).length;
   const [sincronizando, setSincronizando] = useState(false);
   const [dropdownAberto, setDropdownAberto] = useState(false);
 
@@ -99,6 +105,11 @@ export function Sidebar() {
             {to === '/rotina' && totalRotina > 0 && (
               <span className="bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
                 {totalRotina}
+              </span>
+            )}
+            {to === '/agenda' && tarefasPendentesHoje > 0 && (
+              <span className="bg-brand-blue text-white text-[10px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
+                {tarefasPendentesHoje}
               </span>
             )}
           </NavLink>
