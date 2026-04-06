@@ -182,6 +182,12 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   }
 
   // ── Resumo Geral ─────────────────────────────────────────────────────────
+  // Verifica se cabe o bloco de resumo (aproximadamente 45mm de altura necessária)
+  if (y + 45 > 270) {
+    doc.addPage();
+    y = 15;
+  }
+
   y = secaoTitulo(doc, 'RESUMO GERAL', y, VERDE);
   y += 2;
 
@@ -192,10 +198,11 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   // Caixa valor total (aumentada para caber o detalhamento)
   doc.setFillColor('#EDF7ED');
   const cxY = y;
-  doc.roundedRect(largura - 75, cxY, 63, 26, 2, 2, 'F');
+  const cxAltura = 28; // Aumentado de 26 para 28
+  doc.roundedRect(largura - 75, cxY, 63, cxAltura, 2, 2, 'F');
   doc.setDrawColor(VERDE);
   doc.setLineWidth(0.5);
-  doc.roundedRect(largura - 75, cxY, 63, 26, 2, 2, 'S');
+  doc.roundedRect(largura - 75, cxY, 63, cxAltura, 2, 2, 'S');
   doc.setLineWidth(0.1); 
   
   doc.setTextColor(CINZA);
@@ -214,7 +221,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setFontSize(15);
   doc.text(formatarMoeda(orcamento.valorTotal), largura - 43.5, cxY + 23, { align: 'center' });
 
-  y += 32;
+  y += cxAltura + 6;
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (orcamento.observacoes && orcamento.observacoes.trim()) {
