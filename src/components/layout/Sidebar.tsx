@@ -22,7 +22,7 @@ const links = [
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
   { to: '/clientes',   label: 'Meus Clientes',     icon: Users },
   { to: '/configuracoes', label: 'Configurações', icon: Settings },
-];
+].sort((a, b) => a.label.localeCompare(b.label));
 
 export function Sidebar() {
   const { usuario, logout } = useAuth();
