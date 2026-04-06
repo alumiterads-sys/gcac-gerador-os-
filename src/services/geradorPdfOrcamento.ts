@@ -219,7 +219,8 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.text('TOTAL PREVISTO', largura - 43.5, cxY + 16, { align: 'center' });
   doc.setTextColor('#16A34A');
   doc.setFontSize(15);
-  doc.text(formatarMoeda(orcamento.valorTotal), largura - 43.5, cxY + 23, { align: 'center' });
+  const totalGeral = orcamento.servicos.reduce((acc, s) => acc + (s.valor || 0), 0);
+  doc.text(formatarMoeda(totalGeral), largura - 43.5, cxY + 23, { align: 'center' });
 
   y += cxAltura + 6;
 

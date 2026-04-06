@@ -137,7 +137,9 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     filiadoProTiro:    orcamentoExistente?.filiadoProTiro    ?? true,
     clubeFiliado:      orcamentoExistente?.clubeFiliado      ?? '',
     servicos:          orcamentoExistente?.servicos          ?? [],
-    valorTotal:        orcamentoExistente?.valorTotal        ?? 0,
+    valorTotal:        orcamentoExistente 
+                         ? orcamentoExistente.servicos.filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0)
+                         : 0,
     formaPagamento:    (orcamentoExistente as any)?.formaPagamento ?? 'Pendente',
     status:            (orcamentoExistente?.status           ?? 'Pendente') as StatusOrcamento,
     observacoes:       orcamentoExistente?.observacoes       ?? '',
@@ -207,6 +209,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
   const adicionarServico = (serv: ServicoConfig) => {
     // Escolhe o valor baseado no status de filiado
     const valorAplicado = form.filiadoProTiro ? (serv.valorFiliado || serv.valorPadrao) : serv.valorPadrao;
+    const isLaudo = serv.categoria === 'Laudo';
 
     setForm(f => {
       const novosServicos = [
@@ -217,13 +220,22 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           detalhes: '', 
           valor: valorAplicado,
           taxaPF: serv.taxaPF,
-          categoria: serv.categoria || 'Honorário'
+          categoria: serv.categoria || 'Honorário',
+          pagoDireto: isLaudo
         }
       ];
-      const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
+      const novoTotal = novosServicos.filter(s => !s.pagoDireto).reduce((acc, s) => acc + s.valor, 0);
       return { ...f, servicos: novosServicos, valorTotal: novoTotal };
     });
     setErros(e => { const n = { ...e }; delete n['servicos']; return n; });
+  };
+
+  const atualizarPagoDireto = (id: string, pago: boolean) => {
+    setForm(f => {
+      const novosServicos = f.servicos.map(s => s.id === id ? { ...s, pagoDireto: pago } : s);
+      const novoTotal = novosServicos.filter(s => !s.pagoDireto).reduce((acc, s) => acc + s.valor, 0);
+      return { ...f, servicos: novosServicos, valorTotal: novoTotal };
+    });
   };
 
   const atualizarValorServico = (id: string, textoValor: string) => {
@@ -232,7 +244,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     
     setForm(f => {
       const novosServicos = f.servicos.map(s => s.id === id ? { ...s, valor: valorNumerico } : s);
-      const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
+      const novoTotal = novosServicos.filter(s => !s.pagoDireto).reduce((acc, s) => acc + s.valor, 0);
       return { ...f, servicos: novosServicos, valorTotal: novoTotal };
     });
   };
@@ -247,7 +259,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
   const removerServico = (id: string) => {
     setForm(f => {
       const novosServicos = f.servicos.filter(s => s.id !== id);
-      const novoTotal = novosServicos.reduce((acc, s) => acc + s.valor, 0);
+      const novoTotal = novosServicos.filter(s => !s.pagoDireto).reduce((acc, s) => acc + s.valor, 0);
       return { ...f, servicos: novosServicos, valorTotal: novoTotal };
     });
   };
@@ -299,11 +311,12 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           detalhes: s.detalhes,
           valor: s.valor,
           categoria: s.categoria || 'Honorário',
+          pagoDireto: s.pagoDireto || s.categoria === 'Laudo',
           taxaPF: s.taxaPF,
           statusExecucao: 'Não Iniciado',
           pagoGRU: false
         })),
-        valor: dados.valorTotal,
+        valor: dados.servicos.filter((s: any) => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc: number, s: any) => acc + (s.valor || 0), 0),
         valorPago: 0,
         historicoPagamentos: [],
         formaPagamento: 'PIX',
@@ -564,9 +577,25 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
                 </button>
                 
                 <div className="pr-6">
-                  <h4 className="text-sm font-bold text-brand-blue-light mb-2">
-                    {serv.nome}
-                  </h4>
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-sm font-bold text-brand-blue-light">
+                      {serv.nome}
+                    </h4>
+                    {serv.categoria === 'Laudo' && (
+                      <button
+                        type="button"
+                        onClick={() => atualizarPagoDireto(serv.id, !serv.pagoDireto)}
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition-all ${
+                          serv.pagoDireto 
+                            ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' 
+                            : 'bg-brand-dark-5 text-gray-500 border border-transparent'
+                        }`}
+                        title={serv.pagoDireto ? "Pago diretamente ao instrutor/psicóloga" : "Alterar para pagamento direto"}
+                      >
+                        {serv.pagoDireto ? 'Pago Direto' : 'Pago p/ GCAC'}
+                      </button>
+                    )}
+                  </div>
                   <textarea
                     className="input text-sm resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30 h-10 py-2.5"
                     placeholder="Detalhes adicionais do serviço..."
@@ -602,12 +631,15 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center p-4 bg-brand-dark-2 rounded-xl border border-brand-dark-5 mb-5">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="space-y-1 text-left sm:text-right">
-              <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários: <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
-              <p className="text-[10px] font-bold text-gray-500 uppercase">Laudos: <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários (Caixa): <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => !s.pagoDireto).reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
+              <p className="text-[10px] font-bold text-amber-500 uppercase">Laudos (Terceiros): <span className="text-white ml-1">{formatarMoeda(form.servicos.filter(s => s.pagoDireto).reduce((acc, s) => acc + (s.valor || 0), 0))}</span></p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-400">Valor Total do Orçamento</p>
+              <p className="text-sm font-medium text-gray-400">Total faturado no Caixa</p>
               <p className="text-3xl font-black text-brand-green">{formatarMoeda(form.valorTotal)}</p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">
+                Total Geral (Investimento Cliente): {formatarMoeda(form.servicos.reduce((acc, s) => acc + (s.valor || 0), 0))}
+              </p>
             </div>
           </div>
           

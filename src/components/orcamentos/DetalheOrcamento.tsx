@@ -103,10 +103,11 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           detalhes: s.detalhes,
           valor: s.valor,
           categoria: s.categoria || 'Honorário',
+          pagoDireto: s.pagoDireto || s.categoria === 'Laudo',
           statusExecucao: 'Não Iniciado',
           pagoGRU: false
         })),
-        valor: orcamento.valorTotal,
+        valor: orcamento.servicos.filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0),
         valorPago: 0,
         historicoPagamentos: [],
         formaPagamento: 'PIX', // Padrão

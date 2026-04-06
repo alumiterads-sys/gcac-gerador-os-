@@ -163,7 +163,8 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   doc.text('VALOR TOTAL DA O.S.', 17, y + 16);
   doc.setTextColor(AZUL);
   doc.setFontSize(15);
-  doc.text(formatarMoeda(ordem.valor), 17, y + 23);
+  const totalGeral = (ordem.servicos || []).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
+  doc.text(formatarMoeda(totalGeral), 17, y + 23);
 
   // Caixa pagamento (ajustada altura para alinhar com a da esquerda)
   doc.setFillColor('#EBF5FB');

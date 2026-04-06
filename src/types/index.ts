@@ -41,6 +41,7 @@ export interface ServicoConfig {
   valorFiliado: number;
   taxaPF: number;
   categoria: 'Honorário' | 'Laudo';
+  pagoDiretoDefault?: boolean;
   criadoEm: string;
 }
 
@@ -78,6 +79,7 @@ export interface OrdemDeServico {
     statusExecucao?: StatusExecucaoServico;
     pagoGRU?: boolean;
     categoria?: 'Honorário' | 'Laudo';
+    pagoDireto?: boolean; // Se o pagamento vai direto ao terceiro (instrutor/psicóloga)
   }[];
   valor: number;
   valorPago: number;
@@ -111,6 +113,7 @@ export interface ServicoOrcamento {
   valor: number;
   taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
   categoria?: 'Honorário' | 'Laudo';
+  pagoDireto?: boolean;
 }
 
 export interface Orcamento {

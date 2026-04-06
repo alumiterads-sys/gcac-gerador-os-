@@ -157,8 +157,12 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     filiadoProTiro:    ordemExistente?.filiadoProTiro     ?? true,
     clubeFiliado:      ordemExistente?.clubeFiliado       ?? '',
     servicos:          ordemExistente?.servicos          ?? [],
-    valor:             ordemExistente?.valor             ?? 0,
-    valorTexto:        ordemExistente ? String(ordemExistente.valor).replace('.', ',') : '',
+    valor:             ordemExistente 
+                         ? (ordemExistente.servicos || []).filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc: number, s: any) => acc + (s.valor || 0), 0)
+                         : 0,
+    valorTexto:        ordemExistente 
+                         ? String((ordemExistente.servicos || []).filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc: number, s: any) => acc + (s.valor || 0), 0)).replace('.', ',') 
+                         : '',
     formaPagamento:    (ordemExistente?.formaPagamento   ?? 'Pendente') as FormaPagamento,
     status:            (ordemExistente?.status           ?? 'Aguardando Pagamento') as StatusOS,
     canalAtendimento:  (ordemExistente?.canalAtendimento ?? null) as CanalAtendimento | null,
@@ -239,6 +243,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const adicionarServico = (serv: ServicoConfig) => {
     // Escolhe o valor baseado no status de filiado
     const valorAplicado = form.filiadoProTiro ? (serv.valorFiliado || serv.valorPadrao) : serv.valorPadrao;
+    const isLaudo = serv.categoria === 'Laudo';
 
     const novosServicos = [
       ...form.servicos,
@@ -250,12 +255,13 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         valor: valorAplicado, 
         statusExecucao: 'Não Iniciado' as StatusExecucaoServico, 
         pagoGRU: false,
-        categoria: serv.categoria || 'Honorário'
+        categoria: serv.categoria || 'Honorário',
+        pagoDireto: isLaudo
       }
     ];
     
-    // Auto-preenchimento: recalcula o total somando todos os valores individuais
-    const novoValor = novosServicos.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
+    // Auto-preenchimento: recalcula o total somando apenas serviços que NÃO são pagos direto
+    const novoValor = novosServicos.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     
     setForm(f => ({
       ...f,
@@ -264,6 +270,18 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       valorTexto: novoValor.toFixed(2).replace('.', ',')
     }));
     setErros(e => { const n = { ...e }; delete n['servicos']; delete n['valor']; return n; });
+  };
+
+  const atualizarPagoDireto = (id: string, pago: boolean) => {
+    const novosServicos = (form.servicos as any[]).map((s: any) => s.id === id ? { ...s, pagoDireto: pago } : s);
+    const totalNovo = novosServicos.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
+    setForm(f => ({
+      ...f,
+      servicos: novosServicos,
+      valor: totalNovo,
+      valorTexto: totalNovo.toFixed(2).replace('.', ',')
+    }));
+    setErros(e => { const n = { ...e }; delete n['valor']; return n; });
   };
 
   const atualizarDetalhesServico = (id: string, texto: string) => {
@@ -275,7 +293,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
   const atualizarValorServico = (id: string, novoValor: number) => {
     const novosServicosResource = (form.servicos as any[]).map((s: any) => s.id === id ? { ...s, valor: novoValor } : s);
-    const totalNovo = novosServicosResource.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
+    const totalNovo = novosServicosResource.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     setForm(f => ({
       ...f,
       servicos: novosServicosResource,
@@ -301,7 +319,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
   const removerServico = (id: string) => {
     const novosServicos = (form.servicos as any[]).filter((s: any) => s.id !== id);
-    const totalNovo = novosServicos.reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
+    const totalNovo = novosServicos.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
     setForm(f => ({
       ...f,
       servicos: novosServicos,
@@ -592,7 +610,25 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 <div className="flex flex-col gap-3 mb-3 pr-8">
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-md bg-brand-dark-5 text-gray-400 text-xs flex items-center justify-center font-bold flex-shrink-0">{index + 1}</span>
-                    <h4 className="text-sm font-bold text-white flex-1 min-w-0 truncate">{serv.nome}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-white truncate">{serv.nome}</h4>
+                        {serv.categoria === 'Laudo' && (
+                          <button
+                            type="button"
+                            onClick={() => atualizarPagoDireto(serv.id, !serv.pagoDireto)}
+                            className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase transition-all ${
+                              serv.pagoDireto 
+                                ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' 
+                                : 'bg-brand-dark-5 text-gray-500 border border-transparent'
+                            }`}
+                            title={serv.pagoDireto ? "Pago diretamente ao instrutor/psicóloga" : "Alterar para pagamento direto"}
+                          >
+                            {serv.pagoDireto ? 'Pago Direto' : 'Pago p/ GCAC'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className="text-xs text-gray-500 font-medium">R$</span>
                       <input
@@ -677,13 +713,18 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         {/* Resumo de Custos Informacional */}
         <div className="grid grid-cols-2 gap-4 mb-3">
           <div className="p-2 bg-brand-dark-3 rounded border border-brand-dark-5">
-            <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários</p>
-            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter(s => s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase">Honorários (Caixa)</p>
+            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0))}</p>
           </div>
           <div className="p-2 bg-brand-dark-3 rounded border border-brand-dark-5">
-            <p className="text-[10px] font-bold text-gray-500 uppercase">Laudos</p>
-            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter(s => s.categoria === 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0))}</p>
+            <p className="text-[10px] font-bold text-amber-500 uppercase">Laudos (Terceiros)</p>
+            <p className="text-sm font-bold text-white">{formatarMoeda(form.servicos.filter((s: any) => s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0))}</p>
           </div>
+        </div>
+        <div className="mb-4">
+          <p className="text-[10px] font-bold text-gray-500 uppercase text-center py-1 bg-brand-dark-4 rounded mb-2">
+            Total Geral (O que o cliente paga no total): {formatarMoeda(form.servicos.reduce((acc: number, s: any) => acc + (s.valor || 0), 0))}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
