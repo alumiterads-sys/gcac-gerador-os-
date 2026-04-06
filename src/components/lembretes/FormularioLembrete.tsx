@@ -21,6 +21,7 @@ export function FormularioLembrete({ aberto, onClose, lembreteEdicao }: Formular
   const [prioridade, setPrioridade] = useState<'baixa' | 'media' | 'alta'>(lembreteEdicao?.prioridade || 'media');
   const [clienteId, setClienteId] = useState(lembreteEdicao?.clienteId || '');
   const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +47,9 @@ export function FormularioLembrete({ aberto, onClose, lembreteEdicao }: Formular
         await criarLembrete(dados);
       }
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar lembrete:', error);
+      setErro(error.message || 'Erro ao salvar. Verifique sua conexão.');
     } finally {
       setEnviando(false);
     }
@@ -56,6 +58,12 @@ export function FormularioLembrete({ aberto, onClose, lembreteEdicao }: Formular
   return (
     <Modal aberto={aberto} onFechar={onClose} titulo={lembreteEdicao ? 'Editar Tarefa' : 'Nova Tarefa / Lembrete'}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {erro && (
+          <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-lg flex items-center gap-2 text-red-400 text-xs">
+            <AlertCircle size={14} />
+            {erro}
+          </div>
+        )}
         {/* Título */}
         <div>
           <label className="label text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1">O que precisa ser feito? *</label>
