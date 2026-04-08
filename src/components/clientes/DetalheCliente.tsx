@@ -38,7 +38,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const ordensCliente = ordens.filter(o => o.cpf === cliente.cpf);
   const orcamentosCliente = orcamentos.filter(o => o.cpf === cliente.cpf);
   const recibosCliente = recibos.filter(r => r.clienteCPF === cliente.cpf);
-  const agendamentosCliente = agendamentos.filter(a => a.clienteCPF === cliente.cpf);
+  const agendamentosCliente = agendamentos.filter(a => a.clienteCPF === cliente.cpf && a.status === 'pendente');
 
   const handleCopiarSenha = (senha: string) => {
     navigator.clipboard.writeText(senha);

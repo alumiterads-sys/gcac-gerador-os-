@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
+import { useServicos } from '../../context/ServicosContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
 import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
@@ -26,10 +27,12 @@ export function ListaOrdens() {
   const navigate = useNavigate();
   const location = useLocation();
   const { ordens, deletarOrdem } = useOrdens();
+  const { servicos } = useServicos();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [busca, setBusca] = useState('');
   const [filtrosStatus, setFiltrosStatus] = useState<StatusOS[]>([]);
   const [filtrosStatusExec, setFiltrosStatusExec] = useState<StatusExecucaoServico[]>([]);
+  const [filtrosServico, setFiltrosServico] = useState<string[]>([]);
   const [filtroGru, setFiltroGru] = useState<'Todos' | 'Pagas' | 'Pendentes'>('Todos');
   const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
   const [expandirFiltros, setExpandirFiltros] = useState(false);
@@ -78,6 +81,9 @@ export function ListaOrdens() {
     const matchStatusExec = filtrosStatusExec.length === 0 || 
       (o.servicos && o.servicos.some((s: any) => filtrosStatusExec.includes(s.statusExecucao || 'Não Iniciado')));
     
+    const matchServico = filtrosServico.length === 0 || 
+      (o.servicos && o.servicos.some((s: any) => filtrosServico.includes(s.nome)));
+    
     // Filtro GRU
     let matchGru = true;
     const servicosComTaxa = (o.servicos || []).filter((s: any) => (s.taxaPF || 0) > 0);
@@ -90,7 +96,7 @@ export function ListaOrdens() {
       }
     }
     
-    return matchBusca && matchStatus && matchStatusExec && matchGru;
+    return matchBusca && matchStatus && matchStatusExec && matchGru && matchServico;
   });
 
   const toggleFiltroStatus = (val: StatusOS) => {
@@ -100,10 +106,15 @@ export function ListaOrdens() {
   const toggleFiltroStatusExec = (val: StatusExecucaoServico) => {
     setFiltrosStatusExec(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
   };
+  
+  const toggleFiltroServico = (val: string) => {
+    setFiltrosServico(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
 
   const limparFiltros = () => {
     setFiltrosStatus([]);
     setFiltrosStatusExec([]);
+    setFiltrosServico([]);
     setFiltroGru('Todos');
     setBusca('');
   };
@@ -170,25 +181,26 @@ export function ListaOrdens() {
           <button
             onClick={() => setExpandirFiltros(!expandirFiltros)}
             className={`px-4 flex items-center gap-2 rounded-xl border transition-all ${
-              expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtroGru !== 'Todos'
+              expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtrosServico.length > 0 || filtroGru !== 'Todos'
                 ? 'bg-brand-blue/10 border-brand-blue text-brand-blue-light'
                 : 'bg-brand-dark-5 border-brand-dark-5 text-gray-400'
             }`}
           >
             <Filter size={16} />
             <span className="hidden sm:inline">Filtros</span>
-            {(filtrosStatus.length + filtrosStatusExec.length + (filtroGru !== 'Todos' ? 1 : 0)) > 0 && (
+            {(filtrosStatus.length + filtrosStatusExec.length + filtrosServico.length + (filtroGru !== 'Todos' ? 1 : 0)) > 0 && (
               <span className="w-5 h-5 rounded-full bg-brand-blue text-white text-[10px] flex items-center justify-center font-bold">
-                {filtrosStatus.length + filtrosStatusExec.length + (filtroGru !== 'Todos' ? 1 : 0)}
+                {filtrosStatus.length + filtrosStatusExec.length + filtrosServico.length + (filtroGru !== 'Todos' ? 1 : 0)}
               </span>
             )}
           </button>
         </div>
 
-        {(expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtroGru !== 'Todos') && (
+        {(expandirFiltros || filtrosStatus.length > 0 || filtrosStatusExec.length > 0 || filtrosServico.length > 0 || filtroGru !== 'Todos') && (
           <div className="pt-4 border-t border-brand-dark-5 animate-in fade-in slide-in-from-top-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Status Pagamento */}
+... (omitted previous columns to focus on the new one) ...
               <div className="space-y-3">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
                   Pagamento
@@ -274,6 +286,36 @@ export function ListaOrdens() {
                   >
                     Resetar Todos os Filtros
                   </button>
+                </div>
+              </div>
+
+              {/* Serviços */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                  Serviços
+                  {filtrosServico.length > 0 && (
+                    <button onClick={() => setFiltrosServico([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>
+                  )}
+                </p>
+                <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent">
+                  {servicos.map((s) => (
+                    <label key={s.id} className="flex items-center gap-3 group cursor-pointer">
+                      <div 
+                        onClick={() => toggleFiltroServico(s.nome)}
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 ${
+                          filtrosServico.includes(s.nome) ? 'bg-brand-blue border-brand-blue' : 'bg-brand-dark-5 border-brand-dark-5 group-hover:border-brand-metal'
+                        }`}
+                      >
+                        {filtrosServico.includes(s.nome) && <CheckCircle size={12} className="text-white" />}
+                      </div>
+                      <span className={`text-xs font-semibold truncate transition-colors ${filtrosServico.includes(s.nome) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
+                        {s.nome}
+                      </span>
+                    </label>
+                  ))}
+                  {servicos.length === 0 && (
+                    <p className="text-[10px] text-gray-600 italic">Nenhum serviço configurado</p>
+                  )}
                 </div>
               </div>
             </div>

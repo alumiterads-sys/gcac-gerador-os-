@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, 
   ArrowUpCircle, 
@@ -13,13 +14,16 @@ import {
 } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useFinanceiro, CATEGORIAS_DESPESA } from '../../context/FinanceiroContext';
+import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
 import { isSameMonth, parseISO, startOfMonth, endOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 
 export function Financeiro() {
+  const navigate = useNavigate();
   const { ordens } = useOrdens();
+  const { clientes } = useClientes();
   const { despesas, criarDespesa, deletarDespesa } = useFinanceiro();
 
   const [abaAtiva, setAbaAtiva] = useState<'relatorio' | 'despesas'>('relatorio');
@@ -243,12 +247,33 @@ export function Financeiro() {
                   ordensMes.map(o => (
                     <tr key={o.id} className="hover:bg-brand-dark-4 transition-colors">
                       <td className="table-cell font-mono text-[11px]">{format(parseISO(o.criadoEm), 'dd/MM/yy')}</td>
-                      <td className="table-cell font-bold text-white">#{String(o.numero).padStart(4, '0')}</td>
+                      <td className="table-cell font-bold text-white">
+                        <button 
+                          onClick={() => navigate(`/ordens/${o.id}`)}
+                          className="hover:text-brand-blue hover:underline transition-all text-left"
+                          title="Abrir Ordem de Serviço"
+                        >
+                          #{String(o.numero).padStart(4, '0')}
+                        </button>
+                      </td>
                       <td className="table-cell">
-                        <div className="flex flex-col">
-                          <span className="text-white font-medium">{o.nomeCliente}</span>
+                        <button 
+                          onClick={() => {
+                            const cliente = clientes.find(c => c.cpf === o.cpf);
+                            if (cliente) {
+                              navigate(`/clientes/${cliente.id}`);
+                            } else {
+                              alert('Cadastro do cliente não encontrado.');
+                            }
+                          }}
+                          className="flex flex-col text-left group"
+                          title="Abrir Cadastro do Cliente"
+                        >
+                          <span className="text-white font-medium group-hover:text-brand-blue group-hover:underline transition-all">
+                            {o.nomeCliente}
+                          </span>
                           <span className="text-[10px] text-gray-500 font-mono">{o.cpf}</span>
-                        </div>
+                        </button>
                       </td>
                       <td className="table-cell font-bold text-white">{formatarMoeda(o.valor)}</td>
                       <td className="table-cell text-red-400">-{formatarMoeda(o.taxaPFTotal || 0)}</td>
