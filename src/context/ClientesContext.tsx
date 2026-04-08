@@ -23,6 +23,7 @@ const mapFromDB = (row: any): Cliente => ({
   senhaGov: row.senha_gov || '',
   filiadoProTiro: row.filiado_pro_tiro,
   clubeFiliado: row.clube_filiado || '',
+  observacoes: row.observacoes || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -35,6 +36,7 @@ const mapToDB = (dados: any) => {
   if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
+  if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   return payload;
 };
 

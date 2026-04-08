@@ -21,6 +21,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     senhaGov: clienteEditando?.senhaGov ?? '',
     filiadoProTiro: clienteEditando?.filiadoProTiro ?? true,
     clubeFiliado: clienteEditando?.clubeFiliado ?? '',
+    observacoes: clienteEditando?.observacoes ?? '',
   });
 
   const atualizar = (campo: string, valor: any) => {
@@ -58,6 +59,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         senhaGov: form.senhaGov.trim(),
         filiadoProTiro: form.filiadoProTiro,
         clubeFiliado: form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
+        observacoes: form.observacoes.trim(),
       };
 
       if (clienteEditando) {
@@ -168,6 +170,16 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
                 )}
               </div>
             )}
+          </div>
+          
+          <div>
+            <label className="label">Observações</label>
+            <textarea 
+              className="input min-h-[100px] py-3 resize-none"
+              placeholder="Informações adicionais sobre o cliente..."
+              value={form.observacoes}
+              onChange={e => atualizar('observacoes', e.target.value)}
+            />
           </div>
 
           <div className="flex gap-3 pt-4">

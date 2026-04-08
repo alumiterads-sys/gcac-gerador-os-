@@ -53,6 +53,7 @@ export interface Cliente {
   senhaGov: string;
   filiadoProTiro: boolean;
   clubeFiliado: string;
+  observacoes: string;
   criadoEm: string;
   atualizadoEm: string;
 }

@@ -170,8 +170,21 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                   )}
                 </p>
               </div>
+              </div>
             </div>
           </div>
+
+          {cliente.observacoes && (
+            <div className="card bg-brand-dark-3/50 border-brand-dark-5">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={16} className="text-brand-blue" />
+                <p className="text-xs text-white font-bold uppercase tracking-wider">Observações</p>
+              </div>
+              <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">
+                {cliente.observacoes}
+              </p>
+            </div>
+          )}
 
           <div className="card bg-brand-dark-3/50 border-brand-dark-5">
             <div className="flex items-center justify-between mb-4">
