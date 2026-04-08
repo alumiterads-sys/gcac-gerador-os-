@@ -195,14 +195,24 @@ export function NavegacaoInferior() {
 
   const linksFiltrados = links;
 
+  const getShortLabel = (label: string) => {
+    if (label === 'Rotina Diária') return 'Rotina';
+    if (label === 'Agenda / Lembretes') return 'Lembretes';
+    if (label === 'Ordens de Serviço') return 'Ordens';
+    if (label === 'Meus Clientes') return 'Clientes';
+    if (label === 'Configurações') return 'Config';
+    if (label === 'Agendamentos') return 'Agenda';
+    return label;
+  };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-brand-dark-2 border-t border-brand-dark-5 flex sm:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-brand-dark-2 border-t border-brand-dark-5 flex sm:hidden overflow-x-auto no-scrollbar scroll-smooth px-2">
       {linksFiltrados.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors ${
+            `flex-shrink-0 min-w-[75px] flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
               isActive ? 'text-brand-blue-light' : 'text-gray-500 hover:text-gray-300'
             }`
           }
@@ -210,12 +220,15 @@ export function NavegacaoInferior() {
           {({ isActive }) => (
             <>
               <div className="relative">
-                <Icon size={20} />
+                <Icon size={20} className={isActive ? 'scale-110 transition-transform' : ''} />
                 {to === '/ordens' && itensFila > 0 && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-brand-blue" />
                 )}
               </div>
-              <span className="leading-none">{label === 'Ordens de Serviço' ? 'Ordens' : label}</span>
+              <span className="leading-none whitespace-nowrap">{getShortLabel(label)}</span>
+              {isActive && (
+                <div className="absolute bottom-1 w-1 h-1 rounded-full bg-brand-blue-light" />
+              )}
             </>
           )}
         </NavLink>
