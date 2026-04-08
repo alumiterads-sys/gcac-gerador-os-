@@ -190,7 +190,6 @@ export function Sidebar() {
 }
 
 export function NavegacaoInferior() {
-  const { usuario } = useAuth();
   const { itensFila } = useOrdens();
 
   const linksFiltrados = links;

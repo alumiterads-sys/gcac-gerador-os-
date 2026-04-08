@@ -104,7 +104,7 @@ export function LembretesProvider({ children }: { children: React.ReactNode }) {
                 body: lembrete.descricao || 'Tarefa para hoje.',
                 icon: '/Logo oficial.png',
                 vibrate: [200, 100, 200]
-              });
+              } as any);
             }
             
             localStorage.setItem(key, 'true');
