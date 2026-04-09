@@ -292,19 +292,19 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           cpf: dados.cpf,
           contato: dados.contato,
           senhaGov: dados.senhaGov || '',
-          filiadoProTiro: false,
-          clubeFiliado: 'NÃO RELATADO'
+          filiadoProTiro: dados.filiadoProTiro || false,
+          clubeFiliado: dados.clubeFiliado || 'NÃO RELATADO'
         });
       }
 
-      // 2. Criar a O.S.
+      // 2. Criar a O.S. priorizando dados do cadastro se o cliente já existir
       const osId = await criarOrdem({
         nomeCliente: nomeClienteFormatado,
         contato: dados.contato,
         cpf: dados.cpf,
-        senhaGov: dados.senhaGov || '',
-        clubeFiliado: dados.clubeFiliado || '',
-        filiadoProTiro: dados.filiadoProTiro || false,
+        senhaGov: (clienteExistente?.senhaGov) || dados.senhaGov || '',
+        clubeFiliado: (clienteExistente?.clubeFiliado) || dados.clubeFiliado || '',
+        filiadoProTiro: (clienteExistente?.filiadoProTiro) ?? dados.filiadoProTiro ?? false,
         servicos: dados.servicos.map((s: any) => ({
           id: s.id,
           nome: s.nome,

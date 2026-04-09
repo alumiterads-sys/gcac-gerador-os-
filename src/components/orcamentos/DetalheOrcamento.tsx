@@ -84,19 +84,19 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           cpf: orcamento.cpf,
           contato: orcamento.contato,
           senhaGov: orcamento.senhaGov || '',
-          filiadoProTiro: false,
-          clubeFiliado: 'NÃO RELATADO'
+          filiadoProTiro: orcamento.filiadoProTiro || false,
+          clubeFiliado: orcamento.clubeFiliado || 'NÃO RELATADO'
         });
       }
 
-      // Cria a O.S. usando os dados do orçamento
+      // Cria a O.S. priorizando dados do cadastro se o cliente já existir
       const osId = await criarOrdem({
         nomeCliente: nomeClienteFormatado,
         contato: orcamento.contato,
         cpf: orcamento.cpf,
-        senhaGov: orcamento.senhaGov || '', // Repassa a senha gov
-        filiadoProTiro: false,
-        clubeFiliado: '',
+        senhaGov: (clienteExistente?.senhaGov) || orcamento.senhaGov || '',
+        filiadoProTiro: (clienteExistente?.filiadoProTiro) ?? orcamento.filiadoProTiro ?? false,
+        clubeFiliado: (clienteExistente?.clubeFiliado) || orcamento.clubeFiliado || '',
         servicos: orcamento.servicos.map(s => ({
           id: s.id,
           nome: s.nome,
