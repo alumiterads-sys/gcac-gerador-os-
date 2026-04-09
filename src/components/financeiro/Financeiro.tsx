@@ -10,7 +10,8 @@ import {
   Search,
   Calendar,
   Filter,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Clock
 } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useFinanceiro, CATEGORIAS_DESPESA } from '../../context/FinanceiroContext';
@@ -59,6 +60,21 @@ export function Financeiro() {
     
     const despesasTotal = despesasMes.reduce((s, d) => s + (d.valor || 0), 0);
     
+    // Novo cálculo: A receber apenas de quem já protocolou ou concluiu
+    const pendenteProtocolado = ordensMes
+      .filter(o => 
+        o.status !== 'Pago' && 
+        o.status !== 'Gratuidade' && 
+        (o.servicos || []).some(s => s.statusExecucao === 'Protocolado — Ag. PF' || s.statusExecucao === 'Concluído')
+      )
+      .reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0);
+    
+    const countPendenteProtocolado = ordensMes.filter(o => 
+      o.status !== 'Pago' && 
+      o.status !== 'Gratuidade' && 
+      (o.servicos || []).some(s => s.statusExecucao === 'Protocolado — Ag. PF' || s.statusExecucao === 'Concluído')
+    ).length;
+
     const margemBruta = faturamento - taxas;
     const lucroLiquido = margemBruta - despesasTotal;
 
@@ -68,6 +84,8 @@ export function Financeiro() {
       despesas: despesasTotal,
       margemBruta,
       lucroLiquido,
+      pendenteProtocolado,
+      countPendenteProtocolado,
       totalOS: ordensMes.length,
       concluidas: ordensMes.filter(o => o.status === 'Pago').length
     };
@@ -158,7 +176,7 @@ export function Financeiro() {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="card border-brand-green/20 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-1 h-full bg-brand-green" />
           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Faturamento Bruto</p>
@@ -168,6 +186,17 @@ export function Financeiro() {
             <span className="text-gray-500">serviços pagos</span>
           </div>
           <ArrowUpCircle className="absolute -right-4 -bottom-4 text-brand-green/5 group-hover:text-brand-green/10 transition-colors" size={80} />
+        </div>
+
+        <div className="card border-yellow-500/20 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500" />
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">A Receber (Protocolados)</p>
+          <p className="text-2xl font-black text-white">{formatarMoeda(totais.pendenteProtocolado)}</p>
+          <div className="mt-2 flex items-center gap-1 text-[10px]">
+            <span className="text-yellow-500 font-bold">{totais.countPendenteProtocolado}</span>
+            <span className="text-gray-500">processos aguardando</span>
+          </div>
+          <Clock size={80} className="absolute -right-4 -bottom-4 text-yellow-500/5 group-hover:text-yellow-500/10 transition-colors" />
         </div>
 
         <div className="card border-red-500/20 relative overflow-hidden group">
