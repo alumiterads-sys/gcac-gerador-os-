@@ -293,7 +293,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           contato: dados.contato,
           senhaGov: dados.senhaGov || '',
           filiadoProTiro: dados.filiadoProTiro || false,
-          clubeFiliado: dados.clubeFiliado || 'NÃO RELATADO'
+          clubeFiliado: dados.clubeFiliado || 'NÃO RELATADO',
+          observacoes: ''
         });
       }
 

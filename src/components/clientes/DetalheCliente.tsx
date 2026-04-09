@@ -172,41 +172,40 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
               </div>
               </div>
             </div>
-          </div>
 
-          {cliente.observacoes && (
+            {cliente.observacoes && (
+              <div className="card bg-brand-dark-3/50 border-brand-dark-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText size={16} className="text-brand-blue" />
+                  <p className="text-xs text-white font-bold uppercase tracking-wider">Observações</p>
+                </div>
+                <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">
+                  {cliente.observacoes}
+                </p>
+              </div>
+            )}
+
             <div className="card bg-brand-dark-3/50 border-brand-dark-5">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText size={16} className="text-brand-blue" />
-                <p className="text-xs text-white font-bold uppercase tracking-wider">Observações</p>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Shield size={16} className="text-brand-blue" />
+                  <p className="text-xs text-white font-bold uppercase tracking-wider">Acesso GOV.BR</p>
+                </div>
+                <button 
+                  onClick={() => handleCopiarSenha(cliente.senhaGov)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
+                    copiou ? 'bg-brand-green/20 text-brand-green border border-brand-green/30' : 'bg-brand-blue/20 text-brand-blue border border-brand-blue/30 hover:bg-brand-blue/30'
+                  }`}
+                >
+                  {copiou ? <Check size={12} /> : <Copy size={12} />}
+                  {copiou ? 'Copiado!' : 'Copiar Senha'}
+                </button>
               </div>
-              <p className="text-sm text-gray-400 whitespace-pre-wrap leading-relaxed">
-                {cliente.observacoes}
-              </p>
-            </div>
-          )}
-
-          <div className="card bg-brand-dark-3/50 border-brand-dark-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Shield size={16} className="text-brand-blue" />
-                <p className="text-xs text-white font-bold uppercase tracking-wider">Acesso GOV.BR</p>
+              <div className="bg-brand-dark-2 p-3 rounded-lg border border-brand-dark-5 font-mono text-xl text-brand-blue-light tracking-widest text-center">
+                {cliente.senhaGov}
               </div>
-              <button 
-                onClick={() => handleCopiarSenha(cliente.senhaGov)}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${
-                  copiou ? 'bg-brand-green/20 text-brand-green border border-brand-green/30' : 'bg-brand-blue/20 text-brand-blue border border-brand-blue/30 hover:bg-brand-blue/30'
-                }`}
-              >
-                {copiou ? <Check size={12} /> : <Copy size={12} />}
-                {copiou ? 'Copiado!' : 'Copiar Senha'}
-              </button>
-            </div>
-            <div className="bg-brand-dark-2 p-3 rounded-lg border border-brand-dark-5 font-mono text-xl text-brand-blue-light tracking-widest text-center">
-              {cliente.senhaGov}
             </div>
           </div>
-        </div>
 
         {/* ── Coluna Direita: Ações e Histórico ── */}
         <div className="lg:col-span-2 space-y-6">

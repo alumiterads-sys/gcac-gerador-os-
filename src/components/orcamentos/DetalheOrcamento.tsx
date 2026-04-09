@@ -85,7 +85,8 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           contato: orcamento.contato,
           senhaGov: orcamento.senhaGov || '',
           filiadoProTiro: orcamento.filiadoProTiro || false,
-          clubeFiliado: orcamento.clubeFiliado || 'NÃO RELATADO'
+          clubeFiliado: orcamento.clubeFiliado || 'NÃO RELATADO',
+          observacoes: ''
         });
       }
 

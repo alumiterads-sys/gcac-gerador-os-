@@ -376,7 +376,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           contato: dados.contato,
           senhaGov: dados.senhaGov,
           filiadoProTiro: dados.filiadoProTiro,
-          clubeFiliado: dados.clubeFiliado
+          clubeFiliado: dados.clubeFiliado,
+          observacoes: ''
         };
         if (clienteExistente) {
           await atualizarCliente(clienteExistente.id, payloadCli);
