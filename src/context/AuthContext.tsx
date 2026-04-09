@@ -20,7 +20,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const dados = localStorage.getItem('gcac_usuario');
     if (dados) {
       try {
-        setUsuario(JSON.parse(dados));
+        const u = JSON.parse(dados);
+        setUsuario(u);
+        // Recupera o token para o sessionStorage para não quebrar a sincronização no refresh
+        if (u.accessToken) {
+          sessionStorage.setItem('gcac_token', u.accessToken);
+        }
       } catch {
         localStorage.removeItem('gcac_usuario');
       }
