@@ -200,7 +200,6 @@ export function ListaOrdens() {
           <div className="pt-4 border-t border-brand-dark-5 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Status Pagamento */}
-... (omitted previous columns to focus on the new one) ...
               <div className="space-y-3">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
                   Pagamento
