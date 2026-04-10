@@ -14,11 +14,15 @@ export type StatusOrcamento =
 export type FormaPagamento =
   | 'PIX'
   | 'Dinheiro'
-  | 'Cartão de Crédito'
-  | 'Cartão de Débito'
+  | 'Cartão de Crédito (Stone)'
+  | 'Cartão de Débito (Stone)'
+  | 'Cartão de Crédito (Infinity)'
+  | 'Cartão de Débito (Infinity)'
   | 'Transferência'
   | 'A Combinar'
-  | 'Pendente';
+  | 'Pendente'
+  | 'Cartão de Crédito'
+  | 'Cartão de Débito';
 
 export type CanalAtendimento =
   | 'WhatsApp'
@@ -227,8 +231,10 @@ export const CANAIS_ATENDIMENTO: CanalAtendimento[] = [
 export const FORMAS_PAGAMENTO: FormaPagamento[] = [
   'PIX',
   'Dinheiro',
-  'Cartão de Crédito',
-  'Cartão de Débito',
+  'Cartão de Crédito (Stone)',
+  'Cartão de Débito (Stone)',
+  'Cartão de Crédito (Infinity)',
+  'Cartão de Débito (Infinity)',
   'Transferência',
   'A Combinar',
   'Pendente',
