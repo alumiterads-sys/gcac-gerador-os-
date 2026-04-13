@@ -85,6 +85,7 @@ export interface OrdemDeServico {
     pagoGRU?: boolean;
     categoria?: 'Honorário' | 'Laudo';
     pagoDireto?: boolean; // Se o pagamento vai direto ao terceiro (instrutor/psicóloga)
+    protocolo?: string;
   }[];
   valor: number;
   valorPago: number;

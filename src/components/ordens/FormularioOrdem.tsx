@@ -168,7 +168,6 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     canalAtendimento:  (ordemExistente?.canalAtendimento ?? null) as CanalAtendimento | null,
     observacaoContato: ordemExistente?.observacaoContato ?? '',
     observacoes:       ordemExistente?.observacoes       ?? '',
-    protocolo:         ordemExistente?.protocolo         ?? '',
     valorPago:         ordemExistente?.valorPago ?? 0,
     historicoPagamentos: ordemExistente?.historicoPagamentos ?? [] as PagamentoItem[],
   });
@@ -317,6 +316,13 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     }));
   };
 
+  const atualizarProtocoloServicoLocal = (id: string, protocolo: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => s.id === id ? { ...s, protocolo } : s)
+    }));
+  };
+
   const removerServico = (id: string) => {
     const novosServicos = (form.servicos as any[]).filter((s: any) => s.id !== id);
     const totalNovo = novosServicos.filter((s: any) => !s.pagoDireto).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
@@ -362,7 +368,6 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         canalAtendimento:  form.canalAtendimento,
         observacaoContato: form.observacaoContato.trim(),
         observacoes:       form.observacoes.trim(),
-        protocolo:         form.protocolo.trim(),
         valorPago:         form.valorPago,
         historicoPagamentos: form.historicoPagamentos,
       };
@@ -564,22 +569,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           Descrição do Serviço
         </h3>
 
-        {/* Campo Protocolo (Novo) */}
-        <div className="mb-6 bg-brand-dark-3/30 p-4 rounded-xl border border-brand-dark-5/50 border-dashed">
-          <label className="label text-brand-blue-light font-black uppercase tracking-widest text-[10px] mb-2 flex items-center gap-2">
-            <List size={12} /> Nº do Protocolo (Opcional)
-          </label>
-          <input 
-            type="text" 
-            className="input bg-brand-dark-4 border-brand-dark-5 focus:border-brand-blue/40"
-            placeholder="Ex: 08795.000385/2026-65"
-            value={form.protocolo}
-            onChange={e => atualizar('protocolo', e.target.value)}
-          />
-          <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">
-            Caso já possua o número do protocolo da PF ou Exército, preencha aqui para facilitar a consulta futura.
-          </p>
-        </div>
+
 
         {/* Dropdown de serviços */}
         <div className="mb-4">
@@ -691,6 +681,18 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                     )}
                   </div>
                 )}
+
+                <div className="flex gap-2 mb-3">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      className="input bg-brand-dark-3 border-transparent focus:border-brand-blue/30 text-xs py-1.5"
+                      placeholder="Protocolo (Opcional)"
+                      value={serv.protocolo || ''}
+                      onChange={e => atualizarProtocoloServicoLocal(serv.id, e.target.value)}
+                    />
+                  </div>
+                </div>
 
                 <textarea
                   className="input resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30"

@@ -97,6 +97,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       msg += `${icon} *${s.nome}*\n`;
       msg += `   Status: _${s.statusExecucao || 'Não Iniciado'}_\n`;
       if (s.pagoGRU) msg += `   GRU: _Paga_\n`;
+      if (s.protocolo) msg += `   📑 Prot: _${s.protocolo}_\n`;
       msg += `\n`;
     });
     
@@ -369,11 +370,22 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                     )}
                   </div>
                 </div>
-                {serv.detalhes.trim() && (
-                  <p className="text-sm text-gray-300 whitespace-pre-wrap pl-4 border-l-2 border-brand-dark-5 mt-2">
-                    {serv.detalhes}
-                  </p>
-                )}
+
+                <div className="flex flex-col gap-1.5 pl-4 border-l-2 border-brand-dark-5">
+                  {serv.protocolo && (
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-black text-brand-blue-light bg-brand-blue/10 px-2 py-0.5 rounded border border-brand-blue/20 uppercase tracking-widest flex items-center gap-1.5">
+                         <List size={10} /> PROTOCOLO: {serv.protocolo}
+                       </span>
+                    </div>
+                  )}
+
+                  {serv.detalhes.trim() && (
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                      {serv.detalhes}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

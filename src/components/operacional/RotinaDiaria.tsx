@@ -161,6 +161,11 @@ export function RotinaDiaria() {
                               <span className={`text-[10px] truncate ${isProtocolado ? 'text-brand-blue-light font-bold' : isConcluido ? 'text-gray-500 line-through' : 'text-gray-400'}`}>
                                 {s.nome}
                               </span>
+                              {s.protocolo && (
+                                <span className="text-[9px] bg-brand-blue/10 text-brand-blue-light px-1.5 py-0.5 rounded border border-brand-blue/20">
+                                  {s.protocolo}
+                                </span>
+                              )}
                             </div>
                             
                             {isProtocolado && (
@@ -186,6 +191,7 @@ export function RotinaDiaria() {
                           <div className="flex flex-col">
                             <span className="text-[10px] font-black text-brand-blue-light uppercase tracking-tight">Ação Pendente</span>
                             <span className="text-[11px] font-bold text-white leading-tight">{s.nome}</span>
+                            {s.protocolo && <span className="text-[10px] text-brand-blue-light font-mono mt-0.5">{s.protocolo}</span>}
                           </div>
                           <button 
                             onClick={() => handleConcluirServico(o.id, s.id)}
@@ -264,6 +270,11 @@ export function RotinaDiaria() {
                               <span className={`text-[10px] truncate ${needsGRU ? 'text-orange-400 font-bold' : hasGRU ? 'text-brand-green' : 'text-gray-400'}`}>
                                 {s.nome}
                               </span>
+                              {s.protocolo && (
+                                <span className="text-[9px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded border border-white/5">
+                                  {s.protocolo}
+                                </span>
+                              )}
                             </div>
                             
                             {needsGRU && (

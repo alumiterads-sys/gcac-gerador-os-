@@ -12,6 +12,7 @@ interface OrdensContextType {
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
   atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any) => Promise<void>;
   atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
+  atualizarProtocoloServico: (ordemId: string, servicoId: string, protocolo: string) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
   registrarPagamento: (ordemId: string, valor: number, metodo: FormaPagamento) => Promise<void>;
@@ -171,6 +172,17 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     await atualizarOrdem(ordemId, { servicos: novosServicos });
   }, [ordens, atualizarOrdem]);
 
+  const atualizarProtocoloServico = useCallback(async (ordemId: string, servicoId: string, protocolo: string) => {
+    const ordem = ordens.find(o => o.id === ordemId);
+    if (!ordem) return;
+
+    const novosServicos = ordem.servicos.map(s => 
+      s.id === servicoId ? { ...s, protocolo } : s
+    );
+
+    await atualizarOrdem(ordemId, { servicos: novosServicos });
+  }, [ordens, atualizarOrdem]);
+
   const deletarOrdem = useCallback(async (id: string) => {
     const { error } = await supabase
       .from('ordens')
@@ -253,6 +265,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       atualizarOrdem,
       atualizarStatusServico,
       atualizarGruServico,
+      atualizarProtocoloServico,
       deletarOrdem,
       buscarOrdem,
       registrarPagamento,
