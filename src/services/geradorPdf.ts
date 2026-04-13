@@ -89,7 +89,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
 
   const arrayServicos = (ordem.servicos && ordem.servicos.length > 0)
     ? ordem.servicos
-    : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.' }];
+    : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.', protocolo: undefined }];
 
   arrayServicos.forEach((serv) => {
     const nomeFormatado = serv.nome.toUpperCase();
