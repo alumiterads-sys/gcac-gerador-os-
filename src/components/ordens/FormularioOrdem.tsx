@@ -391,11 +391,11 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       if (ordemExistente) {
         await atualizarOrdem(ordemExistente.id, dados);
         mostrar('sucesso', 'Ordem de Serviço atualizada com sucesso!');
-        setTimeout(() => navigate(`/ordens/${ordemExistente.id}`), 1200);
+        setTimeout(() => navigate(`/ordens/${ordemExistente.id}`, { replace: true }), 1200);
       } else {
         const id = await criarOrdem(dados);
         mostrar('sucesso', 'Ordem de Serviço criada com sucesso!');
-        setTimeout(() => navigate(`/ordens/${id}`), 1200);
+        setTimeout(() => navigate(`/ordens/${id}`, { replace: true }), 1200);
       }
     } catch {
       mostrar('erro', 'Erro ao salvar a OS. Tente novamente.');

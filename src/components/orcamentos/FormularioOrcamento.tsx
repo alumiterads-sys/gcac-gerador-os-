@@ -377,7 +377,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           }
         }
 
-        setTimeout(() => navigate(`/orcamentos/${orcamentoExistente.id}`), 1200);
+        setTimeout(() => navigate(`/orcamentos/${orcamentoExistente.id}`, { replace: true }), 1200);
       } else {
         const id = await criarOrcamento(dados);
         mostrar('sucesso', 'Orçamento criado com sucesso!');
@@ -390,7 +390,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           }
         }
 
-        setTimeout(() => navigate(`/orcamentos/${id}`), 1200);
+        setTimeout(() => navigate(`/orcamentos/${id}`, { replace: true }), 1200);
       }
     } catch (err: any) {
       console.error('Erro ao salvar orçamento:', err);

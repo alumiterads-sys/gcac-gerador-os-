@@ -158,7 +158,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="btn-ghost btn-sm">
+          <button onClick={() => navigate('/ordens')} className="btn-ghost btn-sm">
             <ArrowLeft size={16} />
           </button>
           <button 

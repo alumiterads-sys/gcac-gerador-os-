@@ -109,13 +109,25 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
   // Linhas
   doc.setTextColor(ESCURO_BRAND);
   recibo.servicos.forEach((s) => {
-    // Quebra de pagina se necessário
-    if (y > 240) {
+    // --- LOGICA DE QUEBRA DE PAGINA ---
+    const alturaNecessaria = 15 + (s.detalhes ? (doc.splitTextToSize(s.detalhes, largura - 60).length * 4) : 0);
+    if (y + alturaNecessaria > 195) { // Limite mais rígido para não bater na assinatura
       doc.addPage();
-      y = 20;
+      y = 25;
+      
+      // Reaplica header da tabela na nova página (opcional, mas recomendado para o layout não "morrer")
+      doc.setFillColor(ESCURO_BRAND);
+      doc.rect(12, y, largura - 24, 10, 'F');
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ITEM / SERVIÇO (CONT.)', 18, y + 6.5);
+      doc.text('VALOR UNITÁRIO', largura - 18, y + 6.5, { align: 'right' });
+      y += 12;
     }
 
     // Nome em Negrito e Quebrado
+    doc.setTextColor(ESCURO_BRAND);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     const linhasNome = doc.splitTextToSize(s.nome.toUpperCase(), largura - 60);
@@ -138,14 +150,25 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
     }
 
     doc.setDrawColor(LINHA_LEVE);
-  doc.line(12, y, largura - 12, y);
+    doc.line(12, y, largura - 12, y);
   });
 
+
+
   // 4. Totais e Pagamento (Box Cinza/Claro)
-  y += 5;
+  y += 10;
+  
+  // Se não couber o box de total + as assinaturas, pula página
+  // O box tem 32mm e as assinaturas precisam de mais uns 60mm
+  if (y + 32 + 60 > altura) {
+    doc.addPage();
+    y = 20;
+  }
+
   doc.setFillColor('#F9F9F9');
   doc.roundedRect(12, y, largura - 24, 32, 2, 2, 'F');
   doc.setDrawColor('#CCCCCC');
+  doc.setLineWidth(0.2);
   doc.roundedRect(12, y, largura - 24, 32, 2, 2, 'S');
 
   doc.setTextColor(CINZA_TEXTO);
@@ -155,14 +178,15 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
   doc.setTextColor(ESCURO_BRAND);
   doc.text(recibo.formaPagamento.toUpperCase(), largura - 18, y + 10, { align: 'right' });
 
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.3);
   doc.line(18, y + 15, largura - 18, y + 15);
 
   doc.setTextColor(CINZA_TEXTO);
   doc.text('VALOR TOTAL DO RECIBO', 18, y + 24);
   doc.setTextColor(AZUL_BRAND);
-  doc.setFontSize(18);
-  doc.text(formatarMoeda(recibo.valorTotal), largura - 18, y + 25, { align: 'right' });
+  doc.setFontSize(22); // Aumentado para dar destaque
+  doc.text(formatarMoeda(recibo.valorTotal), largura - 18, y + 26, { align: 'right' });
+
 
   // 5. Assinaturas
   const yAssIn = altura - 60;
