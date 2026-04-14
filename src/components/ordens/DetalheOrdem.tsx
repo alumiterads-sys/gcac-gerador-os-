@@ -102,9 +102,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     });
     
     msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n`;
-    msg += `💳 *Status Pagamento:* ${ordem.status}\n\n`;
-    
-    if (ordem.protocolo) msg += `📑 *Protocolo:* ${ordem.protocolo}\n\n`;
+    if (ordem.status !== 'Pago') msg += `💳 *Status Pagamento:* ${ordem.status}\n\n`;
     
     msg += `Qualquer dúvida, estamos à disposição!`;
     
@@ -272,7 +270,6 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           <CampoDetalhe rotulo="CPF" valor={ordem.cpf} />
           <CampoDetalhe rotulo="Contato" valor={ordem.contato} />
           <CampoDetalhe rotulo="Senha GOV.br" valor={ordem.senhaGov} />
-          {ordem.protocolo && <CampoDetalhe rotulo="Protocolo" valor={ordem.protocolo} />}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
             <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider w-32 flex-shrink-0">
               {ordem.filiadoProTiro ? 'Pró-Tiro' : 'Clube Filiado'}

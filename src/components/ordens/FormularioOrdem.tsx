@@ -682,15 +682,23 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                   </div>
                 )}
 
-                <div className="flex gap-2 mb-3">
-                  <div className="flex-1">
+                {/* Protocolo Individual do Serviço */}
+                <div className="flex flex-col gap-1.5 mb-3">
+                  <label className="text-[10px] font-bold text-brand-blue-light uppercase tracking-widest flex items-center gap-1.5">
+                    <List size={11} className="text-brand-blue" />
+                    Nº do Protocolo (Opcional)
+                  </label>
+                  <div className="relative">
                     <input
                       type="text"
-                      className="input bg-brand-dark-3 border-transparent focus:border-brand-blue/30 text-xs py-1.5"
-                      placeholder="Protocolo (Opcional)"
+                      className="input bg-brand-dark-3 border-transparent focus:border-brand-blue/30 text-xs py-2 uppercase font-mono"
+                      placeholder="Ex: 08795.000385/2026-65"
                       value={serv.protocolo || ''}
                       onChange={e => atualizarProtocoloServicoLocal(serv.id, e.target.value)}
                     />
+                    <p className="text-[9px] text-gray-500 mt-1 italic">
+                      Caso já possua o número do protocolo da PF ou Exército, preencha aqui para facilitar a consulta futura.
+                    </p>
                   </div>
                 </div>
 

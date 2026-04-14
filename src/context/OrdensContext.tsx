@@ -22,34 +22,43 @@ interface OrdensContextType {
 
 const OrdensContext = createContext<OrdensContextType | null>(null);
 
-const mapFromDB = (row: any): OrdemDeServico => ({
-  id: row.id,
-  numero: parseInt(row.numero, 10), // BigSerial vem como texto no JS
-  nomeCliente: row.nome_cliente,
-  contato: row.contato,
-  cpf: row.cpf,
-  senhaGov: row.senha_gov || '',
-  filiadoProTiro: row.filiado_pro_tiro,
-  clubeFiliado: row.clube_filiado || '',
-  servicos: row.servicos || [],
-  valor: row.valor,
-  valorPago: row.valor_pago || 0,
-  historicoPagamentos: row.historico_pagamentos || [],
-  formaPagamento: row.forma_pagamento as FormaPagamento,
-  status: row.status as StatusOS,
-  taxaPFTotal: row.taxa_pf_total || 0,
-  canalAtendimento: row.canal_atendimento as CanalAtendimento | null,
-  observacaoContato: row.observacao_contato || '',
-  observacoes: row.observacoes || '',
-  protocolo: row.protocolo || '',
-  migrado: row.migrado || false,
-  driveArquivoJsonId: row.drive_arquivo_json_id || null,
-  drivePdfId: row.drive_pdf_id || null,
-  ultimaSincronizacao: row.ultima_sincronizacao || null,
-  pendenteSincronizacao: row.pendente_sincronizacao,
-  criadoEm: row.criado_em,
-  atualizadoEm: row.atualizado_em,
-});
+const mapFromDB = (row: any): OrdemDeServico => {
+  const servicos = row.servicos || [];
+  
+  // Lógica de Migração: Se houver um protocolo na raiz (antigo) e nenhum serviço tiver protocolo, 
+  // movemos o protocolo da raiz para o primeiro serviço da lista.
+  if (row.protocolo && servicos.length > 0 && !servicos.some((s: any) => s.protocolo)) {
+    servicos[0] = { ...servicos[0], protocolo: row.protocolo };
+  }
+
+  return {
+    id: row.id,
+    numero: parseInt(row.numero, 10),
+    nomeCliente: row.nome_cliente,
+    contato: row.contato,
+    cpf: row.cpf,
+    senhaGov: row.senha_gov || '',
+    filiadoProTiro: row.filiado_pro_tiro,
+    clubeFiliado: row.clube_filiado || '',
+    servicos: servicos,
+    valor: row.valor,
+    valorPago: row.valor_pago || 0,
+    historicoPagamentos: row.historico_pagamentos || [],
+    formaPagamento: row.forma_pagamento as FormaPagamento,
+    status: row.status as StatusOS,
+    taxaPFTotal: row.taxa_pf_total || 0,
+    canalAtendimento: row.canal_atendimento as CanalAtendimento | null,
+    observacaoContato: row.observacao_contato || '',
+    observacoes: row.observacoes || '',
+    migrado: row.migrado || false,
+    driveArquivoJsonId: row.drive_arquivo_json_id || null,
+    drivePdfId: row.drive_pdf_id || null,
+    ultimaSincronizacao: row.ultima_sincronizacao || null,
+    pendenteSincronizacao: row.pendente_sincronizacao,
+    criadoEm: row.criado_em,
+    atualizadoEm: row.atualizado_em,
+  };
+};
 
 const mapToDB = (dados: any) => {
   const payload: any = {};
@@ -68,7 +77,6 @@ const mapToDB = (dados: any) => {
   if (dados.canalAtendimento !== undefined) payload.canal_atendimento = dados.canalAtendimento;
   if (dados.observacaoContato !== undefined) payload.observacao_contato = dados.observacaoContato;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
-  if (dados.protocolo !== undefined) payload.protocolo = dados.protocolo;
   if (dados.migrado !== undefined) payload.migrado = dados.migrado;
   if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
   

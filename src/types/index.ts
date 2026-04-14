@@ -98,7 +98,6 @@ export interface OrdemDeServico {
   canalAtendimento: CanalAtendimento | null;
   observacaoContato: string;
   observacoes: string;
-  protocolo?: string;
   migrado?: boolean;
 
   // Sincronização
