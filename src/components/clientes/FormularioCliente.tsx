@@ -22,6 +22,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     filiadoProTiro: clienteEditando?.filiadoProTiro ?? true,
     clubeFiliado: clienteEditando?.clubeFiliado ?? '',
     observacoes: clienteEditando?.observacoes ?? '',
+    endereco: clienteEditando?.endereco ?? '',
   });
 
   const atualizar = (campo: string, valor: any) => {
@@ -60,6 +61,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         filiadoProTiro: form.filiadoProTiro,
         clubeFiliado: form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
         observacoes: form.observacoes.trim(),
+        endereco: form.endereco.trim(),
       };
 
       if (clienteEditando) {
@@ -170,6 +172,16 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
                 )}
               </div>
             )}
+          </div>
+          
+          <div>
+            <label className="label">Endereço Completo</label>
+            <textarea 
+              className="input h-20 py-3 resize-none uppercase"
+              placeholder="Rua, número, bairro, CEP, cidade-UF..."
+              value={form.endereco}
+              onChange={e => atualizar('endereco', e.target.value.toUpperCase())}
+            />
           </div>
           
           <div>

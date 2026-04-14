@@ -156,6 +156,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     senhaGov:          ordemExistente?.senhaGov          ?? '',
     filiadoProTiro:    ordemExistente?.filiadoProTiro     ?? true,
     clubeFiliado:      ordemExistente?.clubeFiliado       ?? '',
+    endereco:          ordemExistente?.endereco           ?? '',
     servicos:          ordemExistente?.servicos          ?? [],
     valor:             ordemExistente 
                          ? (ordemExistente.servicos || []).filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc: number, s: any) => acc + (s.valor || 0), 0)
@@ -184,7 +185,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         contato: c.contato,
         senhaGov: c.senhaGov,
         filiadoProTiro: c.filiadoProTiro,
-        clubeFiliado: c.clubeFiliado || ''
+        clubeFiliado: c.clubeFiliado || '',
+        endereco: c.endereco || ''
       }));
       // Limpar o estado para não repetir o preenchimento se o usuário recarregar
       window.history.replaceState({}, document.title);
@@ -206,7 +208,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       contato: c.contato,
       senhaGov: c.senhaGov,
       filiadoProTiro: c.filiadoProTiro,
-      clubeFiliado: c.clubeFiliado
+      clubeFiliado: c.clubeFiliado,
+      endereco: c.endereco
     }));
     setFocoNome(false);
   };
@@ -360,6 +363,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         senhaGov:          form.senhaGov.trim(),
         filiadoProTiro:    form.filiadoProTiro,
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
+        endereco:          form.endereco.trim(),
         servicos:          (form.servicos as any[]).map((s: any) => ({ ...s, detalhes: (s.detalhes || '').trim() })),
         valor:             form.valor,
         taxaPFTotal:       (form.servicos as any[]).reduce((acc: number, s: any) => acc + (s.taxaPF || 0), 0),
@@ -382,6 +386,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           senhaGov: dados.senhaGov,
           filiadoProTiro: dados.filiadoProTiro,
           clubeFiliado: dados.clubeFiliado,
+          endereco: dados.endereco,
           observacoes: ''
         };
         if (clienteExistente) {
@@ -471,21 +476,18 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
             </div>
           </div>
 
-          {/* Senha GOV */}
-          <div>
-            <label className="label">
-              Senha GOV.br
-              <span className="ml-2 text-xs text-brand-metal font-normal">🔒 uso interno</span>
-            </label>
-            <div className="relative">
-              <input id="campo-senha-gov" type={mostrarSenha ? 'text' : 'password'}
-                className="input pr-12" placeholder="Senha de acesso ao Gov.br"
-                value={form.senhaGov} onChange={e => atualizar('senhaGov', e.target.value)} />
-              <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
-                {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
             </div>
+          </div>
+          
+          {/* Endereço */}
+          <div>
+            <label className="label">Endereço Completo</label>
+            <textarea 
+              className="input uppercase h-20 py-2 resize-none" 
+              placeholder="Rua, número, bairro, CEP, cidade-UF..." 
+              value={form.endereco}
+              onChange={e => atualizar('endereco', e.target.value.toUpperCase())}
+            />
           </div>
 
           {/* Filiado Pró-Tiro */}

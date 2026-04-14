@@ -58,6 +58,7 @@ export interface Cliente {
   filiadoProTiro: boolean;
   clubeFiliado: string;
   observacoes: string;
+  endereco: string;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -73,6 +74,7 @@ export interface OrdemDeServico {
   senhaGov: string;
   filiadoProTiro: boolean;
   clubeFiliado: string;  // preenchido se filiadoProTiro === false
+  endereco: string;
 
   // Serviço
   servicos: {
@@ -132,6 +134,7 @@ export interface Orcamento {
   senhaGov?: string;
   filiadoProTiro: boolean;
   clubeFiliado: string;
+  endereco: string;
   
   // Serviço
   servicos: ServicoOrcamento[];

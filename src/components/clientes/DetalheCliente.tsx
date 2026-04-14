@@ -160,6 +160,12 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                   <p className="text-white font-medium">{formatarTelefone(cliente.contato)}</p>
                 </div>
               </div>
+              {cliente.endereco && (
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Endereço</p>
+                  <p className="text-white font-medium text-sm uppercase">{cliente.endereco}</p>
+                </div>
+              )}
               <div>
                 <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Filiação Pró-Tiro</p>
                 <p className="text-white font-medium">

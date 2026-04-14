@@ -65,7 +65,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
         clienteNome: c.nome,
         clienteCPF: c.cpf,
         clienteContato: c.contato,
-        clienteEndereco: ''
+        clienteEndereco: c.endereco || ''
       }));
       // Limpar o estado para não repetir o preenchimento
       window.history.replaceState({}, document.title);
@@ -115,7 +115,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
       clienteNome: c.nome,
       clienteCPF: c.cpf,
       clienteContato: c.contato,
-      clienteEndereco: '', 
+      clienteEndereco: c.endereco || '', 
     }));
     setFocoNome(false);
   };

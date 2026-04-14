@@ -24,6 +24,7 @@ const mapFromDB = (row: any): Cliente => ({
   filiadoProTiro: row.filiado_pro_tiro,
   clubeFiliado: row.clube_filiado || '',
   observacoes: row.observacoes || '',
+  endereco: row.endereco || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -37,6 +38,7 @@ const mapToDB = (dados: any) => {
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
+  if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   return payload;
 };
 

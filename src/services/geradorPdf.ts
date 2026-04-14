@@ -72,6 +72,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   y += 2;
 
   y = linhaInfo(doc, 'Nome Completo:', ordem.nomeCliente, y, largura);
+  y = linhaInfo(doc, 'Endereço:', ordem.endereco || 'NÃO INFORMADO', y, largura);
   y = linhaInfo(doc, 'CPF:', formatarCPF(ordem.cpf), y, largura);
   y = linhaInfo(doc, 'Contato:', formatarTelefone(ordem.contato), y, largura);
   y = linhaInfo(doc, 'Senha GOV.br:', ordem.senhaGov, y, largura);

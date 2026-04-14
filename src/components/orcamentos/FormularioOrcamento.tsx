@@ -136,6 +136,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
     senhaGov:          orcamentoExistente?.senhaGov          ?? '',
     filiadoProTiro:    orcamentoExistente?.filiadoProTiro    ?? true,
     clubeFiliado:      orcamentoExistente?.clubeFiliado      ?? '',
+    endereco:          orcamentoExistente?.endereco          ?? '',
     servicos:          orcamentoExistente?.servicos          ?? [],
     valorTotal:        orcamentoExistente 
                          ? orcamentoExistente.servicos.filter(s => !s.pagoDireto && s.categoria !== 'Laudo').reduce((acc, s) => acc + (s.valor || 0), 0)
@@ -157,7 +158,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         contato: c.contato,
         senhaGov: c.senhaGov,
         filiadoProTiro: c.filiadoProTiro,
-        clubeFiliado: c.clubeFiliado || ''
+        clubeFiliado: c.clubeFiliado || '',
+        endereco: c.endereco || ''
       }));
       // Limpar o estado para não repetir o preenchimento se o usuário recarregar
       window.history.replaceState({}, document.title);
@@ -179,7 +181,8 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
       contato: c.contato,
       senhaGov: c.senhaGov || f.senhaGov,
       filiadoProTiro: c.filiadoProTiro,
-      clubeFiliado: c.clubeFiliado || ''
+      clubeFiliado: c.clubeFiliado || '',
+      endereco: c.endereco || ''
     }));
     setFocoNome(false);
   };
@@ -294,6 +297,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
           senhaGov: dados.senhaGov || '',
           filiadoProTiro: dados.filiadoProTiro || false,
           clubeFiliado: dados.clubeFiliado || 'NÃO RELATADO',
+          endereco: dados.endereco || '',
           observacoes: ''
         });
       }
@@ -305,6 +309,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         cpf: dados.cpf,
         senhaGov: (clienteExistente?.senhaGov) || dados.senhaGov || '',
         clubeFiliado: (clienteExistente?.clubeFiliado) || dados.clubeFiliado || '',
+        endereco: (clienteExistente?.endereco) || dados.endereco || '',
         filiadoProTiro: (clienteExistente?.filiadoProTiro) ?? dados.filiadoProTiro ?? false,
         servicos: dados.servicos.map((s: any) => ({
           id: s.id,
@@ -358,6 +363,7 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
         senhaGov:          form.senhaGov.trim(),
         filiadoProTiro:    form.filiadoProTiro,
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
+        endereco:          form.endereco.trim(),
         servicos:          form.servicos.map(s => ({ ...s, detalhes: s.detalhes.trim() })),
         valorTotal:        form.valorTotal,
         taxaPFTotal:       form.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0),
@@ -462,16 +468,20 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
               <div>
                 <label className="label">Senha GOV.br</label>
                 <div className="relative">
-                  <input type={mostrarSenha ? 'text' : 'password'} className="input pr-10"
-                    placeholder="Senha Gov"
-                    value={form.senhaGov} onChange={e => atualizar('senhaGov', e.target.value)} />
-                  <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
-                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="label">Endereço Completo</label>
+            <textarea 
+              className="input uppercase h-20 py-2 resize-none" 
+              placeholder="Rua, número, bairro, CEP, cidade-UF..." 
+              value={form.endereco}
+              onChange={e => atualizar('endereco', e.target.value.toUpperCase())}
+            />
           </div>
 
           {/* Filiado Pró-Tiro */}

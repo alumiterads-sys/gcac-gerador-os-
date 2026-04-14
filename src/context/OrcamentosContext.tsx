@@ -28,6 +28,7 @@ const mapFromDB = (row: any): Orcamento => ({
   taxaPFTotal: row.taxa_pf_total || 0,
   filiadoProTiro: row.filiado_pro_tiro || false,
   clubeFiliado: row.clube_filiado || '',
+  endereco: row.endereco || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -46,6 +47,7 @@ const mapToDB = (dados: any) => {
   // taxa_pf_total calculada dinamicamente no frontend (evita conflito de schema cache)
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
+  if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   
   return payload;
 };

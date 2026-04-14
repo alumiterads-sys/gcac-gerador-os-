@@ -71,6 +71,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   y += 2;
 
   y = linhaInfo(doc, 'Nome Completo:', orcamento.nomeCliente, y, largura);
+  y = linhaInfo(doc, 'Endereço:', orcamento.endereco || 'NÃO INFORMADO', y, largura);
   if (orcamento.cpf) y = linhaInfo(doc, 'CPF:', formatarCPF(orcamento.cpf), y, largura);
   y = linhaInfo(doc, 'Contato:', formatarTelefone(orcamento.contato), y, largura);
 

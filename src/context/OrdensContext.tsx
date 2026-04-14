@@ -40,6 +40,7 @@ const mapFromDB = (row: any): OrdemDeServico => {
     senhaGov: row.senha_gov || '',
     filiadoProTiro: row.filiado_pro_tiro,
     clubeFiliado: row.clube_filiado || '',
+    endereco: row.endereco || '',
     servicos: servicos,
     valor: row.valor,
     valorPago: row.valor_pago || 0,
@@ -68,6 +69,7 @@ const mapToDB = (dados: any) => {
   if (dados.senhaGov !== undefined) payload.senha_gov = dados.senhaGov;
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
+  if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   if (dados.servicos !== undefined) payload.servicos = dados.servicos;
   if (dados.valor !== undefined) payload.valor = dados.valor;
   if (dados.valorPago !== undefined) payload.valor_pago = dados.valorPago;

@@ -211,6 +211,12 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
                   {orcamento.contato}
                 </p>
               </div>
+              {orcamento.endereco && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-semibold text-gray-500 mb-0.5">Endereço Completo</p>
+                  <p className="text-sm font-medium text-white uppercase">{orcamento.endereco}</p>
+                </div>
+              )}
             </div>
           </div>
 
