@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.orcamentos (
   nome_cliente TEXT NOT NULL,
   contato TEXT NOT NULL,
   cpf TEXT,
+  endereco TEXT,
   
   -- Serviços e Valores
   servicos JSONB NOT NULL DEFAULT '[]'::jsonb, -- Array of { id, nome, detalhes, valor }
