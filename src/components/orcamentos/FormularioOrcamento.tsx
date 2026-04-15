@@ -468,6 +468,19 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
               <div>
                 <label className="label">Senha GOV.br</label>
                 <div className="relative">
+                  <input
+                    type={mostrarSenha ? 'text' : 'password'}
+                    className="input pr-10"
+                    placeholder="Sua senha gov.br"
+                    value={form.senhaGov}
+                    onChange={e => atualizar('senhaGov', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarSenha(!mostrarSenha)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>

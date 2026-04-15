@@ -476,9 +476,6 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
             </div>
           </div>
 
-            </div>
-          </div>
-          
           {/* Endereço */}
           <div>
             <label className="label">Endereço Completo</label>

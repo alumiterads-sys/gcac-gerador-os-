@@ -86,6 +86,7 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
           senhaGov: orcamento.senhaGov || '',
           filiadoProTiro: orcamento.filiadoProTiro || false,
           clubeFiliado: orcamento.clubeFiliado || 'NÃO RELATADO',
+          endereco: orcamento.endereco || '',
           observacoes: ''
         });
       }
@@ -115,7 +116,9 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
         status: 'Aguardando Pagamento',
         canalAtendimento: 'WhatsApp',
         observacaoContato: 'Convertido do ORC-' + String(orcamento.numero).padStart(4, '0'),
-        observacoes: orcamento.observacoes || ''
+        observacoes: orcamento.observacoes || '',
+        endereco: orcamento.endereco || '',
+        taxaPFTotal: orcamento.servicos.reduce((acc, s) => acc + (s.taxaPF || 0), 0)
       });
 
       // Atualiza o status do orçamento para "Aprovado" e vincula a O.S.

@@ -171,6 +171,7 @@ export async function sincronizarPendentes(): Promise<{ ok: number; erro: number
       senhaGov: row.senha_gov || '',
       filiadoProTiro: row.filiado_pro_tiro,
       clubeFiliado: row.clube_filiado || '',
+      endereco: row.endereco || '',
       servicos: row.servicos || [],
       valor: row.valor,
       valorPago: row.valor_pago || 0,
