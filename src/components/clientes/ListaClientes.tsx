@@ -198,6 +198,13 @@ export function ListaClientes() {
               </div>
             </div>
 
+            {clienteVisualizando.endereco && (
+              <div className="bg-brand-dark-3 p-3 rounded-xl border border-brand-dark-5 mb-4">
+                <p className="text-[10px] text-gray-500 font-black uppercase mb-1">Endereço</p>
+                <p className="text-white font-medium text-sm mt-1 uppercase">{clienteVisualizando.endereco}</p>
+              </div>
+            )}
+
             <div className="bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 mb-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
