@@ -90,7 +90,7 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
 
   const arrayServicos = (ordem.servicos && ordem.servicos.length > 0)
     ? ordem.servicos
-    : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.', protocolo: undefined }];
+    : [{ id: 'legacy', nome: 'SERVIÇO REGISTRADO', detalhes: (ordem as any).servico || 'Nenhum serviço informado.', protocolo: undefined, valor: ordem.valor }];
 
   arrayServicos.forEach((serv) => {
     const nomeFormatado = serv.nome.toUpperCase();
@@ -99,8 +99,8 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
     
-    // Quebra o nome em linhas se for muito longo
-    const linhasNome = doc.splitTextToSize(nomeFormatado, largura - 45);
+    // Quebra o nome em linhas se for muito longo (largura - 75 para dar espaço ao valor)
+    const linhasNome = doc.splitTextToSize(nomeFormatado, largura - 75);
     const alturaNome = linhasNome.length * 5;
 
     // Calcula linhas do bloco de detalhe e altura final
@@ -124,6 +124,12 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
     doc.text(linhasNome, 17, y + 6);
+
+    // Imprimir Valor do Serviço à Direita
+    doc.setTextColor(AZUL);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formatarMoeda(serv.valor || 0), largura - 16, y + 6, { align: 'right' });
 
     // Imprimir Detalhes em NORMAL, alinhados sutilmente
     if (serv.detalhes && serv.detalhes.trim()) {
