@@ -11,8 +11,11 @@ import {
   Calendar,
   Filter,
   ArrowRightLeft,
-  Clock
+  Clock,
+  TrendingUp
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { RelatorioEquipe } from './RelatorioEquipe';
 import { useOrdens } from '../../context/OrdensContext';
 import { useFinanceiro, CATEGORIAS_DESPESA } from '../../context/FinanceiroContext';
 import { useClientes } from '../../context/ClientesContext';
@@ -26,8 +29,9 @@ export function Financeiro() {
   const { ordens } = useOrdens();
   const { clientes } = useClientes();
   const { despesas, criarDespesa, deletarDespesa } = useFinanceiro();
+  const { usuario } = useAuth();
 
-  const [abaAtiva, setAbaAtiva] = useState<'relatorio' | 'despesas'>('relatorio');
+  const [abaAtiva, setAbaAtiva] = useState<'relatorio' | 'despesas' | 'equipe'>('relatorio');
   const [dataFiltro, setDataFiltro] = useState(new Date());
   const [novaDespesaModal, setNovaDespesaModal] = useState(false);
 
@@ -247,6 +251,17 @@ export function Financeiro() {
         >
           Despesas PJ (Saídas)
         </button>
+        {usuario?.role === 'admin' && (
+          <button 
+            onClick={() => setAbaAtiva('equipe')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${
+              abaAtiva === 'equipe' ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <TrendingUp size={14} />
+            Desempenho Equipe
+          </button>
+        )}
       </div>
 
       {/* Conteúdo Aba Relatório */}
@@ -392,6 +407,9 @@ export function Financeiro() {
           </div>
         </div>
       )}
+
+      {/* Conteúdo Aba Equipe */}
+      {abaAtiva === 'equipe' && <RelatorioEquipe dataFiltro={dataFiltro} />}
 
       {/* Modal Nova Despesa */}
       {novaDespesaModal && (
