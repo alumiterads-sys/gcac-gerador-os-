@@ -16,16 +16,36 @@ CREATE TABLE IF NOT EXISTS public.usuarios_autorizados (
 ALTER TABLE public.usuarios_autorizados ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de Acesso
--- Apenas Administradores podem gerenciar a tabela de usuários
--- Outros usuários podem ver apenas seu próprio registro (opcional, mas seguro)
-CREATE POLICY "usuarios_autorizados_admin_all" ON public.usuarios_autorizados
+DROP POLICY IF EXISTS "usuarios_autorizados_admin_all" ON public.usuarios_autorizados;
+
+-- 1. Permitir LEITURA para qualquer usuário autenticado
+-- Necessário para que o sistema consiga verificar quem pode logar
+CREATE POLICY "usuarios_autorizados_select" ON public.usuarios_autorizados
+    FOR SELECT TO authenticated
+    USING (true);
+
+-- 2. Permitir INSERÇÃO/EDIÇÃO/EXCLUSÃO apenas para Administradores
+-- Usamos uma checagem que evita recursão infinita
+CREATE POLICY "usuarios_autorizados_admin_modify" ON public.usuarios_autorizados
     FOR ALL TO authenticated
     USING (
-        auth.jwt() ->> 'email' = 'gui.gomesassis@gmail.com' -- Master Admin
+        auth.jwt() ->> 'email' = 'gui.gomesassis@gmail.com' -- Master Admin sempre pode
         OR 
         EXISTS (
             SELECT 1 FROM public.usuarios_autorizados 
-            WHERE email = auth.jwt() ->> 'email' AND role = 'admin' AND ativo = TRUE
+            WHERE email = auth.jwt() ->> 'email' 
+            AND role = 'admin' 
+            AND ativo = TRUE
+        )
+    )
+    WITH CHECK (
+        auth.jwt() ->> 'email' = 'gui.gomesassis@gmail.com'
+        OR 
+        EXISTS (
+            SELECT 1 FROM public.usuarios_autorizados 
+            WHERE email = auth.jwt() ->> 'email' 
+            AND role = 'admin' 
+            AND ativo = TRUE
         )
     );
 
