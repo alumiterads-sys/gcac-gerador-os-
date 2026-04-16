@@ -154,7 +154,7 @@ function PaginaDetalheCliente() {
 
 // ── Guard de Autenticação ────────────────────────────────────────────────
 
-function RotaProtegida({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
+function RotaProtegida({ children, modulo }: { children: React.ReactNode, modulo?: string }) {
   const { usuario, estaAutenticado, estaCarregando } = useAuth();
 
   if (estaCarregando) {
@@ -168,7 +168,19 @@ function RotaProtegida({ children, adminOnly = false }: { children: React.ReactN
     );
   }
 
-  if (!estaAutenticado) return <Navigate to="/login" replace />;
+  if (!estaAutenticado || !usuario) return <Navigate to="/login" replace />;
+
+  // Admin Mestre sempre tem acesso
+  if (usuario.email === 'gui.gomesassis@gmail.com') return <>{children}</>;
+
+  // Se for admin, tem acesso a tudo
+  if (usuario.role === 'admin') return <>{children}</>;
+
+  // Se houver um módulo específico, verifica permissão
+  if (modulo && !usuario.permissoes?.includes(modulo)) {
+    return <Navigate to="/ordens" replace />; // Redireciona para o padrão (Ordens)
+  }
+
   return <>{children}</>;
 }
 
@@ -203,50 +215,50 @@ export default function App() {
                               </RotaProtegida>
                             }>
                               <Route index element={<ProtecaoIndex />} />
-                              <Route path="dashboard" element={<RotaProtegida adminOnly><Dashboard /></RotaProtegida>} />
-                              <Route path="ordens" element={<RotaProtegida adminOnly><ListaOrdens /></RotaProtegida>} />
+                              <Route path="dashboard" element={<RotaProtegida modulo="painel"><Dashboard /></RotaProtegida>} />
+                              <Route path="ordens" element={<RotaProtegida modulo="ordens"><ListaOrdens /></RotaProtegida>} />
                               <Route path="ordens/nova" element={
-                                <RotaProtegida adminOnly>
+                                <RotaProtegida modulo="ordens">
                                   <div>
                                     <h1 className="text-2xl font-bold text-white mb-6">Nova Ordem de Serviço</h1>
                                     <FormularioOrdem />
                                   </div>
                                 </RotaProtegida>
                               } />
-                              <Route path="ordens/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrdem /></RotaProtegida>} />
-                              <Route path="ordens/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrdem /></RotaProtegida>} />
-                              <Route path="clientes" element={<RotaProtegida adminOnly><ListaClientes /></RotaProtegida>} />
-                              <Route path="clientes/:id" element={<RotaProtegida adminOnly><PaginaDetalheCliente /></RotaProtegida>} />
-                              <Route path="agendamentos" element={<ListaAgendamentos />} />
-                              <Route path="financeiro" element={<RotaProtegida adminOnly><Financeiro /></RotaProtegida>} />
-                              <Route path="rotina" element={<RotaProtegida adminOnly><RotinaDiaria /></RotaProtegida>} />
-                              <Route path="agenda" element={<RotaProtegida adminOnly><ListaLembretes /></RotaProtegida>} />
-                              <Route path="configuracoes" element={<RotaProtegida adminOnly><Configuracoes /></RotaProtegida>} />
+                              <Route path="ordens/:id" element={<RotaProtegida modulo="ordens"><PaginaDetalheOrdem /></RotaProtegida>} />
+                              <Route path="ordens/:id/editar" element={<RotaProtegida modulo="ordens"><PaginaEditarOrdem /></RotaProtegida>} />
+                              <Route path="clientes" element={<RotaProtegida modulo="clientes"><ListaClientes /></RotaProtegida>} />
+                              <Route path="clientes/:id" element={<RotaProtegida modulo="clientes"><PaginaDetalheCliente /></RotaProtegida>} />
+                              <Route path="agendamentos" element={<RotaProtegida modulo="agendamentos"><ListaAgendamentos /></RotaProtegida>} />
+                              <Route path="financeiro" element={<RotaProtegida modulo="financeiro"><Financeiro /></RotaProtegida>} />
+                              <Route path="rotina" element={<RotaProtegida modulo="rotina"><RotinaDiaria /></RotaProtegida>} />
+                              <Route path="agenda" element={<RotaProtegida modulo="agenda"><ListaLembretes /></RotaProtegida>} />
+                              <Route path="configuracoes" element={<RotaProtegida modulo="config"><Configuracoes /></RotaProtegida>} />
                               
                               {/* Orçamentos */}
-                              <Route path="orcamentos" element={<RotaProtegida adminOnly><ListaOrcamentos /></RotaProtegida>} />
+                              <Route path="orcamentos" element={<RotaProtegida modulo="orcamentos"><ListaOrcamentos /></RotaProtegida>} />
                               <Route path="orcamentos/novo" element={
-                                <RotaProtegida adminOnly>
+                                <RotaProtegida modulo="orcamentos">
                                   <div>
                                     <h1 className="text-2xl font-bold text-white mb-6">Novo Orçamento</h1>
                                     <FormularioOrcamento />
                                   </div>
                                 </RotaProtegida>
                               } />
-                              <Route path="orcamentos/:id" element={<RotaProtegida adminOnly><PaginaDetalheOrcamento /></RotaProtegida>} />
-                              <Route path="orcamentos/:id/editar" element={<RotaProtegida adminOnly><PaginaEditarOrcamento /></RotaProtegida>} />
+                              <Route path="orcamentos/:id" element={<RotaProtegida modulo="orcamentos"><PaginaDetalheOrcamento /></RotaProtegida>} />
+                              <Route path="orcamentos/:id/editar" element={<RotaProtegida modulo="orcamentos"><PaginaEditarOrcamento /></RotaProtegida>} />
 
                               {/* Recibos */}
-                              <Route path="recibos" element={<RotaProtegida adminOnly><ListaRecibos /></RotaProtegida>} />
+                              <Route path="recibos" element={<RotaProtegida modulo="recibos"><ListaRecibos /></RotaProtegida>} />
                               <Route path="recibos/novo" element={
-                                <RotaProtegida adminOnly>
+                                <RotaProtegida modulo="recibos">
                                   <div>
                                     <h1 className="text-2xl font-bold text-white mb-6">Novo Recibo</h1>
                                     <FormularioRecibo />
                                   </div>
                                 </RotaProtegida>
                               } />
-                              <Route path="recibos/:id" element={<RotaProtegida adminOnly><PaginaDetalheRecibo /></RotaProtegida>} />
+                              <Route path="recibos/:id" element={<RotaProtegida modulo="recibos"><PaginaDetalheRecibo /></RotaProtegida>} />
                             </Route>
 
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -39,16 +39,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
       });
       const info = await res.json();
-
-      // Cadeado de segurança para Administrador Único (Guilherme)
-      const USUARIOS_PERMITIDOS: Record<string, 'admin' | 'instrutor'> = {
-        'gui.gomesassis@gmail.com': 'admin'
-      };
-
       const emailLower = info.email.toLowerCase();
-      if (!USUARIOS_PERMITIDOS[emailLower]) {
+
+      // 1. Busca na Whitelist do Banco de Dados
+      const { data: whitelistData, error: whitelistError } = await supabase
+        .from('usuarios_autorizados')
+        .select('*')
+        .eq('email', emailLower)
+        .eq('ativo', true)
+        .single();
+
+      // 2. Cadeado de segurança para Administrador Mestre (Fallback)
+      const ehMasterAdmin = emailLower === 'gui.gomesassis@gmail.com';
+
+      if (!ehMasterAdmin && (whitelistError || !whitelistData)) {
         throw new Error('ACESSO_REJEITADO');
       }
+
+      const role = ehMasterAdmin ? 'admin' : (whitelistData.role as 'admin' | 'instrutor');
+      const permissoes = ehMasterAdmin 
+        ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
+        : (whitelistData.permissoes || ["ordens"]);
 
       const novoUsuario: UsuarioGoogle = {
         id: info.sub,
@@ -56,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: info.email,
         fotoPerfil: info.picture,
         accessToken: tokenResponse.access_token,
-        role: USUARIOS_PERMITIDOS[emailLower],
+        role,
+        permissoes
       };
 
       setUsuario(novoUsuario);

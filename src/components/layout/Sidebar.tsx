@@ -12,16 +12,16 @@ import { useNotificacoesSistema } from '../../context/NotificacoesSistemaContext
 import { NotificacoesDropdown } from './NotificacoesDropdown';
 
 const links = [
-  { to: '/dashboard', label: 'Painel',          icon: LayoutDashboard },
-  { to: '/rotina',    label: 'Rotina Diária',   icon: ListTodo },
-  { to: '/agenda',    label: 'Agenda / Lembretes', icon: ListTodo },
-  { to: '/financeiro', label: 'Financeiro',     icon: BarChart3 },
-  { to: '/orcamentos', label: 'Orçamentos',     icon: Receipt },
-  { to: '/ordens',     label: 'Ordens de Serviço', icon: FileText },
-  { to: '/recibos',    label: 'Recibos',           icon: Receipt },
-  { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar },
-  { to: '/clientes',   label: 'Meus Clientes',     icon: Users },
-  { to: '/configuracoes', label: 'Configurações', icon: Settings },
+  { to: '/dashboard', label: 'Painel',          icon: LayoutDashboard, slug: 'painel' },
+  { to: '/rotina',    label: 'Rotina Diária',   icon: ListTodo,        slug: 'rotina' },
+  { to: '/agenda',    label: 'Agenda / Lembretes', icon: ListTodo,     slug: 'agenda' },
+  { to: '/financeiro', label: 'Financeiro',     icon: BarChart3,       slug: 'financeiro' },
+  { to: '/orcamentos', label: 'Orçamentos',     icon: Receipt,         slug: 'orcamentos' },
+  { to: '/ordens',     label: 'Ordens de Serviço', icon: FileText,      slug: 'ordens' },
+  { to: '/recibos',    label: 'Recibos',           icon: Receipt,      slug: 'recibos' },
+  { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar,      slug: 'agendamentos' },
+  { to: '/clientes',   label: 'Meus Clientes',     icon: Users,         slug: 'clientes' },
+  { to: '/configuracoes', label: 'Configurações', icon: Settings,      slug: 'config' },
 ].sort((a, b) => a.label.localeCompare(b.label));
 
 export function Sidebar() {
@@ -53,7 +53,9 @@ export function Sidebar() {
     setSincronizando(false);
   };
 
-  const linksFiltrados = links;
+  const linksFiltrados = links.filter(link => 
+    usuario?.permissoes?.includes(link.slug) || usuario?.role === 'admin'
+  );
 
   const isAdmin = usuario?.role === 'admin';
 
@@ -192,7 +194,10 @@ export function Sidebar() {
 export function NavegacaoInferior() {
   const { itensFila } = useOrdens();
 
-  const linksFiltrados = links;
+  const { usuario } = useAuth();
+  const linksFiltrados = links.filter(link => 
+    usuario?.permissoes?.includes(link.slug) || usuario?.role === 'admin'
+  );
 
   const getShortLabel = (label: string) => {
     if (label === 'Rotina Diária') return 'Rotina';

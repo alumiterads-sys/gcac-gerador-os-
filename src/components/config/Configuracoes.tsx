@@ -8,6 +8,7 @@ import { sincronizarPendentes } from '../../services/driveSync';
 import { LogOut, Cloud, RefreshCw, User, Wifi, WifiOff, ShieldCheck, Plus, Settings2, Edit2, Trash2, BadgeDollarSign } from 'lucide-react';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { ModalServico } from './ModalServico';
+import { GestaoUsuarios } from './GestaoUsuarios';
 import { formatarMoeda } from '../../utils/formatters';
 import { ServicoConfig } from '../../types';
 
@@ -68,6 +69,9 @@ export function Configuracoes() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold text-white">Configurações e Serviços</h1>
+
+      {/* ── Gestão de Usuários (Apenas Admin) ── */}
+      {usuario?.role === 'admin' && <GestaoUsuarios />}
 
       {/* ── Gerenciador de Serviços ── */}
       <div className="card space-y-4">

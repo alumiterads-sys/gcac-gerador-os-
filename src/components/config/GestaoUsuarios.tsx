@@ -1,0 +1,368 @@
+import React, { useState, useEffect } from 'react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { supabase } from '../../db/supabase';
+import { Notificacao, useNotificacao } from '../common/Notificacao';
+
+interface UsuarioAutorizado {
+  id: string;
+  nome: string;
+  email: string;
+  cpf: string | null;
+  contato: string | null;
+  role: 'admin' | 'instrutor';
+  ativo: boolean;
+  permissoes: string[];
+}
+
+const MODULOS = [
+  { slug: 'painel', label: 'Painel / Dashboard' },
+  { slug: 'rotina', label: 'Rotina Diária' },
+  { slug: 'agenda', label: 'Agenda / Lembretes' },
+  { slug: 'financeiro', label: 'Financeiro' },
+  { slug: 'orcamentos', label: 'Orçamentos' },
+  { slug: 'ordens', label: 'Ordens de Serviço' },
+  { slug: 'recibos', label: 'Recibos' },
+  { slug: 'agendamentos', label: 'Agendamentos' },
+  { slug: 'clientes', label: 'Meus Clientes' },
+  { slug: 'config', label: 'Configurações' },
+];
+
+export function GestaoUsuarios() {
+  const [usuarios, setUsuarios] = useState<UsuarioAutorizado[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const { estado: notif, mostrar, fechar } = useNotificacao();
+  
+  // Modal State
+  const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState<UsuarioAutorizado | null>(null);
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    cpf: '',
+    contato: '',
+    role: 'instrutor' as 'admin' | 'instrutor',
+    permissoes: ['ordens'] as string[]
+  });
+
+  const carregarUsuarios = async () => {
+    setCarregando(true);
+    const { data, error } = await supabase
+      .from('usuarios_autorizados')
+      .select('*')
+      .order('nome');
+    
+    if (error) {
+      mostrar('erro', 'Erro ao carregar usuários.');
+    } else {
+      setUsuarios(data || []);
+    }
+    setCarregando(false);
+  };
+
+  useEffect(() => {
+    carregarUsuarios();
+  }, []);
+
+  const handleAbrirModal = (user?: UsuarioAutorizado) => {
+    if (user) {
+      setEditando(user);
+      setFormData({
+        nome: user.nome,
+        email: user.email,
+        cpf: user.cpf || '',
+        contato: user.contato || '',
+        role: user.role,
+        permissoes: user.permissoes
+      });
+    } else {
+      setEditando(null);
+      setFormData({
+        nome: '',
+        email: '',
+        cpf: '',
+        contato: '',
+        role: 'instrutor',
+        permissoes: ['ordens']
+      });
+    }
+    setModalAberto(true);
+  };
+
+  const handleSalvar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editando) {
+        const { error } = await supabase
+          .from('usuarios_autorizados')
+          .update({
+            nome: formData.nome,
+            email: formData.email.toLowerCase(),
+            cpf: formData.cpf,
+            contato: formData.contato,
+            role: formData.role,
+            permissoes: formData.permissoes
+          })
+          .eq('id', editando.id);
+        
+        if (error) throw error;
+        mostrar('sucesso', 'Usuário atualizado com sucesso.');
+      } else {
+        const { error } = await supabase
+          .from('usuarios_autorizados')
+          .insert([{
+            nome: formData.nome,
+            email: formData.email.toLowerCase(),
+            cpf: formData.cpf,
+            contato: formData.contato,
+            role: formData.role,
+            permissoes: formData.permissoes,
+            ativo: true
+          }]);
+        
+        if (error) throw error;
+        mostrar('sucesso', 'Usuário cadastrado com sucesso.');
+      }
+      setModalAberto(false);
+      carregarUsuarios();
+    } catch (err: any) {
+      mostrar('erro', err.message || 'Erro ao realizar operação.');
+    }
+  };
+
+  const toggleStatus = async (user: UsuarioAutorizado) => {
+    if (user.email === 'gui.gomesassis@gmail.com') {
+      mostrar('aviso', 'O administrador mestre não pode ser desativado.');
+      return;
+    }
+
+    const novoStatus = !user.ativo;
+    const { error } = await supabase
+      .from('usuarios_autorizados')
+      .update({ ativo: novoStatus })
+      .eq('id', user.id);
+    
+    if (error) {
+      mostrar('erro', 'Erro ao alterar status.');
+    } else {
+      setUsuarios(usuarios.map(u => u.id === user.id ? { ...u, ativo: novoStatus } : u));
+      mostrar('sucesso', `Usuário ${novoStatus ? 'ativado' : 'desativado'} com sucesso.`);
+    }
+  };
+
+  const togglePermissao = (slug: string) => {
+    setFormData(prev => ({
+      ...prev,
+      permissoes: prev.permissoes.includes(slug)
+        ? prev.permissoes.filter(p => p !== slug)
+        : [...prev.permissoes, slug]
+    }));
+  };
+
+  return (
+    <div className="space-y-4">
+      <Notificacao {...notif} onFechar={fechar} />
+
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <Lock size={14} />
+            E-mails de Liberação e Acessos
+          </h2>
+          <button onClick={() => handleAbrirModal()} className="btn-primary btn-sm px-3">
+            <UserPlus size={14} /> Novo Usuário
+          </button>
+        </div>
+
+        {carregando ? (
+          <div className="text-center py-8">
+            <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        ) : usuarios.length === 0 ? (
+          <div className="text-center py-8 bg-brand-dark-4 border border-brand-dark-5 rounded-xl">
+            <p className="text-sm text-gray-500">Nenhum usuário cadastrado.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-gray-500 text-xs uppercase bg-brand-dark-3/50">
+                <tr>
+                  <th className="px-3 py-2 font-bold">Usuário / E-mail</th>
+                  <th className="px-3 py-2 font-bold">Nível</th>
+                  <th className="px-3 py-2 font-bold">Status</th>
+                  <th className="px-3 py-2 font-bold text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-dark-5">
+                {usuarios.map(u => (
+                  <tr key={u.id} className="hover:bg-brand-dark-4 transition-colors">
+                    <td className="px-3 py-3">
+                      <p className="font-bold text-white text-sm">{u.nome}</p>
+                      <p className="text-xs text-gray-500">{u.email}</p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                        u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
+                                         : 'bg-brand-blue/10 text-brand-blue-light border border-brand-blue/20'
+                      }`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <button 
+                        onClick={() => toggleStatus(u)}
+                        className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
+                          u.ativo ? 'text-brand-green hover:text-brand-green-light' : 'text-red-400 hover:text-red-300'
+                        }`}
+                      >
+                        {u.ativo ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <button onClick={() => handleAbrirModal(u)} className="p-1.5 text-gray-400 hover:text-brand-blue-light">
+                        <Edit2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {modalAberto && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-brand-dark-3 border border-brand-dark-5 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scale-in">
+            <div className="bg-brand-dark-2 px-6 py-4 border-b border-brand-dark-5 flex items-center justify-between">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Shield size={18} className="text-brand-blue" />
+                {editando ? 'Editar Usuário' : 'Novo Usuário Autorizado'}
+              </h3>
+              <button onClick={() => setModalAberto(false)} className="text-gray-500 hover:text-white">
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvar} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Nome Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.nome}
+                    onChange={e => setFormData({ ...formData, nome: e.target.value })}
+                    className="input-field"
+                    placeholder="Ex: João Silva"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">E-mail (Google)</label>
+                  <input
+                    type="email"
+                    required
+                    disabled={!!editando && editando.email === 'gui.gomesassis@gmail.com'}
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    className="input-field"
+                    placeholder="email@gmail.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">CPF</label>
+                  <input
+                    type="text"
+                    value={formData.cpf}
+                    onChange={e => setFormData({ ...formData, cpf: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Contato</label>
+                  <input
+                    type="text"
+                    value={formData.contato}
+                    onChange={e => setFormData({ ...formData, contato: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Nível de Acesso</label>
+                <div className="flex gap-4">
+                  <label className="flex-1 cursor-pointer group">
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={formData.role === 'instrutor'}
+                      onChange={() => setFormData({ ...formData, role: 'instrutor' })}
+                    />
+                    <div className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                      formData.role === 'instrutor' ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-dark-5 bg-brand-dark-4 hover:border-gray-700'
+                    }`}>
+                      <User size={18} className={formData.role === 'instrutor' ? 'text-brand-blue' : 'text-gray-600'} />
+                      <span className={`text-[10px] font-black uppercase ${formData.role === 'instrutor' ? 'text-white' : 'text-gray-500'}`}>Instrutor</span>
+                    </div>
+                  </label>
+                  <label className="flex-1 cursor-pointer group">
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={formData.role === 'admin'}
+                      onChange={() => setFormData({ ...formData, role: 'admin' })}
+                    />
+                    <div className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
+                      formData.role === 'admin' ? 'border-purple-500 bg-purple-500/5' : 'border-brand-dark-5 bg-brand-dark-4 hover:border-gray-700'
+                    }`}>
+                      <Shield size={18} className={formData.role === 'admin' ? 'text-purple-400' : 'text-gray-600'} />
+                      <span className={`text-[10px] font-black uppercase ${formData.role === 'admin' ? 'text-white' : 'text-gray-500'}`}>Administrador</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase block mb-3">Módulos Permitidos</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {MODULOS.map(m => (
+                    <button
+                      key={m.slug}
+                      type="button"
+                      onClick={() => togglePermissao(m.slug)}
+                      className={`flex items-center justify-between p-2.5 rounded-lg border text-sm transition-all ${
+                        formData.permissoes.includes(m.slug)
+                          ? 'bg-brand-blue/10 border-brand-blue/30 text-white font-bold'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500 hover:border-gray-700'
+                      }`}
+                    >
+                      {m.label}
+                      {formData.permissoes.includes(m.slug) ? <CheckCircle size={14} className="text-brand-green" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-700" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalAberto(false)}
+                  className="btn-ghost flex-1 justify-center"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary flex-1 justify-center"
+                >
+                  {editando ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

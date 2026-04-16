@@ -196,6 +196,7 @@ export interface UsuarioGoogle {
   fotoPerfil: string;
   accessToken: string;
   role: 'admin' | 'instrutor';
+  permissoes?: string[];
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────
