@@ -110,8 +110,8 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
   doc.setTextColor(ESCURO_BRAND);
   recibo.servicos.forEach((s) => {
     // --- LOGICA DE QUEBRA DE PAGINA ---
-    const alturaNecessaria = 15 + (s.detalhes ? (doc.splitTextToSize(s.detalhes, largura - 60).length * 4) : 0);
-    if (y + alturaNecessaria > 195) { // Limite mais rígido para não bater na assinatura
+    const alturaNecessaria = 12 + (s.detalhes ? (doc.splitTextToSize(s.detalhes, largura - 60).length * 4) : 0);
+    if (y + alturaNecessaria > 215) { // Aumentado de 195 para 215 para melhor aproveitamento de página
       doc.addPage();
       y = 25;
       
@@ -144,9 +144,9 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
       doc.setTextColor(CINZA_TEXTO);
       const detalhes = doc.splitTextToSize(s.detalhes, largura - 60);
       doc.text(detalhes, 18, y + 6 + alturaNome);
-      y += alturaNome + (detalhes.length * 4) + 6;
+      y += alturaNome + (detalhes.length * 4) + 4; // Reduzido de 6 para 4
     } else {
-      y += alturaNome + 4;
+      y += alturaNome + 2; // Reduzido de 4 para 2
     }
 
     doc.setDrawColor(LINHA_LEVE);
@@ -156,11 +156,9 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
 
 
   // 4. Totais e Pagamento (Box Cinza/Claro)
-  y += 10;
-  
-  // Se não couber o box de total + as assinaturas, pula página
-  // O box tem 32mm e as assinaturas precisam de mais uns 60mm
-  if (y + 32 + 60 > altura) {
+  // O box tem 32mm, observações ~25mm e as assinaturas precisam de mais uns 60mm
+  const alturaTotalPendente = 32 + (recibo.observacoes ? 25 : 0) + 60;
+  if (y + alturaTotalPendente > altura) {
     doc.addPage();
     y = 20;
   }
@@ -187,8 +185,27 @@ export async function gerarPdfReciboBlob(recibo: Recibo): Promise<Blob> {
   doc.setFontSize(22); // Aumentado para dar destaque
   doc.text(formatarMoeda(recibo.valorTotal), largura - 18, y + 26, { align: 'right' });
 
+  y += 38;
 
-  // 5. Assinaturas
+  // 4.1 Observações Adicionais (Se houver)
+  if (recibo.observacoes && recibo.observacoes.trim()) {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(CINZA_TEXTO);
+    doc.text('OBSERVAÇÕES ADICIONAIS', 12, y);
+    y += 3;
+
+    doc.setDrawColor(LINHA_LEVE);
+    doc.setLineWidth(0.5);
+    const linhasObs = doc.splitTextToSize(recibo.observacoes, largura - 34);
+    const alturaObsBox = Math.max(12, (linhasObs.length * 4.5) + 6);
+    doc.roundedRect(12, y, largura - 24, alturaObsBox, 2, 2, 'S');
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(ESCURO_BRAND);
+    doc.text(linhasObs, 18, y + 7);
+    y += alturaObsBox + 10;
+  }
   const yAssIn = altura - 60;
 
   // 5.1 Assinatura Guilherme (Rubrica Master) - Desenhar primeiro para ficar por baixo
