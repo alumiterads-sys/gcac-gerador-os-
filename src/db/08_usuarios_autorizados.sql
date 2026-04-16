@@ -69,5 +69,15 @@ INSERT INTO public.usuarios_autorizados (nome, email, role, ativo, permissoes)
 VALUES ('Guilherme Gomes', 'gui.gomesassis@gmail.com', 'admin', TRUE, '["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]')
 ON CONFLICT (email) DO NOTHING;
 
--- Habilitar Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios_autorizados;
+-- Habilitar Realtime de forma segura
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' 
+        AND schemaname = 'public' 
+        AND tablename = 'usuarios_autorizados'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios_autorizados;
+    END IF;
+END $$;
