@@ -58,6 +58,7 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_usuarios_autorizados_updated_at ON public.usuarios_autorizados;
 CREATE TRIGGER update_usuarios_autorizados_updated_at
     BEFORE UPDATE ON public.usuarios_autorizados
     FOR EACH ROW
