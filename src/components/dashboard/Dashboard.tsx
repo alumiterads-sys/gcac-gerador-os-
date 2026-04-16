@@ -327,7 +327,7 @@ export function Dashboard() {
                 </div>
                 <div className="w-px h-8 bg-brand-dark-5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{ordem.nomeCliente}</p>
+                  <p className="text-sm font-semibold text-white">{ordem.nomeCliente}</p>
                   <p className="text-xs text-gray-400">{formatarData(ordem.criadoEm)}</p>
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-2">

@@ -132,8 +132,8 @@ export function ListaOrcamentos() {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white truncate">{orcamento.nomeCliente}</p>
-                <p className="text-xs text-brand-blue-light truncate mt-0.5">
+                <p className="font-semibold text-white">{orcamento.nomeCliente}</p>
+                <p className="text-xs text-brand-blue-light mt-0.5">
                   {orcamento.servicos && orcamento.servicos.length > 0
                     ? orcamento.servicos.map(s => s.nome).join(', ')
                     : 'Sem serviços especificados'}

@@ -86,7 +86,7 @@ export function ListaRecibos() {
                   <Receipt size={20} />
                 </div>
                 <div className="min-w-0 pr-12">
-                  <h3 className="text-sm font-bold text-white truncate uppercase">{recibo.clienteNome}</h3>
+                  <h3 className="text-sm font-bold text-white uppercase">{recibo.clienteNome}</h3>
                   <p className="text-xs text-brand-green-light font-bold mt-0.5">
                     {formatarMoeda(recibo.valorTotal)}
                   </p>

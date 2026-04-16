@@ -158,7 +158,7 @@ export function RotinaDiaria() {
                               ) : (
                                 <div className="w-2.5 h-2.5 rounded-full border border-gray-600 shrink-0" />
                               )}
-                              <span className={`text-[10px] truncate ${isProtocolado ? 'text-brand-blue-light font-bold' : isConcluido ? 'text-gray-500 line-through' : 'text-gray-400'}`}>
+                              <span className={`text-[10px] ${isProtocolado ? 'text-brand-blue-light font-bold' : isConcluido ? 'text-gray-500 line-through' : 'text-gray-400'}`}>
                                 {s.nome}
                               </span>
                               {s.protocolo && (
@@ -267,7 +267,7 @@ export function RotinaDiaria() {
                               ) : (
                                 <div className="w-2.5 h-2.5 rounded-full border border-gray-600 shrink-0" />
                               )}
-                              <span className={`text-[10px] truncate ${needsGRU ? 'text-orange-400 font-bold' : hasGRU ? 'text-brand-green' : 'text-gray-400'}`}>
+                              <span className={`text-[10px] ${needsGRU ? 'text-orange-400 font-bold' : hasGRU ? 'text-brand-green' : 'text-gray-400'}`}>
                                 {s.nome}
                               </span>
                               {s.protocolo && (

@@ -96,7 +96,7 @@ export function ListaClientes() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
+            <table className="w-full text-left text-sm">
               <thead className="bg-brand-dark-3 text-gray-400 text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3 rounded-l-lg font-semibold">Nome / CPF</th>

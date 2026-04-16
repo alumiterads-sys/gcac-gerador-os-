@@ -50,7 +50,7 @@ export function WidgetLembretes() {
                 <div className="w-2.5 h-2.5 rounded-full bg-brand-green opacity-0 group-hover/item:opacity-30" />
               </button>
               <div className="truncate">
-                <p className="text-[11px] font-bold text-white truncate">{l.titulo}</p>
+                <p className="text-[11px] font-bold text-white">{l.titulo}</p>
                 {l.horario && <p className="text-[9px] text-gray-500 font-bold">{l.horario}</p>}
               </div>
             </div>
