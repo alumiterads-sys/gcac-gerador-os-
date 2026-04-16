@@ -107,6 +107,9 @@ export interface OrdemDeServico {
   drivePdfId: string | null;
   ultimaSincronizacao: string | null;
   pendenteSincronizacao: boolean;
+  criadoPorNome?: string;
+  concluidoPorNome?: string;
+  usuarioId?: string;
 
   // Datas
   criadoEm: string;
@@ -145,6 +148,8 @@ export interface Orcamento {
   observacoes: string;
   convertidoOsId?: string;
   taxaPFTotal?: number;
+  criadoPorNome?: string;
+  usuarioId?: string;
   
   // Datas
   criadoEm: string;
@@ -172,6 +177,8 @@ export interface Recibo {
   ordemId?: string;
   formaPagamento: FormaPagamento;
   observacoes: string;
+  criadoPorNome?: string;
+  usuarioId?: string;
   
   // Emitente (Dados Fixos)
   emitenteNome: string;

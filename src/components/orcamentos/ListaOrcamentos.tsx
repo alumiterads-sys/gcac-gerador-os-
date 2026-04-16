@@ -138,7 +138,10 @@ export function ListaOrcamentos() {
                     ? orcamento.servicos.map(s => s.nome).join(', ')
                     : 'Sem serviços especificados'}
                 </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{formatarDataHora(orcamento.criadoEm)}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">
+                  {formatarDataHora(orcamento.criadoEm)}
+                  {orcamento.criadoPorNome && ` • Emitido por: ${orcamento.criadoPorNome}`}
+                </p>
               </div>
 
               {/* Valor e Status */}

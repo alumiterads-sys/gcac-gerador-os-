@@ -243,7 +243,8 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.text('GCAC Despachante Bélico — Documento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
-  doc.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), largura / 2, altura - 4, { align: 'center' });
+  const emitidoPor = ordem.criadoPorNome ? `Emitido por: ${ordem.criadoPorNome} | ` : '';
+  doc.text(emitidoPor + 'Gerado em: ' + new Date().toLocaleString('pt-BR'), largura / 2, altura - 4, { align: 'center' });
 
   return doc.output('blob');
 }

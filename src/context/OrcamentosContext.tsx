@@ -29,6 +29,8 @@ const mapFromDB = (row: any): Orcamento => ({
   filiadoProTiro: row.filiado_pro_tiro || false,
   clubeFiliado: row.clube_filiado || '',
   endereco: row.endereco || '',
+  criadoPorNome: row.criado_por_nome || '',
+  usuarioId: row.usuario_id || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -48,6 +50,8 @@ const mapToDB = (dados: any) => {
   if (dados.filiadoProTiro !== undefined) payload.filiado_pro_tiro = dados.filiadoProTiro;
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   if (dados.endereco !== undefined) payload.endereco = dados.endereco;
+  if (dados.criadoPorNome !== undefined) payload.criado_por_nome = dados.criadoPorNome;
+  if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
   
   return payload;
 };
@@ -79,7 +83,8 @@ export function OrcamentosProvider({ children }: { children: React.ReactNode }) 
 
     const payloadNovo = {
       ...mapToDB(dados),
-      usuario_id: usuario.id
+      usuario_id: usuario.id,
+      criado_por_nome: usuario.nome
     };
 
     const { data, error } = await supabase

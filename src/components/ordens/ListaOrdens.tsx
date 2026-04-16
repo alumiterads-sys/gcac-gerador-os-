@@ -364,6 +364,9 @@ export function ListaOrdens() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white leading-tight">{ordem.nomeCliente}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">{ordem.servicos ? ordem.servicos.map((s: any) => s.nome).join(', ') : (ordem as any).servico}</p>
+                {ordem.criadoPorNome && (
+                  <p className="text-[9px] text-brand-blue-light/70 font-bold uppercase mt-1 tracking-tighter">Emitido por: {ordem.criadoPorNome}</p>
+                )}
                 
                 {/* Status de Execução Compacto */}
                 <div className="mt-2 flex flex-col gap-1.5">

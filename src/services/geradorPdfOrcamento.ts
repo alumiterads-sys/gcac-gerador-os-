@@ -248,7 +248,8 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.text('GCAC Despachante Bélico — Orçamento gerado eletronicamente', largura / 2, altura - 8, { align: 'center' });
-  doc.text('Aprovação sujeita a análise de documentos.', largura / 2, altura - 4, { align: 'center' });
+  const emitidoPor = orcamento.criadoPorNome ? `Emitido por: ${orcamento.criadoPorNome} | ` : '';
+  doc.text(emitidoPor + 'Gerado em: ' + new Date().toLocaleString('pt-BR'), largura / 2, altura - 4, { align: 'center' });
 
   return doc.output('blob');
 }

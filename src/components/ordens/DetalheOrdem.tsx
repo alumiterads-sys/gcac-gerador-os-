@@ -557,6 +557,28 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         </div>
       )}
 
+      {/* ── Auditoria e Rastreio ── */}
+      <div className="card bg-brand-dark-3/30 border-dashed border-brand-dark-5">
+        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <ShieldCheck size={12} className="text-brand-blue-light/50" />
+          Informações de Auditoria
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-[10px] text-gray-500 font-bold uppercase">Emissão do Documento</p>
+            <p className="text-xs text-white uppercase font-bold">{ordem.criadoPorNome || 'Sistema (Antigo)'}</p>
+            <p className="text-[10px] text-gray-500">{formatarDataHora(ordem.criadoEm)}</p>
+          </div>
+          {ordem.status === 'Pago' && (
+            <div className="space-y-1">
+              <p className="text-[10px] text-gray-500 font-bold uppercase">Conclusão / Baixa</p>
+              <p className="text-xs text-brand-green uppercase font-bold">{ordem.concluidoPorNome || 'Automático'}</p>
+              <p className="text-[10px] text-gray-500">{formatarDataHora(ordem.atualizadoEm)}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       <Notificacao {...notif} onFechar={fechar} />
       <DialogConfirmacao
         aberto={confirmandoDelete}

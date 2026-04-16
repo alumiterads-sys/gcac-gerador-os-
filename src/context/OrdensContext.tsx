@@ -56,6 +56,9 @@ const mapFromDB = (row: any): OrdemDeServico => {
     drivePdfId: row.drive_pdf_id || null,
     ultimaSincronizacao: row.ultima_sincronizacao || null,
     pendenteSincronizacao: row.pendente_sincronizacao,
+    criadoPorNome: row.criado_por_nome || '',
+    concluidoPorNome: row.concluido_por_nome || '',
+    usuarioId: row.usuario_id || '',
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
   };
@@ -81,6 +84,9 @@ const mapToDB = (dados: any) => {
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.migrado !== undefined) payload.migrado = dados.migrado;
   if (dados.taxaPFTotal !== undefined) payload.taxa_pf_total = dados.taxaPFTotal;
+  if (dados.criadoPorNome !== undefined) payload.criado_por_nome = dados.criadoPorNome;
+  if (dados.concluidoPorNome !== undefined) payload.concluido_por_nome = dados.concluidoPorNome;
+  if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
   
   if (dados.driveArquivoJsonId !== undefined) payload.drive_arquivo_json_id = dados.driveArquivoJsonId;
   if (dados.drivePdfId !== undefined) payload.drive_pdf_id = dados.drivePdfId;
@@ -118,7 +124,9 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     
     const payloadNovo = {
       ...mapToDB(dados),
-      pendente_sincronizacao: true
+      pendente_sincronizacao: true,
+      criado_por_nome: usuario?.nome || 'Sistema',
+      usuario_id: usuario?.id
     };
 
     const { data, error } = await supabase
@@ -229,9 +237,13 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     const novoHistorico = [...(ordem.historicoPagamentos || []), novoPagamento];
     const novoValorPago = novoHistorico.reduce((acc, p) => acc + p.valor, 0);
     
+    
     let novoStatus: StatusOS = ordem.status;
+    let concluidoPorNome = ordem.concluidoPorNome;
+
     if (novoValorPago >= ordem.valor) {
       novoStatus = 'Pago';
+      concluidoPorNome = usuario?.nome || 'Sistema';
     } else if (novoValorPago > 0) {
       novoStatus = 'Parcialmente Pago';
     } else {
@@ -242,6 +254,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       valorPago: novoValorPago,
       historicoPagamentos: novoHistorico,
       status: novoStatus,
+      concluidoPorNome: concluidoPorNome,
       formaPagamento: metodo // Atualiza forma principal com o último método
     });
   }, [ordens, atualizarOrdem]);

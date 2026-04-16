@@ -98,6 +98,12 @@ export function ListaRecibos() {
                   <Calendar size={14} className="shrink-0" />
                   <span>{formatarData(recibo.criadoEm)}</span>
                 </div>
+                {recibo.criadoPorNome && (
+                  <div className="flex items-center gap-2 text-[10px] text-brand-blue-light/70 font-bold uppercase">
+                    <User size={12} className="shrink-0" />
+                    <span>Emitido por: {recibo.criadoPorNome}</span>
+                  </div>
+                )}
                 {recibo.ordemId && (
                   <div className="flex items-center gap-2 text-xs text-brand-blue-light font-medium">
                     <FileText size={14} className="shrink-0" />

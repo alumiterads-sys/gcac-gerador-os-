@@ -23,6 +23,8 @@ const mapFromDB = (row: any): Recibo => ({
   observacoes: row.observacoes || '',
   emitenteNome: row.emitente_nome,
   emitenteCNPJ: row.emitente_cnpj,
+  criadoPorNome: row.criado_por_nome || '',
+  usuarioId: row.usuario_id || '',
   criadoEm: row.criado_em,
 });
 
@@ -36,6 +38,8 @@ const mapToDB = (dados: any) => ({
   observacoes: dados.observacoes,
   emitente_nome: dados.emitenteNome,
   emitente_cnpj: dados.emitenteCNPJ,
+  criado_por_nome: dados.criadoPorNome,
+  usuario_id: dados.usuarioId,
 });
 
 export function RecibosProvider({ children }: { children: React.ReactNode }) {
@@ -59,9 +63,16 @@ export function RecibosProvider({ children }: { children: React.ReactNode }) {
   const criarRecibo = useCallback(async (
     dados: Omit<Recibo, 'id' | 'numero' | 'criadoEm'>
   ): Promise<string> => {
+    const { usuario } = useAuth();
+    const payloadNovo = {
+      ...mapToDB(dados),
+      criado_por_nome: usuario?.nome || 'Sistema',
+      usuario_id: usuario?.id
+    };
+
     const { data, error } = await supabase
       .from('recibos')
-      .insert([mapToDB(dados)])
+      .insert([payloadNovo])
       .select()
       .single();
 
