@@ -204,7 +204,7 @@ export function GestaoUsuarios() {
                         u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
                                          : 'bg-brand-blue/10 text-brand-blue-light border border-brand-blue/20'
                       }`}>
-                        {u.role === 'colaborador' ? 'Colaborador' : 'Administrador'}
+                        {u.role === 'admin' ? 'Administrador' : 'Colaborador'}
                       </span>
                     </td>
                     <td className="px-3 py-3">
