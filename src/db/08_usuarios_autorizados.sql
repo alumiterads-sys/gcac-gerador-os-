@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.usuarios_autorizados (
     email TEXT NOT NULL UNIQUE,
     cpf TEXT,
     contato TEXT,
-    role TEXT DEFAULT 'instrutor', -- 'admin' ou 'instrutor'
+    role TEXT DEFAULT 'colaborador', -- 'admin' ou 'colaborador'
     ativo BOOLEAN DEFAULT TRUE,
     permissoes JSONB DEFAULT '["ordens"]'::jsonb, -- Lista de slugs de módulos permitidos
     criado_em TIMESTAMPTZ DEFAULT NOW(),

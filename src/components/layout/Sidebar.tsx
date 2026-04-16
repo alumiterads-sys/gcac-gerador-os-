@@ -173,7 +173,7 @@ export function Sidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">{usuario.nome}</p>
               <p className="text-[10px] text-brand-green uppercase font-bold tracking-tighter opacity-70">
-                {usuario.role === 'admin' ? 'Administrador' : 'Instrutor'}
+                {usuario.role === 'admin' ? 'Administrador' : 'Colaborador'}
               </p>
               <p className="text-[10px] text-gray-500 truncate">{usuario.email}</p>
             </div>

@@ -5,7 +5,7 @@ import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { useOrdens } from '../../context/OrdensContext';
 import { useServicos } from '../../context/ServicosContext';
 import { sincronizarPendentes } from '../../services/driveSync';
-import { LogOut, Cloud, RefreshCw, User, Wifi, WifiOff, ShieldCheck, Plus, Settings2, Edit2, Trash2, BadgeDollarSign } from 'lucide-react';
+import { LogOut, Cloud, RefreshCw, User, Wifi, WifiOff, ShieldCheck, Plus, Settings2, Edit2, Trash2, BadgeDollarSign, ChevronDown } from 'lucide-react';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { ModalServico } from './ModalServico';
 import { GestaoUsuarios } from './GestaoUsuarios';
@@ -26,6 +26,9 @@ export function Configuracoes() {
   // Controle de Modal de Serviços
   const [modalAberto, setModalAberto] = useState(false);
   const [servicoEditando, setServicoEditando] = useState<ServicoConfig | null>(null);
+  // Controle de Seções Retráteis
+  const [servicosExpandido, setServicosExpandido] = useState(false);
+  const [usuariosExpandido, setUsuariosExpandido] = useState(false);
 
   const handleSincronizarTudo = async () => {
     if (!online || !usuario) {
@@ -71,66 +74,125 @@ export function Configuracoes() {
       <h1 className="text-2xl font-bold text-white">Configurações e Serviços</h1>
 
       {/* ── Gestão de Usuários (Apenas Admin) ── */}
-      {usuario?.role === 'admin' && <GestaoUsuarios />}
+      {usuario?.role === 'admin' && (
+        <div className="card space-y-4">
+          <div 
+            className="flex items-center justify-between cursor-pointer group"
+            onClick={() => setUsuariosExpandido(!usuariosExpandido)}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg transition-colors ${usuariosExpandido ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-4 text-gray-500 group-hover:text-white'}`}>
+                <ShieldCheck size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-wider">
+                  E-mails de Liberação e Acessos
+                </h2>
+                {!usuariosExpandido && (
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                    Gerencie quem acessa o sistema • Clique para expandir
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className={`text-gray-500 transition-transform duration-300 ${usuariosExpandido ? 'rotate-180' : ''}`}>
+              <ChevronDown size={20} />
+            </div>
+          </div>
+          {usuariosExpandido && (
+            <div className="animate-slide-down pt-2 border-t border-brand-dark-5">
+              <GestaoUsuarios />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Gerenciador de Serviços ── */}
       <div className="card space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-            <Settings2 size={14} />
-            Gerenciar Serviços e Taxas
-          </h2>
-          <button onClick={abrirNovoServico} className="btn-primary btn-sm px-3">
-            <Plus size={14} /> Novo Serviço
-          </button>
+        <div 
+          className="flex items-center justify-between cursor-pointer group"
+          onClick={() => setServicosExpandido(!servicosExpandido)}
+        >
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-lg transition-colors ${servicosExpandido ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-4 text-gray-500 group-hover:text-white'}`}>
+              <Settings2 size={16} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-wider flex items-center gap-2">
+                Gerenciar Serviços e Taxas
+              </h2>
+              {!servicosExpandido && (
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                  {servicos.length} serviços cadastrados • Clique para gerenciar
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {servicosExpandido && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); abrirNovoServico(); }} 
+                className="btn-primary btn-sm px-3 animate-fade-in"
+              >
+                <Plus size={14} /> Novo Serviço
+              </button>
+            )}
+            <div className={`text-gray-500 transition-transform duration-300 ${servicosExpandido ? 'rotate-180' : ''}`}>
+              <ChevronDown size={20} />
+            </div>
+          </div>
         </div>
 
-        {servicos.length === 0 ? (
-          <div className="text-center py-8 bg-brand-dark-4 border border-brand-dark-5 rounded-xl">
-            <p className="text-sm text-gray-500">Nenhum serviço cadastrado ainda.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-gray-500 text-xs uppercase bg-brand-dark-3/50">
-                <tr>
-                  <th className="px-3 py-2 font-bold">Serviço</th>
-                  <th className="px-3 py-2 font-bold whitespace-nowrap">Preço Padrão</th>
-                  <th className="px-3 py-2 font-bold text-brand-blue-light">Filiado</th>
-                  <th className="px-3 py-2 font-bold text-yellow-500/80">Taxa PF</th>
-                  <th className="px-3 py-2 font-bold text-brand-blue-light/80">Lucro Real</th>
-                  <th className="px-3 py-2 font-bold text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-dark-5">
-                {servicos.map(s => (
-                  <tr key={s.id} className="hover:bg-brand-dark-4 transition-colors">
-                    <td className="px-3 py-3 font-medium text-white min-w-[180px] leading-tight py-4">{s.nome}</td>
-                    <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
-                    <td className="px-3 py-3 text-brand-blue-light font-bold">{formatarMoeda(s.valorFiliado || 0)}</td>
-                    <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>
-                    <td className="px-3 py-3 text-brand-blue-light/90 font-semibold">{formatarMoeda(s.valorPadrao - s.taxaPF)}</td>
-                    <td className="px-3 py-3 text-right">
-                      <button onClick={() => abrirEditarServico(s)} className="p-1.5 text-gray-400 hover:text-brand-blue-light">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={() => handleExcluirServico(s)} className="p-1.5 text-gray-400 hover:text-red-400">
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {servicosExpandido && (
+          <div className="animate-slide-down space-y-4 pt-2 border-t border-brand-dark-5">
+            {servicos.length === 0 ? (
+              <div className="text-center py-8 bg-brand-dark-4 border border-brand-dark-5 rounded-xl">
+                <p className="text-sm text-gray-500">Nenhum serviço cadastrado ainda.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="text-gray-500 text-xs uppercase bg-brand-dark-3/50">
+                    <tr>
+                      <th className="px-3 py-2 font-bold">Serviço</th>
+                      <th className="px-3 py-2 font-bold whitespace-nowrap">Preço Padrão</th>
+                      <th className="px-3 py-2 font-bold text-brand-blue-light">Filiado</th>
+                      <th className="px-3 py-2 font-bold text-yellow-500/80">Taxa PF</th>
+                      <th className="px-3 py-2 font-bold text-brand-blue-light/80">Lucro Real</th>
+                      <th className="px-3 py-2 font-bold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-brand-dark-5">
+                    {servicos.map(s => (
+                      <tr key={s.id} className="hover:bg-brand-dark-4 transition-colors">
+                        <td className="px-3 py-3 font-medium text-white min-w-[180px] leading-tight py-4">{s.nome}</td>
+                        <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
+                        <td className="px-3 py-3 text-brand-blue-light font-bold">{formatarMoeda(s.valorFiliado || 0)}</td>
+                        <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>
+                        <td className="px-3 py-3 text-brand-blue-light/90 font-semibold">{formatarMoeda(s.valorPadrao - s.taxaPF)}</td>
+                        <td className="px-3 py-3 text-right">
+                          <button onClick={() => abrirEditarServico(s)} className="p-1.5 text-gray-400 hover:text-brand-blue-light">
+                            <Edit2 size={14} />
+                          </button>
+                          <button onClick={() => handleExcluirServico(s)} className="p-1.5 text-gray-400 hover:text-red-400">
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            <div className="bg-brand-dark-4 rounded-lg p-3 flex gap-2 border border-brand-dark-5">
+              <BadgeDollarSign size={16} className="text-brand-green/70 shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Configure o **Valor de Venda** sugerido e a **Taxa PF** interna. O valor da taxa será subtraído do bruto no Painel para mostrar seu **Lucro Real**.
+              </p>
+            </div>
           </div>
         )}
-        
-        <div className="bg-brand-dark-4 rounded-lg p-3 flex gap-2 border border-brand-dark-5">
-          <BadgeDollarSign size={16} className="text-brand-green/70 shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-400 leading-relaxed">
-            Configure o **Valor de Venda** sugerido e a **Taxa PF** interna. O valor da taxa será subtraído do bruto no Painel para mostrar seu **Lucro Real**.
-          </p>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

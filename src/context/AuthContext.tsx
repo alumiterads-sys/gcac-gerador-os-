@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('ACESSO_REJEITADO');
       }
 
-      const role = ehMasterAdmin ? 'admin' : (whitelistData.role as 'admin' | 'instrutor');
+      const role = ehMasterAdmin ? 'admin' : (whitelistData.role as 'admin' | 'colaborador');
       const permissoes = ehMasterAdmin 
         ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
         : (whitelistData.permissoes || ["ordens"]);

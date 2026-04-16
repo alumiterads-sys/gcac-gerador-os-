@@ -195,7 +195,7 @@ export interface UsuarioGoogle {
   email: string;
   fotoPerfil: string;
   accessToken: string;
-  role: 'admin' | 'instrutor';
+  role: 'admin' | 'colaborador';
   permissoes?: string[];
 }
 
@@ -303,7 +303,7 @@ export interface Perfil {
   email: string;
   cpf?: string;
   contato?: string;
-  role: 'admin' | 'instrutor';
+  role: 'admin' | 'colaborador';
   ativo: boolean;
   statusPagamento: 'em_dia' | 'atrasado' | 'pendente';
   criadoEm: string;

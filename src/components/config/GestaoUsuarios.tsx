@@ -9,7 +9,7 @@ interface UsuarioAutorizado {
   email: string;
   cpf: string | null;
   contato: string | null;
-  role: 'admin' | 'instrutor';
+  role: 'admin' | 'colaborador';
   ativo: boolean;
   permissoes: string[];
 }
@@ -40,7 +40,7 @@ export function GestaoUsuarios() {
     email: '',
     cpf: '',
     contato: '',
-    role: 'instrutor' as 'admin' | 'instrutor',
+    role: 'colaborador' as 'admin' | 'colaborador',
     permissoes: ['ordens'] as string[]
   });
 
@@ -81,7 +81,7 @@ export function GestaoUsuarios() {
         email: '',
         cpf: '',
         contato: '',
-        role: 'instrutor',
+        role: 'colaborador',
         permissoes: ['ordens']
       });
     }
@@ -204,7 +204,7 @@ export function GestaoUsuarios() {
                         u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' 
                                          : 'bg-brand-blue/10 text-brand-blue-light border border-brand-blue/20'
                       }`}>
-                        {u.role}
+                        {u.role === 'colaborador' ? 'Colaborador' : 'Administrador'}
                       </span>
                     </td>
                     <td className="px-3 py-3">
@@ -248,12 +248,12 @@ export function GestaoUsuarios() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase">Nome Completo</label>
-                  <input
+                    <input
                     type="text"
                     required
                     value={formData.nome}
                     onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                    className="input-field"
+                    className="input"
                     placeholder="Ex: João Silva"
                   />
                 </div>
@@ -265,7 +265,7 @@ export function GestaoUsuarios() {
                     disabled={!!editando && editando.email === 'gui.gomesassis@gmail.com'}
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    className="input-field"
+                    className="input"
                     placeholder="email@gmail.com"
                   />
                 </div>
@@ -275,7 +275,7 @@ export function GestaoUsuarios() {
                     type="text"
                     value={formData.cpf}
                     onChange={e => setFormData({ ...formData, cpf: e.target.value })}
-                    className="input-field"
+                    className="input"
                   />
                 </div>
                 <div className="space-y-1">
@@ -284,7 +284,7 @@ export function GestaoUsuarios() {
                     type="text"
                     value={formData.contato}
                     onChange={e => setFormData({ ...formData, contato: e.target.value })}
-                    className="input-field"
+                    className="input"
                   />
                 </div>
               </div>
@@ -296,14 +296,14 @@ export function GestaoUsuarios() {
                     <input
                       type="radio"
                       className="hidden"
-                      checked={formData.role === 'instrutor'}
-                      onChange={() => setFormData({ ...formData, role: 'instrutor' })}
+                      checked={formData.role === 'colaborador'}
+                      onChange={() => setFormData({ ...formData, role: 'colaborador' })}
                     />
                     <div className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${
-                      formData.role === 'instrutor' ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-dark-5 bg-brand-dark-4 hover:border-gray-700'
+                      formData.role === 'colaborador' ? 'border-brand-blue bg-brand-blue/5' : 'border-brand-dark-5 bg-brand-dark-4 hover:border-gray-700'
                     }`}>
-                      <User size={18} className={formData.role === 'instrutor' ? 'text-brand-blue' : 'text-gray-600'} />
-                      <span className={`text-[10px] font-black uppercase ${formData.role === 'instrutor' ? 'text-white' : 'text-gray-500'}`}>Instrutor</span>
+                      <User size={18} className={formData.role === 'colaborador' ? 'text-brand-blue' : 'text-gray-600'} />
+                      <span className={`text-[10px] font-black uppercase ${formData.role === 'colaborador' ? 'text-white' : 'text-gray-500'}`}>Colaborador</span>
                     </div>
                   </label>
                   <label className="flex-1 cursor-pointer group">
