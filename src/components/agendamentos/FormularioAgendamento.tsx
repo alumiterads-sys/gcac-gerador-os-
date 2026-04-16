@@ -48,7 +48,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     data:               agendamentoExistente?.data              ?? '',
     horario:            agendamentoExistente?.horario           ?? '',
     local:              agendamentoExistente?.local             ?? DEFAULTS['Psicológico'].local,
-    profissional:       agendamentoExistente?.profissional      ?? (usuario?.role === 'instrutor' ? usuario.nome : DEFAULTS['Psicológico'].profissional),
+    profissional:       agendamentoExistente?.profissional      ?? (usuario?.role === 'colaborador' ? usuario.nome : DEFAULTS['Psicológico'].profissional),
     valor:              agendamentoExistente?.valor             ?? DEFAULTS['Psicológico'].valor,
     despachante:        agendamentoExistente?.despachante       ?? 'GCAC / Guilherme',
     dataPsicologico:    agendamentoExistente?.dataPsicologico    ?? '',
@@ -468,7 +468,7 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
                 <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input 
                   type="text" 
-                  className={`input pl-10 ${usuario?.role === 'instrutor' ? 'border-brand-blue/30 focus:border-brand-blue' : ''}`}
+                  className={`input pl-10 ${usuario?.role === 'colaborador' ? 'border-brand-blue/30 focus:border-brand-blue' : ''}`}
                   list="lista-despachantes"
                   placeholder="EX: GCAC / GUILHERME"
                   value={form.despachante}

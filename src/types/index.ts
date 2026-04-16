@@ -290,7 +290,7 @@ export interface Agendamento {
   dataPsicologico?: string;
   horarioPsicologico?: string;
   confirmado: boolean;
-  confirmadoInstrutor?: boolean;
+  confirmadoColaborador?: boolean;
   despachante?: string;
   usuarioId?: string;
   status?: 'pendente' | 'realizado';

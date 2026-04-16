@@ -11,7 +11,7 @@ interface AgendamentosContextType {
   atualizarAgendamento: (id: string, dados: Partial<Agendamento>) => Promise<void>;
   deletarAgendamento: (id: string) => Promise<void>;
   confirmarAgendamento: (id: string, confirmado: boolean) => Promise<void>;
-  confirmarAgendamentoInstrutor: (id: string, confirmado: boolean) => Promise<void>;
+  confirmarAgendamentoColaborador: (id: string, confirmado: boolean) => Promise<void>;
   finalizarLaudo: (id: string) => Promise<void>;
   buscarAgendamentoPorCPF: (cpf: string, tipo?: TipoAgendamento) => Agendamento | undefined;
 }
@@ -34,7 +34,7 @@ const mapFromDB = (row: any): Agendamento => ({
   dataPsicologico: row.data_psicologico || undefined,
   horarioPsicologico: row.horario_psicologico || undefined,
   confirmado: row.confirmado,
-  confirmadoInstrutor: row.confirmado_instrutor,
+  confirmadoColaborador: row.confirmado_instrutor,
   despachante: row.despachante || 'GCAC / Guilherme',
   usuarioId: row.usuario_id,
   status: row.status || 'pendente',
@@ -57,7 +57,7 @@ const mapToDB = (dados: any) => {
   if (dados.dataPsicologico !== undefined) payload.data_psicologico = dados.dataPsicologico || null;
   if (dados.horarioPsicologico !== undefined) payload.horario_psicologico = dados.horarioPsicologico || null;
   if (dados.confirmado !== undefined) payload.confirmado = dados.confirmado;
-  if (dados.confirmadoInstrutor !== undefined) payload.confirmado_instrutor = dados.confirmadoInstrutor;
+  if (dados.confirmadoColaborador !== undefined) payload.confirmado_instrutor = dados.confirmadoColaborador;
   if (dados.despachante !== undefined) payload.despachante = dados.despachante;
   if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
   if (dados.status !== undefined) payload.status = dados.status;
@@ -79,9 +79,9 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       .select('*')
       .order('data', { ascending: false });
     
-    // Se for instrutor, filtra apenas os seus próprios dados (Multi-Tenant)
+    // Se for colaborador, filtra apenas os seus próprios dados (Multi-Tenant)
     // O Administrador (Guilherme) continua vendo tudo
-    if (usuario?.role === 'instrutor') {
+    if (usuario?.role === 'colaborador') {
       query = query.eq('usuario_id', usuario.id);
     }
     
@@ -120,11 +120,11 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     
     if (!data) throw new Error('Falha ao criar agendamento: nenhum dado retornado');
     
-    // Notificar Admin apenas se for Instrutor E se o despacho for para GCAC
-    if (usuario?.role === 'instrutor' && dados.despachante === 'GCAC / Guilherme') {
+    // Notificar Admin apenas se for Colaborador E se o despacho for para GCAC
+    if (usuario?.role === 'colaborador' && dados.despachante === 'GCAC / Guilherme') {
       enviarNotificacao({
-        titulo: 'Novo Agendamento por Keoma',
-        mensagem: `Keoma agendou um laudo para ${dados.clienteNome} no dia ${dados.data.split('-').reverse().join('/')}.`,
+        titulo: 'Novo Agendamento por Colaborador',
+        mensagem: `${usuario.nome} agendou um laudo para ${dados.clienteNome} no dia ${dados.data.split('-').reverse().join('/')}.`,
         tipo: 'sucesso'
       }).then();
     }
@@ -141,11 +141,11 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
 
     if (error) throw error;
 
-    // Notificar Admin apenas se for Instrutor E se o despacho for para GCAC
-    if (usuario?.role === 'instrutor' && dados.despachante === 'GCAC / Guilherme') {
+    // Notificar Admin apenas se for Colaborador E se o despacho for para GCAC
+    if (usuario?.role === 'colaborador' && dados.despachante === 'GCAC / Guilherme') {
       enviarNotificacao({
         titulo: 'Agendamento Atualizado',
-        mensagem: `Keoma atualizou o agendamento de ${dados.clienteNome || 'um cliente'}.`,
+        mensagem: `${usuario?.nome || 'Um colaborador'} atualizou o agendamento de ${dados.clienteNome || 'um cliente'}.`,
         tipo: 'info'
       }).then();
     }
@@ -173,7 +173,7 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     await carregarAgendamentos();
   }, [carregarAgendamentos]);
 
-  const confirmarAgendamentoInstrutor = useCallback(async (id: string, confirmado: boolean) => {
+  const confirmarAgendamentoColaborador = useCallback(async (id: string, confirmado: boolean) => {
     const { error } = await supabase
       .from('agendamentos')
       .update({ confirmado_instrutor: confirmado })
@@ -207,7 +207,7 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       atualizarAgendamento,
       deletarAgendamento,
       confirmarAgendamento,
-      confirmarAgendamentoInstrutor,
+      confirmarAgendamentoColaborador,
       finalizarLaudo,
       buscarAgendamentoPorCPF
     }}>

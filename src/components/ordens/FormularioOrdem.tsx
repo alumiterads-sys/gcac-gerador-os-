@@ -612,7 +612,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                                 ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' 
                                 : 'bg-brand-dark-5 text-gray-500 border border-transparent'
                             }`}
-                            title={serv.pagoDireto ? "Pago diretamente ao instrutor/psicóloga" : "Alterar para pagamento direto"}
+                            title={serv.pagoDireto ? "Pago diretamente ao colaborador/psicóloga" : "Alterar para pagamento direto"}
                           >
                             {serv.pagoDireto ? 'Pago Direto' : 'Pago p/ GCAC'}
                           </button>
