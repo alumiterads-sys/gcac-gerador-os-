@@ -237,10 +237,11 @@ export function FormularioRecibo() {
                   <input
                     type="text"
                     className={`input ${erros.clienteCPF ? 'input-error' : ''}`}
-                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    placeholder="000.000.000-00 ou 00.000.000/00.000-00"
                     value={form.clienteCPF}
                     onChange={e => handleCPF(e.target.value)}
                   />
+                </div>
                 <div>
                   <label className="label">Telefone de Contato</label>
                   <input
