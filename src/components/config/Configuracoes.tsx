@@ -11,6 +11,9 @@ import { ModalServico } from './ModalServico';
 import { GestaoUsuarios } from './GestaoUsuarios';
 import { formatarMoeda } from '../../utils/formatters';
 import { ServicoConfig } from '../../types';
+import { CONTEUDO_MANUAL } from '../../services/manualService';
+import { baixarManualPdf } from '../../services/geradorPdfManual';
+import { HelpCircle, FileText, CheckSquare, Square, DownloadCloud } from 'lucide-react';
 
 export function Configuracoes() {
   const { usuario, logout } = useAuth();
@@ -29,6 +32,36 @@ export function Configuracoes() {
   // Controle de Seções Retráteis
   const [servicosExpandido, setServicosExpandido] = useState(false);
   const [usuariosExpandido, setUsuariosExpandido] = useState(false);
+  const [manualExpandido, setManualExpandido] = useState(false);
+  
+  // Controle de Seleção do Manual
+  const [secoesSelecionadas, setSecoesSelecionadas] = useState<string[]>(CONTEUDO_MANUAL.map(s => s.id));
+  const [gerandoManual, setGerandoManual] = useState(false);
+
+  const toggleSecao = (id: string) => {
+    setSecoesSelecionadas(prev => 
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+
+  const selecionarTodas = () => setSecoesSelecionadas(CONTEUDO_MANUAL.map(s => s.id));
+  const limparTodas = () => setSecoesSelecionadas([]);
+
+  const handleGerarManual = async () => {
+    if (secoesSelecionadas.length === 0) {
+      mostrar('aviso', 'Selecione ao menos uma seção para o manual.');
+      return;
+    }
+    setGerandoManual(true);
+    try {
+      await baixarManualPdf(secoesSelecionadas);
+      mostrar('sucesso', 'Manual gerado com sucesso!');
+    } catch (e) {
+      mostrar('erro', 'Erro ao gerar o manual.');
+    } finally {
+      setGerandoManual(false);
+    }
+  };
 
   const handleSincronizarTudo = async () => {
     if (!online || !usuario) {
@@ -72,6 +105,80 @@ export function Configuracoes() {
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
       <h1 className="text-2xl font-bold text-white">Configurações e Serviços</h1>
+
+      {/* ── Manual de Instruções ── */}
+      <div className="card space-y-4">
+        <div 
+          className="flex items-center justify-between cursor-pointer group"
+          onClick={() => setManualExpandido(!manualExpandido)}
+        >
+          <div className="flex items-center gap-2">
+            <div className={`p-1.5 rounded-lg transition-colors ${manualExpandido ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-4 text-gray-500 group-hover:text-white'}`}>
+              <HelpCircle size={16} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-wider">
+                Manual de Instruções Atualizado
+              </h2>
+              {!manualExpandido && (
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                  Gere um guia em PDF modular para treinamento • Clique para ver opções
+                </p>
+              )}
+            </div>
+          </div>
+          <div className={`text-gray-500 transition-transform duration-300 ${manualExpandido ? 'rotate-180' : ''}`}>
+            <ChevronDown size={20} />
+          </div>
+        </div>
+
+        {manualExpandido && (
+          <div className="animate-slide-down space-y-5 pt-3 border-t border-brand-dark-5">
+            <div className="flex items-center justify-between gap-4 bg-brand-dark-4 p-3 rounded-lg border border-brand-dark-5">
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Seleção de Módulos</span>
+                <span className="text-[10px] text-gray-500">Escolha quais capítulos incluir no seu manual personalizado.</span>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={selecionarTodas} className="text-[10px] font-bold text-brand-blue-light hover:underline">Selecionar Tudo</button>
+                <span className="text-gray-700">|</span>
+                <button onClick={limparTodas} className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors">Limpar</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CONTEUDO_MANUAL.map(secao => {
+                const ativa = secoesSelecionadas.includes(secao.id);
+                return (
+                  <button 
+                    key={secao.id}
+                    onClick={() => toggleSecao(secao.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                      ativa 
+                        ? 'bg-brand-blue/10 border-brand-blue/30 text-white' 
+                        : 'bg-brand-dark-4/40 border-brand-dark-5 text-gray-500 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 hover:border-gray-700'
+                    }`}
+                  >
+                    {ativa ? <CheckSquare size={16} className="text-brand-blue-light" /> : <Square size={16} />}
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="text-xs font-bold truncate">{secao.titulo.replace(/^\d+\.\s*/, '')}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleGerarManual}
+              disabled={gerandoManual}
+              className="btn-primary w-full py-3.5 shadow-lg shadow-brand-blue/20"
+            >
+              <DownloadCloud size={18} className={gerandoManual ? 'animate-bounce' : ''} />
+              {gerandoManual ? 'Gerando PDF...' : 'Gerar Manual Personalizado'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ── Gestão de Usuários (Apenas Admin) ── */}
       {usuario?.role === 'admin' && (

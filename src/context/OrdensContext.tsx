@@ -59,6 +59,7 @@ const mapFromDB = (row: any): OrdemDeServico => {
     criadoPorNome: row.criado_por_nome || '',
     concluidoPorNome: row.concluido_por_nome || '',
     usuarioId: row.usuario_id || '',
+    historicoStatus: row.historico_status || [],
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
   };
@@ -87,6 +88,7 @@ const mapToDB = (dados: any) => {
   if (dados.criadoPorNome !== undefined) payload.criado_por_nome = dados.criadoPorNome;
   if (dados.concluidoPorNome !== undefined) payload.concluido_por_nome = dados.concluidoPorNome;
   if (dados.usuarioId !== undefined) payload.usuario_id = dados.usuarioId;
+  if (dados.historicoStatus !== undefined) payload.historico_status = dados.historicoStatus;
   
   if (dados.driveArquivoJsonId !== undefined) payload.drive_arquivo_json_id = dados.driveArquivoJsonId;
   if (dados.drivePdfId !== undefined) payload.drive_pdf_id = dados.drivePdfId;
@@ -101,6 +103,19 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
   const online = useStatusConexao();
   const { usuario } = useAuth();
   const [ordens, setOrdens] = useState<OrdemDeServico[]>([]);
+
+  const adicionarEvento = useCallback((historico: any[] = [], tipo: any, descricao: string, valorAnterior?: string, valorNovo?: string) => {
+    const novoEvento = {
+      id: crypto.randomUUID(),
+      data: new Date().toISOString(),
+      usuario: usuario?.nome || 'Sistema',
+      tipo,
+      descricao,
+      valorAnterior,
+      valorNovo
+    };
+    return [...historico, novoEvento];
+  }, [usuario]);
 
   const carregarOrdens = useCallback(async () => {
     const { data, error } = await supabase
@@ -127,7 +142,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       ...mapToDB(dados),
       pendente_sincronizacao: true,
       criado_por_nome: usuario?.nome || 'Sistema',
-      usuario_id: usuario?.id
+      usuario_id: usuario?.id,
+      historico_status: adicionarEvento([], 'criacao', 'Ordem de serviço aberta')
     };
 
     const { data, error } = await supabase
@@ -152,6 +168,18 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
   const atualizarOrdem = useCallback(async (id: string, dados: Partial<OrdemDeServico>) => {
     // Se estiver marcando como concluída (Pago), registra quem fez a ação
     const dadosAtualizados = { ...dados };
+    const ordemOriginal = ordens.find(o => o.id === id);
+    
+    if (dados.status && ordemOriginal && dados.status !== ordemOriginal.status) {
+      dadosAtualizados.historicoStatus = adicionarEvento(
+        ordemOriginal.historicoStatus, 
+        'status_os', 
+        `Status da OS alterado para ${dados.status}`,
+        ordemOriginal.status,
+        dados.status
+      );
+    }
+
     if (dados.status === 'Pago') {
       dadosAtualizados.concluidoPorNome = usuario?.nome || 'Sistema';
     }
@@ -184,7 +212,19 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       s.id === servicoId ? { ...s, statusExecucao: novoStatus } : s
     );
 
-    await atualizarOrdem(ordemId, { servicos: novosServicos });
+    const servico = ordem.servicos.find(s => s.id === servicoId);
+    const novoHistorico = adicionarEvento(
+      ordem.historicoStatus,
+      'status_execucao',
+      `Status do serviço "${servico?.nome}" alterado para ${novoStatus}`,
+      servico?.statusExecucao,
+      novoStatus
+    );
+
+    await atualizarOrdem(ordemId, { 
+      servicos: novosServicos,
+      historicoStatus: novoHistorico
+    });
   }, [ordens, atualizarOrdem]);
   const atualizarGruServico = useCallback(async (ordemId: string, servicoId: string, pago: boolean) => {
     const ordem = ordens.find(o => o.id === ordemId);
@@ -205,7 +245,19 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       s.id === servicoId ? { ...s, protocolo } : s
     );
 
-    await atualizarOrdem(ordemId, { servicos: novosServicos });
+    const servico = ordem.servicos.find(s => s.id === servicoId);
+    const novoHistorico = adicionarEvento(
+      ordem.historicoStatus,
+      'protocolo',
+      `Protocolo do serviço "${servico?.nome}" atualizado: ${protocolo}`,
+      servico?.protocolo,
+      protocolo
+    );
+
+    await atualizarOrdem(ordemId, { 
+      servicos: novosServicos,
+      historicoStatus: novoHistorico
+    });
   }, [ordens, atualizarOrdem]);
 
   const deletarOrdem = useCallback(async (id: string) => {
@@ -262,7 +314,12 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       historicoPagamentos: novoHistorico,
       status: novoStatus,
       concluidoPorNome: concluidoPorNome,
-      formaPagamento: metodo // Atualiza forma principal com o último método
+      formaPagamento: metodo, // Atualiza forma principal com o último método
+      historicoStatus: adicionarEvento(
+        ordem.historicoStatus,
+        'pagamento',
+        `Pagamento de R$ ${valor.toFixed(2)} registrado via ${metodo}`
+      )
     });
   }, [ordens, atualizarOrdem]);
 

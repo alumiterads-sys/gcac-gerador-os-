@@ -110,10 +110,21 @@ export interface OrdemDeServico {
   criadoPorNome?: string;
   concluidoPorNome?: string;
   usuarioId?: string;
+  historicoStatus?: EventoHistorico[];
 
   // Datas
   criadoEm: string;
   atualizadoEm: string;
+}
+
+export interface EventoHistorico {
+  id: string;
+  data: string;
+  usuario: string;
+  tipo: 'status_os' | 'status_execucao' | 'pagamento' | 'criacao' | 'protocolo' | 'sistema';
+  descricao: string;
+  valorAnterior?: string;
+  valorNovo?: string;
 }
 
 export interface ServicoOrcamento {

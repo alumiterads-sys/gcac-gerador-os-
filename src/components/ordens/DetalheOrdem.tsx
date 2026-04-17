@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List, ShieldCheck, History, Clock, CreditCard, FileText } from 'lucide-react';
 import { 
   OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, 
   StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO 
@@ -556,6 +556,62 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           </div>
         </div>
       )}
+
+      {/* ── Linha do Tempo / Histórico ── */}
+      <div className="card border-l-4 border-brand-blue">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+          <History size={18} className="text-brand-blue-light" />
+          Linha do Tempo / Histórico
+        </h3>
+        
+        <div className="space-y-6 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-brand-dark-5">
+          {ordem.historicoStatus && ordem.historicoStatus.length > 0 ? (
+            [...ordem.historicoStatus].reverse().map((evento, idx) => (
+              <div key={evento.id} className="relative pl-8 animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
+                {/* Marcador do ponto na linha */}
+                <div className={`absolute left-0 top-1.5 w-4.5 h-4.5 rounded-full border-4 border-brand-dark-2 flex items-center justify-center z-10 ${
+                  evento.tipo === 'criacao' ? 'bg-brand-blue shadow-[0_0_8px_rgba(0,123,255,0.4)]' :
+                  evento.tipo === 'status_os' ? 'bg-brand-green shadow-[0_0_8px_rgba(109,190,69,0.4)]' :
+                  evento.tipo === 'pagamento' ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]' :
+                  evento.tipo === 'protocolo' ? 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.4)]' :
+                  'bg-brand-metal'
+                }`}>
+                   <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-bold text-white leading-tight">
+                      {evento.descricao}
+                    </p>
+                    <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap bg-brand-dark-4 px-2 py-0.5 rounded flex items-center gap-1.5">
+                      <Clock size={10} />
+                      {formatarDataHora(evento.data)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    <span>Responsável:</span>
+                    <span className="text-brand-blue-light/80">{evento.usuario}</span>
+                  </div>
+
+                  {(evento.valorAnterior || evento.valorNovo) && (
+                    <div className="mt-1 flex items-center gap-2 text-[10px]">
+                      <span className="text-gray-500 bg-brand-dark-4 px-1.5 py-0.5 rounded line-through">{evento.valorAnterior}</span>
+                      <span className="text-brand-blue-light">→</span>
+                      <span className="text-white bg-brand-blue/20 px-1.5 py-0.5 rounded border border-brand-blue/30 font-bold">{evento.valorNovo}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-4 text-center">
+              <p className="text-sm text-gray-500 italic">Nenhum evento registrado nesta O.S.</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* ── Auditoria e Rastreio ── */}
       <div className="card bg-brand-dark-3/30 border-dashed border-brand-dark-5">
