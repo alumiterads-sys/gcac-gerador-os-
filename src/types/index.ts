@@ -163,6 +163,7 @@ export interface Recibo {
   // Dados do Cliente
   clienteNome: string;
   clienteCPF: string;
+  clienteContato?: string;
   
   // Valores e Serviços
   servicos: {

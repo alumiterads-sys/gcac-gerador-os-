@@ -379,6 +379,25 @@ export function DetalheOrcamento({ orcamento }: DetalheOrcamentoProps) {
         onCancelar={() => setConfirmandoDelete(false)}
       />
 
+      {/* ── Auditoria e Rastreio ── */}
+      <div className="card bg-brand-dark-3/30 border-dashed border-brand-dark-5 max-w-4xl mx-auto">
+        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Shield size={12} className="text-brand-blue-light/50" />
+          Informações de Auditoria
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-[10px] text-gray-500 font-bold uppercase">Emissão do Orçamento</p>
+            <p className="text-xs text-white uppercase font-bold">{orcamento.criadoPorNome || 'Sistema (Antigo)'}</p>
+            <p className="text-[10px] text-gray-500">{formatarDataHora(orcamento.criadoEm)}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[10px] text-gray-500 font-bold uppercase">ID do Usuário</p>
+            <p className="text-[10px] text-gray-400 font-mono truncate">{orcamento.usuarioId || '—'}</p>
+          </div>
+        </div>
+      </div>
+
       <ModalEscolhaWhatsApp 
         aberto={modalWhatsAppAberto}
         onFechar={() => setModalWhatsAppAberto(false)}

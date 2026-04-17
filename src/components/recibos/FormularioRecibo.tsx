@@ -35,6 +35,7 @@ export function FormularioRecibo() {
   const [form, setForm] = useState({
     clienteNome: '',
     clienteCPF: '',
+    clienteContato: '',
     servicos: [] as any[],
     valorTotal: 0,
     ordemId: '',
@@ -52,6 +53,7 @@ export function FormularioRecibo() {
         ...f,
         clienteNome: c.nome,
         clienteCPF: c.cpf,
+        clienteContato: c.contato || '',
       }));
       // Limpar o estado para não repetir o preenchimento
       window.history.replaceState({}, document.title);
@@ -74,6 +76,7 @@ export function FormularioRecibo() {
       setForm({
         clienteNome: os.nomeCliente,
         clienteCPF: os.cpf,
+        clienteContato: os.contato || '',
         servicos: os.servicos.map(s => ({
           id: uuidv4(),
           nome: s.nome,
@@ -237,6 +240,15 @@ export function FormularioRecibo() {
                     placeholder="000.000.000-00 ou 00.000.000/0000-00"
                     value={form.clienteCPF}
                     onChange={e => handleCPF(e.target.value)}
+                  />
+                <div>
+                  <label className="label">Telefone de Contato</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="(00) 0.0000-0000"
+                    value={form.clienteContato}
+                    onChange={e => atualizar('clienteContato', e.target.value)}
                   />
                 </div>
               </>

@@ -79,12 +79,10 @@ export function OrcamentosProvider({ children }: { children: React.ReactNode }) 
   const criarOrcamento = useCallback(async (
     dados: Omit<Orcamento, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm'>
   ): Promise<string> => {
-    if (!usuario) throw new Error('Usuário não autenticado');
-
     const payloadNovo = {
       ...mapToDB(dados),
-      usuario_id: usuario.id,
-      criado_por_nome: usuario.nome
+      criado_por_nome: usuario?.nome || 'Sistema',
+      usuario_id: usuario?.id
     };
 
     const { data, error } = await supabase

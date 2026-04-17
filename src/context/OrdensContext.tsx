@@ -99,6 +99,7 @@ const mapToDB = (dados: any) => {
 export function OrdensProvider({ children }: { children: React.ReactNode }) {
   const { estaAutenticado } = useAuth();
   const online = useStatusConexao();
+  const { usuario } = useAuth();
   const [ordens, setOrdens] = useState<OrdemDeServico[]>([]);
 
   const carregarOrdens = useCallback(async () => {
@@ -146,13 +147,19 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     }
 
     return ordemCriada.id;
-  }, [online, estaAutenticado, carregarOrdens]);
+  }, [online, estaAutenticado, carregarOrdens, usuario]);
 
   const atualizarOrdem = useCallback(async (id: string, dados: Partial<OrdemDeServico>) => {
+    // Se estiver marcando como concluída (Pago), registra quem fez a ação
+    const dadosAtualizados = { ...dados };
+    if (dados.status === 'Pago') {
+      dadosAtualizados.concluidoPorNome = usuario?.nome || 'Sistema';
+    }
+
     const { data, error } = await supabase
       .from('ordens')
       .update({
-        ...mapToDB(dados),
+        ...mapToDB(dadosAtualizados),
         pendente_sincronizacao: true,
         atualizado_em: new Date().toISOString()
       })

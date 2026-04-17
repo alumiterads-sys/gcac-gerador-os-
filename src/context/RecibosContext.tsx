@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { Recibo } from '../types';
 import { supabase } from '../db/supabase';
+import { useAuth } from './AuthContext';
 
 interface RecibosContextType {
   recibos: Recibo[];
@@ -16,6 +17,7 @@ const mapFromDB = (row: any): Recibo => ({
   numero: parseInt(row.numero, 10),
   clienteNome: row.cliente_nome,
   clienteCPF: row.cliente_cpf,
+  clienteContato: row.cliente_contato || '',
   servicos: row.servicos || [],
   valorTotal: row.valor_total,
   ordemId: row.ordem_id || undefined,
@@ -31,6 +33,7 @@ const mapFromDB = (row: any): Recibo => ({
 const mapToDB = (dados: any) => ({
   cliente_nome: dados.clienteNome.toUpperCase(),
   cliente_cpf: dados.clienteCPF,
+  cliente_contato: dados.clienteContato || '',
   servicos: dados.servicos,
   valor_total: dados.valorTotal,
   ordem_id: dados.ordemId || null,
@@ -43,6 +46,7 @@ const mapToDB = (dados: any) => ({
 });
 
 export function RecibosProvider({ children }: { children: React.ReactNode }) {
+  const { usuario } = useAuth();
   const [recibos, setRecibos] = useState<Recibo[]>([]);
 
   const carregarRecibos = useCallback(async () => {
@@ -63,7 +67,6 @@ export function RecibosProvider({ children }: { children: React.ReactNode }) {
   const criarRecibo = useCallback(async (
     dados: Omit<Recibo, 'id' | 'numero' | 'criadoEm'>
   ): Promise<string> => {
-    const { usuario } = useAuth();
     const payloadNovo = {
       ...mapToDB(dados),
       criado_por_nome: usuario?.nome || 'Sistema',
