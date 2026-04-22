@@ -23,6 +23,7 @@ import { formatarMoeda, formatarData } from '../../utils/formatters';
 import { isSameMonth, parseISO, startOfMonth, endOfMonth, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { ExportadorRelatorio } from './ExportadorRelatorio';
 
 export function Financeiro() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export function Financeiro() {
   const [abaAtiva, setAbaAtiva] = useState<'relatorio' | 'despesas' | 'equipe'>('relatorio');
   const [dataFiltro, setDataFiltro] = useState(new Date());
   const [novaDespesaModal, setNovaDespesaModal] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Form de nova despesa
   const [formDespesa, setFormDespesa] = useState({
@@ -96,32 +98,7 @@ export function Financeiro() {
   }, [ordensMes, despesasMes]);
 
   const handleExportarExcel = () => {
-    const dados = ordensMes.map(o => ({
-      'Data': format(parseISO(o.criadoEm), 'dd/MM/yyyy'),
-      'Número OS': `#${String(o.numero).padStart(4, '0')}`,
-      'Cliente': o.nomeCliente,
-      'Valor Total': o.valor,
-      'Valor Pago': o.valorPago,
-      'Taxas PF': o.taxaPFTotal || 0,
-      'Margem (Líquido OS)': (o.valorPago || 0) - (o.taxaPFTotal || 0),
-      'Status': o.status
-    }));
-
-    const dadosDespesas = despesasMes.map(d => ({
-      'Data': format(parseISO(d.data), 'dd/MM/yyyy'),
-      'Descrição': d.descricao,
-      'Categoria': d.categoria,
-      'Valor': d.valor
-    }));
-
-    const wb = XLSX.utils.book_new();
-    const wsOrdens = XLSX.utils.json_to_sheet(dados);
-    const wsDespesas = XLSX.utils.json_to_sheet(dadosDespesas);
-    
-    XLSX.utils.book_append_sheet(wb, wsOrdens, 'Serviços');
-    XLSX.utils.book_append_sheet(wb, wsDespesas, 'Despesas');
-    
-    XLSX.writeFile(wb, `Financeiro_GCAC_${format(dataFiltro, 'MM_yyyy')}.xlsx`);
+    setIsExportModalOpen(true);
   };
 
   const handleSalvarDespesa = async (e: React.FormEvent) => {
@@ -486,6 +463,12 @@ export function Financeiro() {
           </div>
         </div>
       )}
+
+      {/* Modal Exportador Avançado */}
+      <ExportadorRelatorio 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+      />
     </div>
   );
 }
