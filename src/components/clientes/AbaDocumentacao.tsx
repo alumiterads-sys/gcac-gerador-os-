@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Gun, MapPin, Calendar, Plus, Trash2, ShieldAlert, 
+  Target, MapPin, Calendar, Plus, Trash2, ShieldAlert, 
   ChevronDown, ChevronUp, FileText, Globe, Landmark
 } from 'lucide-react';
 import { useClientes } from '../../context/ClientesContext';
@@ -88,7 +88,7 @@ export function AbaDocumentacao({ cliente }: Props) {
       <section>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Gun size={20} className="text-brand-blue" />
+            <Target size={20} className="text-brand-blue" />
             <h3 className="text-sm font-black text-white uppercase tracking-wider">Armas & CRAFs</h3>
           </div>
           <button onClick={() => setModalArma(true)} className="btn-primary py-1.5 px-3 text-xs">
@@ -108,7 +108,7 @@ export function AbaDocumentacao({ cliente }: Props) {
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-brand-blue/10 flex items-center justify-center text-brand-blue">
-                      <Gun size={20} />
+                      <Target size={20} />
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">{arma.modelo} - {arma.calibre}</p>

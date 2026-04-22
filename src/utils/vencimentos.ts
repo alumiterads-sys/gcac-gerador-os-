@@ -2,10 +2,7 @@ import {
   differenceInDays, 
   parseISO, 
   isAfter, 
-  addMonths, 
-  subMonths, 
-  addDays, 
-  subDays 
+  addDays 
 } from 'date-fns';
 
 export type NivelAlerta = 'OK' | 'AVISO' | 'CRITICO' | 'VENCIDO';

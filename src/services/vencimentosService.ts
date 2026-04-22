@@ -45,10 +45,15 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
   // 2. Buscar Armas (CRAF)
   const { data: armas } = await supabase
     .from('armas')
-    .select('id, modelo, vencimento_craf, clientes(nome)') as any;
+    .select(`
+      id, 
+      modelo, 
+      vencimento_craf, 
+      clientes:cliente_id (nome)
+    `);
 
   if (armas) {
-    armas.forEach((a: any) => {
+    (armas as { id: string; modelo: string; vencimento_craf: string; clientes?: { nome: string } }[]).forEach((a) => {
       if (a.vencimento_craf) {
         const result = calcularAlerta('CRAF', a.vencimento_craf);
         if (result.nivel !== 'OK') {
@@ -70,10 +75,18 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
   // 3. Buscar GTs
   const { data: gts } = await supabase
     .from('guias_trafego')
-    .select('id, tipo, vencimento, armas(modelo, clientes(nome))') as any;
+    .select(`
+      id, 
+      tipo, 
+      vencimento, 
+      armas:arma_id (
+        modelo, 
+        clientes:cliente_id (nome)
+      )
+    `);
 
   if (gts) {
-    gts.forEach((g: any) => {
+    (gts as any[]).forEach((g) => {
       if (g.vencimento) {
         const result = calcularAlerta('GT', g.vencimento);
         if (result.nivel !== 'OK') {
@@ -95,10 +108,15 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
   // 4. Buscar Manejos
   const { data: manejos } = await supabase
     .from('autorizacoes_manejo')
-    .select('id, nome_fazenda, vencimento, clientes(nome)') as any;
+    .select(`
+      id, 
+      nome_fazenda, 
+      vencimento, 
+      clientes:cliente_id (nome)
+    `);
 
   if (manejos) {
-    manejos.forEach((m: any) => {
+    (manejos as any[]).forEach((m) => {
       if (m.vencimento) {
         const result = calcularAlerta('MANEJO', m.vencimento);
         if (result.nivel !== 'OK') {
@@ -118,7 +136,7 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
 
   // Ordenar por gravidade e depois por data
   return alertas.sort((a, b) => {
-    const ordem = { 'VENCIDO': 0, 'CRITICO': 1, 'AVISO': 2, 'OK': 3 };
+    const ordem: Record<string, number> = { 'VENCIDO': 0, 'CRITICO': 1, 'AVISO': 2, 'OK': 3 };
     if (ordem[a.nivel] !== ordem[b.nivel]) return ordem[a.nivel] - ordem[b.nivel];
     return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
   });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ChevronRight, Calendar, User, Gun, MapPin, ExternalLink } from 'lucide-react';
+import { ShieldAlert, ChevronRight, Calendar, User, Target, MapPin, ExternalLink } from 'lucide-react';
 import { buscarAlertasGlobais } from '../../services/vencimentosService';
 import { AlertaDocumento, obterClasseAlerta } from '../../utils/vencimentos';
 import { formatarData } from '../../utils/formatters';
@@ -45,7 +45,7 @@ export function WidgetVencimentos() {
           >
             <div className="flex items-start gap-3 min-w-0">
               <div className="mt-1">
-                {alerta.tipo === 'CRAF' ? <Gun size={14} /> : 
+                {alerta.tipo === 'CRAF' ? <Target size={14} /> : 
                  alerta.tipo === 'GT' ? <MapPin size={14} /> :
                  alerta.tipo === 'MANEJO' ? <Calendar size={14} /> :
                  <User size={14} />}
