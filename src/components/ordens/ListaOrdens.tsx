@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
@@ -220,7 +220,7 @@ export function ListaOrdens() {
               <div className="space-y-3">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
                   Pagamento
-                  {filtrosStatus.length > 0 && <button onClick={() => setFiltrosStatus([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
+                  {filtrosStatus.length > 0 && <button onClick={() => updateParams('status', [])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
                 </p>
                 <div className="flex flex-col gap-2">
                   {STATUS_FILTROS.map(({ label, valor }) => (
@@ -245,7 +245,7 @@ export function ListaOrdens() {
               <div className="space-y-3">
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
                   Execução / Operacional
-                  {filtrosStatusExec.length > 0 && <button onClick={() => setFiltrosStatusExec([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
+                  {filtrosStatusExec.length > 0 && <button onClick={() => updateParams('exec', [])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>}
                 </p>
                 <div className="flex flex-col gap-2">
                   {STATUS_EXEC_FILTROS.map(({ label, valor }) => (
@@ -310,7 +310,7 @@ export function ListaOrdens() {
                 <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
                   Serviços
                   {filtrosServico.length > 0 && (
-                    <button onClick={() => setFiltrosServico([])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>
+                    <button onClick={() => updateParams('servico', [])} className="text-brand-blue hover:text-white transition-colors">Limpar</button>
                   )}
                 </p>
                 <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent">

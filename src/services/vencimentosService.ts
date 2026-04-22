@@ -53,10 +53,11 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
     `);
 
   if (armas) {
-    (armas as { id: string; modelo: string; vencimento_craf: string; clientes?: { nome: string } }[]).forEach((a) => {
+    (armas as any[]).forEach((a) => {
       if (a.vencimento_craf) {
         const result = calcularAlerta('CRAF', a.vencimento_craf);
         if (result.nivel !== 'OK') {
+          const cliente = Array.isArray(a.clientes) ? a.clientes[0] : a.clientes;
           alertas.push({
             id: `${a.id}-craf`,
             tipo: 'CRAF',
@@ -64,7 +65,7 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
             dataVencimento: a.vencimento_craf,
             nivel: result.nivel,
             diasRestantes: result.dias,
-            clienteNome: a.clientes?.nome,
+            clienteNome: cliente?.nome,
             armaModelo: a.modelo
           });
         }
@@ -90,15 +91,17 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
       if (g.vencimento) {
         const result = calcularAlerta('GT', g.vencimento);
         if (result.nivel !== 'OK') {
+          const arma = Array.isArray(g.armas) ? g.armas[0] : g.armas;
+          const cliente = Array.isArray(arma?.clientes) ? arma.clientes[0] : arma?.clientes;
           alertas.push({
             id: `${g.id}-gt`,
             tipo: 'GT',
-            label: `GT ${g.tipo}: ${g.armas?.modelo}`,
+            label: `GT ${g.tipo}: ${arma?.modelo}`,
             dataVencimento: g.vencimento,
             nivel: result.nivel,
             diasRestantes: result.dias,
-            clienteNome: g.armas?.clientes?.nome,
-            armaModelo: g.armas?.modelo
+            clienteNome: cliente?.nome,
+            armaModelo: arma?.modelo
           });
         }
       }
@@ -120,6 +123,7 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
       if (m.vencimento) {
         const result = calcularAlerta('MANEJO', m.vencimento);
         if (result.nivel !== 'OK') {
+          const cliente = Array.isArray(m.clientes) ? m.clientes[0] : m.clientes;
           alertas.push({
             id: `${m.id}-manejo`,
             tipo: 'MANEJO',
@@ -127,7 +131,7 @@ export async function buscarAlertasGlobais(): Promise<AlertaDocumento[]> {
             dataVencimento: m.vencimento,
             nivel: result.nivel,
             diasRestantes: result.dias,
-            clienteNome: m.clientes?.nome
+            clienteNome: cliente?.nome
           });
         }
       }
