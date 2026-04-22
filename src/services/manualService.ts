@@ -26,10 +26,11 @@ export const CONTEUDO_MANUAL: SecaoManual[] = [
     conteudo: [
       'No módulo de Clientes, você pode cadastrar e consultar todos os dados dos CACs.',
       'Principais Funcionalidades:',
-      '• Cadastro completo com CPF, Endereço e Filiação.',
+      '• Cadastro Detalhado: CPF, Endereço completo, Senha GOV e Observações.',
       '• Histórico de atendimentos vinculados ao cliente.',
       '• Busca rápida por nome ou CPF para agilizar o atendimento.'
-    ]
+    ],
+    imagemPath: '/manual/clientes.png'
   },
   {
     id: 'ordens',
@@ -37,23 +38,25 @@ export const CONTEUDO_MANUAL: SecaoManual[] = [
     conteudo: [
       'A O.S. é o coração do sistema. Ela registra quais serviços serão executados.',
       'Fluxo de Trabalho:',
-      '• Abertura: Ao abrir uma OS, selecione os serviços do catálogo.',
-      '• Status: Acompanhe se o serviço está "Não Iniciado", "Em Andamento" ou "Finalizado".',
-      '• Timeline: O sistema registra automaticamente cada mudança de status para auditoria.',
-      '• Emissão: Você pode imprimir a OS em PDF para entregar ao cliente.'
-    ]
+      '• Abertura: Ao abrir uma OS, selecione os serviços. Cada serviço pode ter seu próprio número de protocolo.',
+      '• Status e Execução: Acompanhe o progresso individual de cada serviço no processo.',
+      '• Timeline de Auditoria: O sistema registra automaticamente quem alterou o status ou registrou pagamentos.',
+      '• Emissão: Você pode imprimir a OS em PDF com detalhamento de valores individuais.'
+    ],
+    imagemPath: '/manual/ordens.png'
   },
   {
     id: 'financeiro',
     titulo: '4. Painel Financeiro e Recibos',
     conteudo: [
-      'O módulo financeiro permite o controle total de entradas.',
+      'O módulo financeiro permite o controle total de entradas e desempenho.',
       'Recursos:',
+      '• Exportador Avançado: Gere planilhas customizadas selecionando colunas e filtros de status.',
+      '• Desempenho de Equipe: Relatórios detalhados de conversão e volume por colaborador.',
       '• Emissão de Recibos: Gere recibos profissionais com um clique.',
-      '• Fluxo de Caixa: Visualize o faturamento por período.',
-      '• Orçamentos: Envie propostas formais antes de converter em OS.',
-      '• Métricas: Veja o desempenho da equipe e volume de processos.'
-    ]
+      '• Fluxo de Caixa: Visualize o faturamento líquido descontando taxas GRU e despesas operacionais.'
+    ],
+    imagemPath: '/manual/financeiro.png'
   },
   {
     id: 'agendamentos',
@@ -63,7 +66,8 @@ export const CONTEUDO_MANUAL: SecaoManual[] = [
       '• Calendário Interativo: Veja todos os compromissos do mês.',
       '• Status: Marque compromissos como concluídos ou reagende com facilidade.',
       '• Vínculo: Cada agendamento pode estar ligado a um cliente específico.'
-    ]
+    ],
+    imagemPath: '/manual/agendamentos.png'
   },
   {
     id: 'configuracoes',

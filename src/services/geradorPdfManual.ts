@@ -79,17 +79,26 @@ export async function gerarPdfManual(secoesIds: string[]): Promise<Blob> {
       y += (linhas.length * 6) + 4;
     });
 
-    // Placeholder para Imagem Ilustrativa (Se for necessário no futuro)
-    if (secao.id !== 'suporte' && secao.id !== 'introducao') {
-        y += 10;
-        doc.setDrawColor(LINHA);
-        doc.setLineDashPattern([2, 1], 0);
-        doc.roundedRect(20, y, largura - 40, 60, 3, 3, 'S');
-        doc.setFontSize(8);
-        doc.setTextColor('#999999');
-        doc.text('[ ÁREA ILUSTRATIVA DA INTERFACE DO MÓDULO ]', largura / 2, y + 32, { align: 'center' });
-        y += 75;
-        doc.setLineDashPattern([], 0);
+    // Imagem Ilustrativa (Se disponível)
+    if (secao.imagemPath) {
+      try {
+        const imgRes = await fetch(secao.imagemPath);
+        if (imgRes.ok) {
+          const imgBlob = await imgRes.blob();
+          const imgBase64 = await blobParaBase64(imgBlob);
+          
+          y += 5;
+          // Desenha uma borda suave ao redor da imagem
+          doc.setDrawColor(LINHA);
+          doc.setLineWidth(0.1);
+          doc.roundedRect(19, y - 1, largura - 38, 62, 2, 2, 'S');
+          
+          doc.addImage(imgBase64, 'PNG', 20, y, largura - 40, 60);
+          y += 70;
+        }
+      } catch (err) {
+        console.error('Erro ao carregar imagem para o manual:', err);
+      }
     }
   });
 
