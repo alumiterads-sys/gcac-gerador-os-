@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { useOrdens } from '../../context/OrdensContext';
 import { useServicos } from '../../context/ServicosContext';
@@ -26,17 +26,35 @@ const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico }[] = [
 export function ListaOrdens() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { ordens, deletarOrdem } = useOrdens();
   const { servicos } = useServicos();
   const { estado: notif, mostrar, fechar } = useNotificacao();
-  const [busca, setBusca] = useState('');
-  const [filtrosStatus, setFiltrosStatus] = useState<StatusOS[]>([]);
-  const [filtrosStatusExec, setFiltrosStatusExec] = useState<StatusExecucaoServico[]>([]);
-  const [filtrosServico, setFiltrosServico] = useState<string[]>([]);
-  const [filtroGru, setFiltroGru] = useState<'Todos' | 'Pagas' | 'Pendentes'>('Todos');
+  
+  // Estados derivados da URL
+  const busca = searchParams.get('busca') || '';
+  const abaAtiva = (searchParams.get('aba') as 'ativas' | 'concluidas') || 'ativas';
+  const filtrosStatus = useMemo(() => searchParams.getAll('status') as StatusOS[], [searchParams]);
+  const filtrosStatusExec = useMemo(() => searchParams.getAll('exec') as StatusExecucaoServico[], [searchParams]);
+  const filtrosServico = useMemo(() => searchParams.getAll('servico'), [searchParams]);
+  const filtroGru = (searchParams.get('gru') as 'Todos' | 'Pagas' | 'Pendentes') || 'Todos';
+
   const [confirmandoDelete, setConfirmandoDelete] = useState<string | null>(null);
   const [expandirFiltros, setExpandirFiltros] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<'ativas' | 'concluidas'>('ativas');
+
+  // Helper para atualizar params de forma fluida
+  const updateParams = (key: string, value: string | string[] | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete(key);
+      if (Array.isArray(value)) {
+        value.forEach(v => next.append(key, v));
+      } else if (value) {
+        next.set(key, value);
+      }
+      return next;
+    }, { replace: true });
+  };
 
   const isConcluida = (o: any) => {
     // Uma OS é considerada concluída se:
@@ -62,7 +80,7 @@ export function ListaOrdens() {
   useEffect(() => {
     const state = location.state as { filtroStatusExecucao?: StatusExecucaoServico };
     if (state?.filtroStatusExecucao) {
-      setFiltrosStatusExec([state.filtroStatusExecucao]);
+      updateParams('exec', [state.filtroStatusExecucao]);
       // Limpar o estado para evitar comportamentos inesperados ao recarregar
       window.history.replaceState({}, document.title);
     }
@@ -100,23 +118,22 @@ export function ListaOrdens() {
   });
 
   const toggleFiltroStatus = (val: StatusOS) => {
-    setFiltrosStatus(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+    const next = filtrosStatus.includes(val) ? filtrosStatus.filter(v => v !== val) : [...filtrosStatus, val];
+    updateParams('status', next);
   };
 
   const toggleFiltroStatusExec = (val: StatusExecucaoServico) => {
-    setFiltrosStatusExec(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+    const next = filtrosStatusExec.includes(val) ? filtrosStatusExec.filter(v => v !== val) : [...filtrosStatusExec, val];
+    updateParams('exec', next);
   };
   
   const toggleFiltroServico = (val: string) => {
-    setFiltrosServico(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+    const next = filtrosServico.includes(val) ? filtrosServico.filter(v => v !== val) : [...filtrosServico, val];
+    updateParams('servico', next);
   };
 
   const limparFiltros = () => {
-    setFiltrosStatus([]);
-    setFiltrosStatusExec([]);
-    setFiltrosServico([]);
-    setFiltroGru('Todos');
-    setBusca('');
+    setSearchParams(new URLSearchParams(), { replace: true });
   };
 
   return (
@@ -140,7 +157,7 @@ export function ListaOrdens() {
       {/* ── Seletor de Abas ── */}
       <div className="flex gap-1 p-1 bg-brand-dark-3 border border-brand-dark-5 rounded-xl w-fit">
         <button 
-          onClick={() => setAbaAtiva('ativas')}
+          onClick={() => updateParams('aba', 'ativas')}
           className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${
             abaAtiva === 'ativas' ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'
           }`}
@@ -152,7 +169,7 @@ export function ListaOrdens() {
           </span>
         </button>
         <button 
-          onClick={() => setAbaAtiva('concluidas')}
+          onClick={() => updateParams('aba', 'concluidas')}
           className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${
             abaAtiva === 'concluidas' ? 'bg-brand-blue text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'
           }`}
@@ -175,7 +192,7 @@ export function ListaOrdens() {
               className="input pl-9"
               placeholder="Buscar por nome, CPF, número ou serviço..."
               value={busca}
-              onChange={e => setBusca(e.target.value)}
+              onChange={e => updateParams('busca', e.target.value)}
             />
           </div>
           <button
@@ -207,7 +224,7 @@ export function ListaOrdens() {
                 </p>
                 <div className="flex flex-col gap-2">
                   {STATUS_FILTROS.map(({ label, valor }) => (
-                    <label key={valor} className="flex items-center gap-3 group cursor-pointer">
+                    <div key={valor} className="flex items-center gap-3 group cursor-pointer">
                       <div 
                         onClick={() => toggleFiltroStatus(valor)}
                         className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
@@ -219,7 +236,7 @@ export function ListaOrdens() {
                       <span className={`text-xs font-semibold transition-colors ${filtrosStatus.includes(valor) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
                         {label}
                       </span>
-                    </label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -232,7 +249,7 @@ export function ListaOrdens() {
                 </p>
                 <div className="flex flex-col gap-2">
                   {STATUS_EXEC_FILTROS.map(({ label, valor }) => (
-                    <label key={valor} className="flex items-center gap-3 group cursor-pointer">
+                    <div key={valor} className="flex items-center gap-3 group cursor-pointer">
                       <div 
                         onClick={() => toggleFiltroStatusExec(valor)}
                         className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
@@ -244,7 +261,7 @@ export function ListaOrdens() {
                       <span className={`text-xs font-semibold transition-colors ${filtrosStatusExec.includes(valor) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
                         {label}
                       </span>
-                    </label>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -262,7 +279,7 @@ export function ListaOrdens() {
                         name="filtroGru"
                         className="hidden"
                         checked={filtroGru === opt}
-                        onChange={() => setFiltroGru(opt as any)}
+                        onChange={() => updateParams('gru', opt)}
                       />
                       <div 
                         className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
@@ -298,7 +315,7 @@ export function ListaOrdens() {
                 </p>
                 <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent">
                   {servicos.map((s) => (
-                    <label key={s.id} className="flex items-center gap-3 group cursor-pointer">
+                    <div key={s.id} className="flex items-center gap-3 group cursor-pointer">
                       <div 
                         onClick={() => toggleFiltroServico(s.nome)}
                         className={`w-4 h-4 rounded border flex items-center justify-center transition-all flex-shrink-0 ${
@@ -310,7 +327,7 @@ export function ListaOrdens() {
                       <span className={`text-xs font-semibold truncate transition-colors ${filtrosServico.includes(s.nome) ? 'text-brand-blue-light' : 'text-gray-400 group-hover:text-gray-300'}`}>
                         {s.nome}
                       </span>
-                    </label>
+                    </div>
                   ))}
                   {servicos.length === 0 && (
                     <p className="text-[10px] text-gray-600 italic">Nenhum serviço configurado</p>
