@@ -58,8 +58,8 @@ const mapToDB = (dados: any) => {
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   if (dados.numeroCr !== undefined) payload.numero_cr = dados.numeroCr;
-  if (dados.vencimentoCr !== undefined) payload.vencimento_cr = dados.vencimentoCr;
-  if (dados.vencimentoCrIbama !== undefined) payload.vencimento_cr_ibama = dados.vencimentoCrIbama;
+  if (dados.vencimentoCr !== undefined) payload.vencimento_cr = dados.vencimentoCr || null;
+  if (dados.vencimentoCrIbama !== undefined) payload.vencimento_cr_ibama = dados.vencimentoCrIbama || null;
   return payload;
 };
 
@@ -183,7 +183,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
         numero_serie: dados.numeroSerie,
         numero_sigma: dados.numeroSigma,
         acervo: dados.acervo,
-        vencimento_craf: dados.vencimentoCraf
+        vencimento_craf: dados.vencimentoCraf || null
       }]);
     if (error) throw error;
   }, []);
