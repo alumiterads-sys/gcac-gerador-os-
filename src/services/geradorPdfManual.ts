@@ -48,7 +48,7 @@ export async function gerarPdfManual(secoesIds: string[]): Promise<Blob> {
   // ── Conteúdo ───────────────────────────────────────────────────────────
   const secoesParaGerar = CONTEUDO_MANUAL.filter(s => secoesIds.includes(s.id));
 
-  secoesParaGerar.forEach((secao, index) => {
+  for (const secao of secoesParaGerar) {
     doc.addPage();
     y = 20;
 
@@ -100,7 +100,7 @@ export async function gerarPdfManual(secoesIds: string[]): Promise<Blob> {
         console.error('Erro ao carregar imagem para o manual:', err);
       }
     }
-  });
+  }
 
   // ── Rodapé (Números de página) ──────────────────────────────────────────
   const pageCount = (doc as any).internal.getNumberOfPages();

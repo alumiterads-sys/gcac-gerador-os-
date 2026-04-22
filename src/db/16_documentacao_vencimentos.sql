@@ -40,12 +40,16 @@ CREATE TABLE IF NOT EXISTS autorizacoes_manejo (
     criado_em TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Habilitar RLS (Seguindo o padrão do projeto)
+-- Habilitar RLS
 ALTER TABLE armas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE guias_trafego ENABLE ROW LEVEL SECURITY;
 ALTER TABLE autorizacoes_manejo ENABLE ROW LEVEL SECURITY;
 
--- Políticas de Acesso (Acesso total para usuários autenticados)
+-- Políticas de Acesso (Remover antes de criar para evitar erro de duplicidade)
+DROP POLICY IF EXISTS "Acesso total armas para autenticados" ON armas;
+DROP POLICY IF EXISTS "Acesso total guias para autenticados" ON guias_trafego;
+DROP POLICY IF EXISTS "Acesso total manejo para autenticados" ON autorizacoes_manejo;
+
 CREATE POLICY "Acesso total armas para autenticados" ON armas FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Acesso total guias para autenticados" ON guias_trafego FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Acesso total manejo para autenticados" ON autorizacoes_manejo FOR ALL USING (auth.role() = 'authenticated');
