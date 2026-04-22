@@ -96,7 +96,7 @@ export function GestaoUsuarios() {
           .from('usuarios_autorizados')
           .update({
             nome: formData.nome,
-            email: formData.email.toLowerCase(),
+            email: formData.email.trim().toLowerCase(),
             cpf: formData.cpf,
             contato: formData.contato,
             role: formData.role,
@@ -111,7 +111,7 @@ export function GestaoUsuarios() {
           .from('usuarios_autorizados')
           .insert([{
             nome: formData.nome,
-            email: formData.email.toLowerCase(),
+            email: formData.email.trim().toLowerCase(),
             cpf: formData.cpf,
             contato: formData.contato,
             role: formData.role,

@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
       });
       const info = await res.json();
-      const emailLower = info.email.toLowerCase();
+      const emailLower = info.email.trim().toLowerCase();
 
       // 1. Busca na Whitelist do Banco de Dados
       const { data: whitelistData, error: whitelistError } = await supabase
