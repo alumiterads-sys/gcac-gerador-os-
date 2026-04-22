@@ -11,6 +11,7 @@ import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { useFinanceiro } from '../../context/FinanceiroContext';
 import { BriefingDiario } from './BriefingDiario';
 import { WidgetLembretes } from './WidgetLembretes';
+import { WidgetVencimentos } from './WidgetVencimentos';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -136,6 +137,7 @@ export function Dashboard() {
 
       {/* ── Widget de Lembretes ── */}
       <WidgetLembretes />
+      <WidgetVencimentos />
 
       {/* ── Cards de Estatísticas ── */}
       <div className="space-y-3">

@@ -59,8 +59,44 @@ export interface Cliente {
   clubeFiliado: string;
   observacoes: string;
   endereco: string;
+  numeroCr?: string;
+  vencimentoCr?: string;
+  vencimentoCrIbama?: string;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+export interface Arma {
+  id: string;
+  clienteId: string;
+  modelo: string;
+  calibre: string;
+  fabricante: string;
+  numeroSerie: string;
+  numeroSigma: string;
+  acervo: 'Caça' | 'Tiro Desportivo' | 'Coleção';
+  vencimentoCraf: string;
+  criadoEm: string;
+}
+
+export interface GuiaTrafego {
+  id: string;
+  armaId: string;
+  tipo: 'Treino' | 'Caça' | 'Manutenção' | 'Transferência' | 'Outro';
+  vencimento: string;
+  destino: string;
+  criadoEm: string;
+}
+
+export interface AutorizacaoManejo {
+  id: string;
+  clienteId: string;
+  numeroCar: string;
+  nomeFazenda: string;
+  nomeProprietario: string;
+  cidade: string;
+  vencimento: string;
+  criadoEm: string;
 }
 
 export interface OrdemDeServico {

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { FormularioCliente } from './FormularioCliente';
+import { AbaDocumentacao } from './AbaDocumentacao';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone, formatarMoeda, formatarData } from '../../utils/formatters';
 import { useOrdens } from '../../context/OrdensContext';
@@ -28,7 +29,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const { agendamentos } = useAgendamentos();
   const { deletarCliente } = useClientes();
   
-  const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos'>('ordens');
+  const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos' | 'documentos'>('ordens');
   const [copiou, setCopiou] = useState(false);
   const [editando, setEditando] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -244,6 +245,9 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
               <TabButton ativo={abaAtiva === 'agendamentos'} onClick={() => setAbaAtiva('agendamentos')} count={agendamentosCliente.length}>
                 Agendamentos
               </TabButton>
+              <TabButton ativo={abaAtiva === 'documentos'} onClick={() => setAbaAtiva('documentos')} count={0}>
+                Documentação
+              </TabButton>
             </div>
 
             <div className="p-4">
@@ -298,6 +302,9 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                   }))} 
                   emptyMsg="Nenhum agendamento encontrado para este cliente."
                 />
+              )}
+              {abaAtiva === 'documentos' && (
+                <AbaDocumentacao cliente={cliente} />
               )}
             </div>
           </div>

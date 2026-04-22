@@ -23,6 +23,9 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     clubeFiliado: clienteEditando?.clubeFiliado ?? '',
     observacoes: clienteEditando?.observacoes ?? '',
     endereco: clienteEditando?.endereco ?? '',
+    numeroCr: clienteEditando?.numeroCr ?? '',
+    vencimentoCr: clienteEditando?.vencimentoCr ?? '',
+    vencimentoCrIbama: clienteEditando?.vencimentoCrIbama ?? '',
   });
 
   const atualizar = (campo: string, valor: any) => {
@@ -62,6 +65,9 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         clubeFiliado: form.filiadoProTiro ? '' : form.clubeFiliado.trim(),
         observacoes: form.observacoes.trim(),
         endereco: form.endereco.trim(),
+        numeroCr: form.numeroCr.trim(),
+        vencimentoCr: form.vencimentoCr,
+        vencimentoCrIbama: form.vencimentoCrIbama,
       };
 
       if (clienteEditando) {
@@ -122,6 +128,25 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
                 {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Nº CR (Exército/PF)</label>
+              <input type="text" className="input uppercase"
+                value={form.numeroCr} onChange={e => atualizar('numeroCr', e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label className="label">Vencimento CR</label>
+              <input type="date" className="input"
+                value={form.vencimentoCr} onChange={e => atualizar('vencimentoCr', e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Vencimento CR IBAMA</label>
+            <input type="date" className="input"
+              value={form.vencimentoCrIbama} onChange={e => atualizar('vencimentoCrIbama', e.target.value)} />
           </div>
 
           <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">

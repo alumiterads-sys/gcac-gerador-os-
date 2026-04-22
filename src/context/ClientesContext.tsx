@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Cliente } from '../types';
+import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo } from '../types';
 import { supabase } from '../db/supabase';
 
 interface ClientesContextType {
@@ -11,6 +11,21 @@ interface ClientesContextType {
   buscarCliente: (id: string) => Promise<Cliente | undefined>;
   buscarClientePorNomeExato: (nome: string) => Promise<Cliente | undefined>;
   clubesRegistrados: string[];
+  
+  // Gestão de Armas
+  buscarArmas: (clienteId: string) => Promise<Arma[]>;
+  salvarArma: (arma: Omit<Arma, 'id' | 'criadoEm'>) => Promise<void>;
+  deletarArma: (id: string) => Promise<void>;
+  
+  // Gestão de GTs
+  buscarGts: (armaId: string) => Promise<GuiaTrafego[]>;
+  salvarGt: (gt: Omit<GuiaTrafego, 'id' | 'criadoEm'>) => Promise<void>;
+  deletarGt: (id: string) => Promise<void>;
+  
+  // Gestão de Manejo
+  buscarManejos: (clienteId: string) => Promise<AutorizacaoManejo[]>;
+  salvarManejo: (manejo: Omit<AutorizacaoManejo, 'id' | 'criadoEm'>) => Promise<void>;
+  deletarManejo: (id: string) => Promise<void>;
 }
 
 const ClientesContext = createContext<ClientesContextType | null>(null);
@@ -25,6 +40,9 @@ const mapFromDB = (row: any): Cliente => ({
   clubeFiliado: row.clube_filiado || '',
   observacoes: row.observacoes || '',
   endereco: row.endereco || '',
+  numeroCr: row.numero_cr || '',
+  vencimentoCr: row.vencimento_cr || '',
+  vencimentoCrIbama: row.vencimento_cr_ibama || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -39,6 +57,9 @@ const mapToDB = (dados: any) => {
   if (dados.clubeFiliado !== undefined) payload.clube_filiado = dados.clubeFiliado;
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes;
   if (dados.endereco !== undefined) payload.endereco = dados.endereco;
+  if (dados.numeroCr !== undefined) payload.numero_cr = dados.numeroCr;
+  if (dados.vencimentoCr !== undefined) payload.vencimento_cr = dados.vencimentoCr;
+  if (dados.vencimentoCrIbama !== undefined) payload.vencimento_cr_ibama = dados.vencimentoCrIbama;
   return payload;
 };
 
@@ -128,6 +149,126 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     return Array.from(new Set(todosClubes.map(c => c.toUpperCase()))).sort();
   }, [clientes]);
 
+  // --- Gestão de Armas ---
+  const buscarArmas = useCallback(async (clienteId: string) => {
+    const { data, error } = await supabase
+      .from('armas')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .order('modelo', { ascending: true });
+    
+    if (error) throw error;
+    return data.map(row => ({
+      id: row.id,
+      clienteId: row.cliente_id,
+      modelo: row.modelo,
+      calibre: row.calibre,
+      fabricante: row.fabricante,
+      numeroSerie: row.numero_serie,
+      numeroSigma: row.numero_sigma,
+      acervo: row.acervo,
+      vencimentoCraf: row.vencimento_craf,
+      criadoEm: row.criado_em
+    }));
+  }, []);
+
+  const salvarArma = useCallback(async (dados: Omit<Arma, 'id' | 'criadoEm'>) => {
+    const { error } = await supabase
+      .from('armas')
+      .insert([{
+        cliente_id: dados.clienteId,
+        modelo: dados.modelo,
+        calibre: dados.calibre,
+        fabricante: dados.fabricante,
+        numero_serie: dados.numeroSerie,
+        numero_sigma: dados.numeroSigma,
+        acervo: dados.acervo,
+        vencimento_craf: dados.vencimentoCraf
+      }]);
+    if (error) throw error;
+  }, []);
+
+  const deletarArma = useCallback(async (id: string) => {
+    const { error } = await supabase.from('armas').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  // --- Gestão de GTs ---
+  const buscarGts = useCallback(async (armaId: string) => {
+    const { data, error } = await supabase
+      .from('guias_trafego')
+      .select('*')
+      .eq('arma_id', armaId)
+      .order('vencimento', { ascending: true });
+    
+    if (error) throw error;
+    return data.map(row => ({
+      id: row.id,
+      armaId: row.arma_id,
+      tipo: row.tipo,
+      vencimento: row.vencimento,
+      destino: row.destino,
+      criadoEm: row.criado_em
+    }));
+  }, []);
+
+  const salvarGt = useCallback(async (dados: Omit<GuiaTrafego, 'id' | 'criadoEm'>) => {
+    const { error } = await supabase
+      .from('guias_trafego')
+      .insert([{
+        arma_id: dados.armaId,
+        tipo: dados.tipo,
+        vencimento: dados.vencimento,
+        destino: dados.destino
+      }]);
+    if (error) throw error;
+  }, []);
+
+  const deletarGt = useCallback(async (id: string) => {
+    const { error } = await supabase.from('guias_trafego').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
+  // --- Gestão de Manejo ---
+  const buscarManejos = useCallback(async (clienteId: string) => {
+    const { data, error } = await supabase
+      .from('autorizacoes_manejo')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .order('vencimento', { ascending: true });
+    
+    if (error) throw error;
+    return data.map(row => ({
+      id: row.id,
+      clienteId: row.cliente_id,
+      numeroCar: row.numero_car,
+      nomeFazenda: row.nome_fazenda,
+      nomeProprietario: row.nome_proprietario,
+      cidade: row.cidade,
+      vencimento: row.vencimento,
+      criadoEm: row.criado_em
+    }));
+  }, []);
+
+  const salvarManejo = useCallback(async (dados: Omit<AutorizacaoManejo, 'id' | 'criadoEm'>) => {
+    const { error } = await supabase
+      .from('autorizacoes_manejo')
+      .insert([{
+        cliente_id: dados.clienteId,
+        numero_car: dados.numeroCar,
+        nome_fazenda: dados.nomeFazenda,
+        nome_proprietario: dados.nomeProprietario,
+        cidade: dados.cidade,
+        vencimento: dados.vencimento
+      }]);
+    if (error) throw error;
+  }, []);
+
+  const deletarManejo = useCallback(async (id: string) => {
+    const { error } = await supabase.from('autorizacoes_manejo').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
   return (
     <ClientesContext.Provider value={{
       clientes,
@@ -137,6 +278,15 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       buscarCliente,
       buscarClientePorNomeExato,
       clubesRegistrados,
+      buscarArmas,
+      salvarArma,
+      deletarArma,
+      buscarGts,
+      salvarGt,
+      deletarGt,
+      buscarManejos,
+      salvarManejo,
+      deletarManejo
     }}>
       {children}
     </ClientesContext.Provider>
