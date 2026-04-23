@@ -163,6 +163,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     return data.map(row => ({
       id: row.id,
       clienteId: row.cliente_id,
+      tipo: row.tipo || '',
       modelo: row.modelo,
       calibre: row.calibre,
       fabricante: row.fabricante,
@@ -179,6 +180,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       .from('armas')
       .insert([{
         cliente_id: dados.clienteId,
+        tipo: dados.tipo,
         modelo: dados.modelo,
         calibre: dados.calibre,
         fabricante: dados.fabricante,

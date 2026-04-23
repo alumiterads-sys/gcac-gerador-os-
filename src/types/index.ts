@@ -70,6 +70,7 @@ export interface Cliente {
 export interface Arma {
   id: string;
   clienteId: string;
+  tipo: string;
   modelo: string;
   calibre: string;
   fabricante: string;

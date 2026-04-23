@@ -8,6 +8,10 @@ import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo } from '../../types';
 import { formatarData } from '../../utils/formatters';
 import { calcularAlerta, obterClasseAlerta } from '../../utils/vencimentos';
 
+const TIPOS_ARMA = ['Pistola', 'Revólver', 'Carabina / Fuzil', 'Espingarda', 'Rifle'];
+const CALIBRES = ['.22 LR', '.380 ACP', '.38 SPL', '.357 MAG', '9mm Luger', '.40 S&W', '.45 ACP', '.44 MAG', '12 GA', '20 GA', '28 GA', '36 GA', '.223 REM / 5.56 NATO', '.308 WIN / 7.62 NATO', '.30-06 SPRG', '.454 CASULL'];
+const FABRICANTES = ['Taurus', 'CBC', 'Rossi', 'Boito', 'Imbel', 'Glock', 'Beretta', 'Sig Sauer', 'Smith & Wesson', 'CZ', 'Ruger', 'Walther', 'Canik', 'Stoeger', 'Tanfoglio', 'Springfield Armory', 'Colt', 'Remington', 'Winchester', 'Benelli', 'Browning'];
+
 interface Props {
   cliente: Cliente;
 }
@@ -111,7 +115,9 @@ export function AbaDocumentacao({ cliente }: Props) {
                       <Target size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">{arma.modelo} - {arma.calibre}</p>
+                      <p className="text-sm font-bold text-white">
+                        {arma.tipo ? `${arma.tipo} - ` : ''}{arma.modelo} • {arma.calibre}
+                      </p>
                       <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">
                         Série: {arma.numeroSerie} • SIGMA: {arma.numeroSigma}
                       </p>
@@ -308,8 +314,8 @@ function EmptyState({ msg }: { msg: string }) {
 
 function ModalArma({ onFechar, onSalvar }: { onFechar: () => void, onSalvar: (d: any) => void }) {
   const [form, setForm] = useState({
-    modelo: '', calibre: '', fabricante: '', numeroSerie: '', numeroSigma: '', 
-    acervo: 'Tiro Desportivo' as any, vencimentoCraf: ''
+    tipo: '', modelo: '', calibre: '', fabricante: '', numeroSerie: '', 
+    numeroSigma: '', acervo: 'Tiro Desportivo' as any, vencimentoCraf: ''
   });
 
   return (
@@ -317,6 +323,20 @@ function ModalArma({ onFechar, onSalvar }: { onFechar: () => void, onSalvar: (d:
       <div className="card w-full max-w-md animate-scale-up" onClick={e => e.stopPropagation()}>
         <h3 className="text-lg font-bold text-white mb-6">Cadastrar Nova Arma</h3>
         <div className="space-y-4">
+          <div>
+            <label className="label">Tipo de Arma</label>
+            <input 
+              list="tipos-arma"
+              className="input uppercase" 
+              value={form.tipo} 
+              onChange={e => setForm({...form, tipo: e.target.value})} 
+              placeholder="Selecione ou digite..."
+            />
+            <datalist id="tipos-arma">
+              {TIPOS_ARMA.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Modelo</label>
@@ -324,13 +344,31 @@ function ModalArma({ onFechar, onSalvar }: { onFechar: () => void, onSalvar: (d:
             </div>
             <div>
               <label className="label">Calibre</label>
-              <input type="text" className="input uppercase" value={form.calibre} onChange={e => setForm({...form, calibre: e.target.value.toUpperCase()})} />
+              <input 
+                list="calibres"
+                className="input uppercase" 
+                value={form.calibre} 
+                onChange={e => setForm({...form, calibre: e.target.value.toUpperCase()})} 
+                placeholder="Ex: 9mm"
+              />
+              <datalist id="calibres">
+                {CALIBRES.map(c => <option key={c} value={c} />)}
+              </datalist>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Fabricante</label>
-              <input type="text" className="input uppercase" value={form.fabricante} onChange={e => setForm({...form, fabricante: e.target.value.toUpperCase()})} />
+              <input 
+                list="fabricantes"
+                className="input uppercase" 
+                value={form.fabricante} 
+                onChange={e => setForm({...form, fabricante: e.target.value.toUpperCase()})} 
+                placeholder="Ex: Taurus"
+              />
+              <datalist id="fabricantes">
+                {FABRICANTES.map(f => <option key={f} value={f} />)}
+              </datalist>
             </div>
             <div>
               <label className="label">Nº de Série</label>
