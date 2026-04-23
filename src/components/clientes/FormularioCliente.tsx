@@ -25,6 +25,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     endereco: clienteEditando?.endereco ?? '',
     numeroCr: clienteEditando?.numeroCr ?? '',
     vencimentoCr: clienteEditando?.vencimentoCr ?? '',
+    numeroCrIbama: clienteEditando?.numeroCrIbama ?? '',
     vencimentoCrIbama: clienteEditando?.vencimentoCrIbama ?? '',
   });
 
@@ -67,6 +68,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         endereco: form.endereco.trim(),
         numeroCr: form.numeroCr.trim(),
         vencimentoCr: form.vencimentoCr,
+        numeroCrIbama: form.numeroCrIbama.trim(),
         vencimentoCrIbama: form.vencimentoCrIbama,
       };
 
@@ -143,10 +145,17 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
             </div>
           </div>
 
-          <div>
-            <label className="label">Vencimento CR IBAMA</label>
-            <input type="date" className="input"
-              value={form.vencimentoCrIbama} onChange={e => atualizar('vencimentoCrIbama', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Nº CR IBAMA</label>
+              <input type="text" className="input uppercase"
+                value={form.numeroCrIbama} onChange={e => atualizar('numeroCrIbama', e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label className="label">Vencimento CR IBAMA</label>
+              <input type="date" className="input"
+                value={form.vencimentoCrIbama} onChange={e => atualizar('vencimentoCrIbama', e.target.value)} />
+            </div>
           </div>
 
           <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">

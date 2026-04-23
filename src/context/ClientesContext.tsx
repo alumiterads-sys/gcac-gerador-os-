@@ -42,6 +42,7 @@ const mapFromDB = (row: any): Cliente => ({
   endereco: row.endereco || '',
   numeroCr: row.numero_cr || '',
   vencimentoCr: row.vencimento_cr || '',
+  numeroCrIbama: row.numero_cr_ibama || '',
   vencimentoCrIbama: row.vencimento_cr_ibama || '',
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
@@ -59,6 +60,7 @@ const mapToDB = (dados: any) => {
   if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   if (dados.numeroCr !== undefined) payload.numero_cr = dados.numeroCr;
   if (dados.vencimentoCr !== undefined) payload.vencimento_cr = dados.vencimentoCr || null;
+  if (dados.numeroCrIbama !== undefined) payload.numero_cr_ibama = dados.numeroCrIbama;
   if (dados.vencimentoCrIbama !== undefined) payload.vencimento_cr_ibama = dados.vencimentoCrIbama || null;
   return payload;
 };

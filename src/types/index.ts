@@ -61,6 +61,7 @@ export interface Cliente {
   endereco: string;
   numeroCr?: string;
   vencimentoCr?: string;
+  numeroCrIbama?: string;
   vencimentoCrIbama?: string;
   criadoEm: string;
   atualizadoEm: string;

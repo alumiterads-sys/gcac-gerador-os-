@@ -181,6 +181,26 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                   )}
                 </p>
               </div>
+
+              {(cliente.numeroCr || cliente.vencimentoCr) && (
+                <div className="pt-2 border-t border-brand-dark-5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">CR Exército / PF</p>
+                  <p className="text-white font-medium">
+                    {cliente.numeroCr || 'Não informado'} 
+                    {cliente.vencimentoCr && <span className="text-gray-500 text-xs ml-2">({formatarData(cliente.vencimentoCr)})</span>}
+                  </p>
+                </div>
+              )}
+
+              {(cliente.numeroCrIbama || cliente.vencimentoCrIbama) && (
+                <div className="pt-2 border-t border-brand-dark-5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">CR IBAMA</p>
+                  <p className="text-white font-medium">
+                    {cliente.numeroCrIbama || 'Não informado'} 
+                    {cliente.vencimentoCrIbama && <span className="text-gray-500 text-xs ml-2">({formatarData(cliente.vencimentoCrIbama)})</span>}
+                  </p>
+                </div>
+              )}
               </div>
             </div>
 
