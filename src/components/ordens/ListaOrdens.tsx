@@ -4,7 +4,7 @@ import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, C
 import { useOrdens } from '../../context/OrdensContext';
 import { useServicos } from '../../context/ServicosContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao, isOrdemConcluida } from '../../utils/formatters';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
@@ -56,14 +56,6 @@ export function ListaOrdens() {
     }, { replace: true });
   };
 
-  const isConcluida = (o: any) => {
-    // Uma OS é considerada concluída se:
-    // 1. O status financeiro for 'Pago' ou 'Gratuidade'
-    // 2. TODOS os serviços dentro dela tiverem status 'Concluído'
-    const financeiraConcluida = o.status === 'Pago' || o.status === 'Gratuidade';
-    const execucaoConcluida = (o.servicos || []).every((s: any) => s.statusExecucao === 'Concluído');
-    return financeiraConcluida && execucaoConcluida;
-  };
 
   const handleDeletar = async () => {
     if (!confirmandoDelete) return;
@@ -88,7 +80,7 @@ export function ListaOrdens() {
 
   const ordensFiltradas = ordens.filter(o => {
     // Primeiro filtro: Aba Ativa vs Concluída
-    const statusConclusao = isConcluida(o);
+    const statusConclusao = isOrdemConcluida(o);
     if (abaAtiva === 'ativas' && statusConclusao) return false;
     if (abaAtiva === 'concluidas' && !statusConclusao) return false;
 
@@ -165,7 +157,7 @@ export function ListaOrdens() {
           <Clock size={14} />
           Em Aberto
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaAtiva === 'ativas' ? 'bg-white/20' : 'bg-brand-dark-5'}`}>
-            {ordens.filter(o => !isConcluida(o)).length}
+            {ordens.filter(o => !isOrdemConcluida(o)).length}
           </span>
         </button>
         <button 
@@ -177,7 +169,7 @@ export function ListaOrdens() {
           <CheckCircle size={14} />
           Histórico / Concluídas
           <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${abaAtiva === 'concluidas' ? 'bg-white/20' : 'bg-brand-dark-5'}`}>
-            {ordens.filter(o => isConcluida(o)).length}
+            {ordens.filter(o => isOrdemConcluida(o)).length}
           </span>
         </button>
       </div>

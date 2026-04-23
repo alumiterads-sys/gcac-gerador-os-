@@ -9,7 +9,7 @@ import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { FormularioCliente } from './FormularioCliente';
 import { AbaDocumentacao } from './AbaDocumentacao';
 import { Cliente } from '../../types';
-import { formatarCPF, formatarTelefone, formatarMoeda, formatarData } from '../../utils/formatters';
+import { formatarCPF, formatarTelefone, formatarMoeda, formatarData, isOrdemConcluida } from '../../utils/formatters';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useRecibos } from '../../context/RecibosContext';
@@ -34,9 +34,13 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const [editando, setEditando] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
+  const [mostrarTodasOrdens, setMostrarTodasOrdens] = useState(false);
 
   // Filtros de histórico
-  const ordensCliente = ordens.filter(o => o.cpf === cliente.cpf);
+  const todasOrdensCliente = ordens.filter(o => o.cpf === cliente.cpf);
+  const ordensClienteAbertas = todasOrdensCliente.filter(o => !isOrdemConcluida(o));
+  const ordensExibidas = mostrarTodasOrdens ? todasOrdensCliente : ordensClienteAbertas;
+
   const orcamentosCliente = orcamentos.filter(o => o.cpf === cliente.cpf);
   const recibosCliente = recibos.filter(r => r.clienteCPF === cliente.cpf);
   const agendamentosCliente = agendamentos.filter(a => a.clienteCPF === cliente.cpf && a.status === 'pendente');
@@ -233,7 +237,11 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           {/* Histórico com Tabs */}
           <div className="card p-0 overflow-hidden border-brand-dark-5">
             <div className="flex bg-brand-dark-3 border-b border-brand-dark-5 overflow-x-auto">
-              <TabButton ativo={abaAtiva === 'ordens'} onClick={() => setAbaAtiva('ordens')} count={ordensCliente.length}>
+              <TabButton 
+                ativo={abaAtiva === 'ordens'} 
+                onClick={() => setAbaAtiva('ordens')} 
+                count={mostrarTodasOrdens ? todasOrdensCliente.length : ordensClienteAbertas.length}
+              >
                 O.S.
               </TabButton>
               <TabButton ativo={abaAtiva === 'orcamentos'} onClick={() => setAbaAtiva('orcamentos')} count={orcamentosCliente.length}>
@@ -252,17 +260,30 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
 
             <div className="p-4">
               {abaAtiva === 'ordens' && (
-                <HistoryList 
-                  items={ordensCliente.map(o => ({ 
-                    id: o.id, 
-                    title: `OS #${String(o.numero).padStart(4, '0')}`, 
-                    date: o.criadoEm, 
-                    value: o.valor, 
-                    status: o.status,
-                    path: `/ordens/${o.id}`
-                  }))} 
-                  emptyMsg="Nenhuma ordem de serviço encontrada para este cliente."
-                />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                      {mostrarTodasOrdens ? 'Todas as Ordens' : 'Ordens em Aberto'}
+                    </h3>
+                    <button 
+                      onClick={() => setMostrarTodasOrdens(!mostrarTodasOrdens)}
+                      className="text-[10px] font-bold text-brand-blue hover:text-white transition-colors uppercase tracking-wider underline underline-offset-4"
+                    >
+                      {mostrarTodasOrdens ? 'Ver apenas abertas' : `Ver histórico completo (${todasOrdensCliente.length})`}
+                    </button>
+                  </div>
+                  <HistoryList 
+                    items={ordensExibidas.map(o => ({ 
+                      id: o.id, 
+                      title: `OS #${String(o.numero).padStart(4, '0')}`, 
+                      date: o.criadoEm, 
+                      value: o.valor, 
+                      status: o.status,
+                      path: `/ordens/${o.id}`
+                    }))} 
+                    emptyMsg={mostrarTodasOrdens ? "Nenhuma ordem de serviço encontrada para este cliente." : "Não há ordens de serviço em aberto para este cliente."}
+                  />
+                </div>
               )}
               {abaAtiva === 'orcamentos' && (
                 <HistoryList 

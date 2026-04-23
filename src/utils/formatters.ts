@@ -152,3 +152,9 @@ export function obterResumoExecucao(servicos: { statusExecucao?: StatusExecucaoS
     tipo: 'misto' as const
   };
 }
+
+export function isOrdemConcluida(o: { status: StatusOS, servicos?: { statusExecucao?: StatusExecucaoServico }[] }): boolean {
+  const financeiraConcluida = o.status === 'Pago' || o.status === 'Gratuidade';
+  const execucaoConcluida = (o.servicos || []).every((s: any) => s.statusExecucao === 'Concluído');
+  return financeiraConcluida && execucaoConcluida;
+}

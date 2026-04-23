@@ -20,12 +20,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const dados = localStorage.getItem('gcac_usuario');
     if (dados) {
       try {
-        const u = JSON.parse(dados);
+        const u = JSON.parse(dados) as UsuarioGoogle;
         setUsuario(u);
-        // Recupera o token para o sessionStorage para não quebrar a sincronização no refresh
+        
+        // Recupera o token para o sessionStorage
         if (u.accessToken) {
           sessionStorage.setItem('gcac_token', u.accessToken);
         }
+
+        // --- Atualização de Permissões em Background ---
+        const atualizarPermissoes = async () => {
+          try {
+            const emailLower = u.email.trim().toLowerCase();
+            const ehMasterAdmin = emailLower === 'gui.gomesassis@gmail.com';
+
+            const { data, error } = await supabase
+              .from('usuarios_autorizados')
+              .select('role, permissoes, ativo')
+              .eq('email', emailLower)
+              .single();
+
+            if (error || !data || !data.ativo) {
+              if (!ehMasterAdmin) {
+                // Se o usuário foi desativado ou removido, desloga ele
+                logout();
+                return;
+              }
+            }
+
+            const rawRole = data?.role;
+            const role = (ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador';
+            const permissoes = ehMasterAdmin 
+              ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
+              : (data?.permissoes || ["ordens"]);
+
+            const usuarioAtualizado = { ...u, role, permissoes };
+            
+            // Só atualiza se houver mudança real para evitar loops/re-renders desnecessários
+            if (JSON.stringify(u.permissoes) !== JSON.stringify(permissoes) || u.role !== role) {
+              setUsuario(usuarioAtualizado);
+              localStorage.setItem('gcac_usuario', JSON.stringify(usuarioAtualizado));
+            }
+          } catch (err) {
+            console.error('Erro ao atualizar permissões em background:', err);
+          }
+        };
+
+        atualizarPermissoes();
       } catch {
         localStorage.removeItem('gcac_usuario');
       }
