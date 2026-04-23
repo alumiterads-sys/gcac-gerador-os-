@@ -9,8 +9,17 @@ import { formatarData } from '../../utils/formatters';
 import { calcularAlerta, obterClasseAlerta } from '../../utils/vencimentos';
 
 const TIPOS_ARMA = ['Pistola', 'Revólver', 'Carabina / Fuzil', 'Espingarda', 'Rifle'];
-const CALIBRES = ['.22 LR', '.380 ACP', '.38 SPL', '.357 MAG', '9mm Luger', '.40 S&W', '.45 ACP', '.44 MAG', '12 GA', '20 GA', '28 GA', '36 GA', '.223 REM / 5.56 NATO', '.308 WIN / 7.62 NATO', '.30-06 SPRG', '.454 CASULL'];
-const FABRICANTES = ['Taurus', 'CBC', 'Rossi', 'Boito', 'Imbel', 'Glock', 'Beretta', 'Sig Sauer', 'Smith & Wesson', 'CZ', 'Ruger', 'Walther', 'Canik', 'Stoeger', 'Tanfoglio', 'Springfield Armory', 'Colt', 'Remington', 'Winchester', 'Benelli', 'Browning'];
+const CALIBRES = [
+  '.22 LR', '.223 REM / 5.56 NATO', '.30-06 SPRG', '.308 WIN / 7.62 NATO', 
+  '.357 MAG', '.38 SPL', '.380 ACP', '9mm Luger', '.40 S&W', '.44 MAG', 
+  '.45 ACP', '.454 CASULL', '12 GA', '20 GA', '28 GA', '36 GA'
+];
+const FABRICANTES = [
+  'Benelli', 'Beretta', 'Boito', 'Browning', 'Canik', 'CBC', 'Colt', 'CZ', 
+  'Glock', 'Imbel', 'Remington', 'Rossi', 'Ruger', 'Sig Sauer', 
+  'Smith & Wesson', 'Springfield Armory', 'Stoeger', 'Tanfoglio', 
+  'Taurus', 'Walther', 'Winchester'
+];
 
 interface Props {
   cliente: Cliente;
