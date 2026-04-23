@@ -49,10 +49,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const rawRole = data?.role;
-            const role = (ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador';
-            const permissoes = ehMasterAdmin 
+            const role = ((ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador') as 'admin' | 'colaborador';
+            const permissoes = (ehMasterAdmin 
               ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
-              : (data?.permissoes || ["ordens"]);
+              : (data?.permissoes || ["ordens"])) as string[];
 
             const usuarioAtualizado = { ...u, role, permissoes };
             
@@ -97,11 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('ACESSO_REJEITADO');
       }
 
-      const rawRole = whitelistData.role;
-      const role = (ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador';
-      const permissoes = ehMasterAdmin 
+      const rawRole = whitelistData?.role;
+      const role = ((ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador') as 'admin' | 'colaborador';
+      const permissoes = (ehMasterAdmin 
         ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
-        : (whitelistData.permissoes || ["ordens"]);
+        : (whitelistData?.permissoes || ["ordens"])) as string[];
 
       const novoUsuario: UsuarioGoogle = {
         id: info.sub,
