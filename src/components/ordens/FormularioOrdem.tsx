@@ -15,7 +15,7 @@ import { useClientes } from '../../context/ClientesContext';
 import { useServicos } from '../../context/ServicosContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { classeStatusExecucao, iconeStatusExecucao, formatarMoeda } from '../../utils/formatters';
+import { classeStatusExecucao, iconeStatusExecucao, formatarMoeda, removerAcentos } from '../../utils/formatters';
 
 interface FormularioOrdemProps {
   ordemExistente?: OrdemDeServico;
@@ -66,7 +66,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
   };
 
   const servicosFiltrados = servicos.filter(s => 
-    s.nome.toLowerCase().includes(busca.toLowerCase())
+    removerAcentos(s.nome.toLowerCase()).includes(removerAcentos(busca.toLowerCase()))
   );
 
   return (
@@ -215,9 +215,9 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   };
 
   const clientesSugeridos = clientes.filter(c => 
-    c.nome.toLowerCase().includes(form.nomeCliente.toLowerCase()) && 
+    removerAcentos(c.nome.toLowerCase()).includes(removerAcentos(form.nomeCliente.toLowerCase())) && 
     form.nomeCliente.length > 0 && 
-    c.nome.toLowerCase() !== form.nomeCliente.toLowerCase()
+    removerAcentos(c.nome.toLowerCase()) !== removerAcentos(form.nomeCliente.toLowerCase())
   );
 
   const handleCPF = (v: string) => {

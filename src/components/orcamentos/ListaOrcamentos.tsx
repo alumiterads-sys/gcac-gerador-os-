@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, FileText, ChevronRight, Trash2 } from 'lucide-react';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { StatusOrcamento } from '../../types';
-import { formatarMoeda, formatarDataHora, classeStatusOrcamento } from '../../utils/formatters';
+import { formatarMoeda, formatarDataHora, classeStatusOrcamento, removerAcentos } from '../../utils/formatters';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
@@ -40,7 +40,7 @@ export function ListaOrcamentos() {
       o.cpf, 
       o.servicos?.map(s => s.nome).join(' '), 
       String(o.numero)
-    ].some(v => v?.toLowerCase().includes(busca.toLowerCase()));
+    ].some(v => removerAcentos(String(v || '').toLowerCase()).includes(removerAcentos(busca.toLowerCase())));
     
     const matchStatus = filtroStatus === 'Todos' || o.status === filtroStatus;
     

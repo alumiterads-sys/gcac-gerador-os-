@@ -256,7 +256,16 @@ export function AbaDocumentacao({ cliente }: Props) {
       {modalArma && (
         <ModalArma 
           onFechar={() => setModalArma(false)} 
-          onSalvar={(d) => salvarArma({ ...d, clienteId: cliente.id }).then(() => { carregarDados(); setModalArma(false); })} 
+          onSalvar={async (d) => {
+            try {
+              await salvarArma({ ...d, clienteId: cliente.id });
+              await carregarDados();
+              setModalArma(false);
+            } catch (err: any) {
+              console.error(err);
+              alert('Erro ao salvar arma: ' + (err.message || 'Verifique se você executou o comando SQL no Supabase.'));
+            }
+          }} 
         />
       )}
 

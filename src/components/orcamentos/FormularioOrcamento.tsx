@@ -11,7 +11,7 @@ import { useServicos } from '../../context/ServicosContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { Cliente } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { formatarMoeda } from '../../utils/formatters';
+import { formatarMoeda, removerAcentos } from '../../utils/formatters';
 
 interface FormularioOrcamentoProps {
   orcamentoExistente?: Orcamento;
@@ -46,7 +46,7 @@ function SeletorServico({ onSelecionar }: { onSelecionar: (s: ServicoConfig) => 
   };
 
   const servicosFiltrados = servicos.filter(s => 
-    s.nome.toLowerCase().includes(busca.toLowerCase())
+    removerAcentos(s.nome.toLowerCase()).includes(removerAcentos(busca.toLowerCase()))
   );
 
   return (
@@ -188,9 +188,9 @@ export function FormularioOrcamento({ orcamentoExistente }: FormularioOrcamentoP
   };
 
   const clientesSugeridos = clientes.filter(c => 
-    c.nome.toLowerCase().includes(form.nomeCliente.toLowerCase()) && 
+    removerAcentos(c.nome.toLowerCase()).includes(removerAcentos(form.nomeCliente.toLowerCase())) && 
     form.nomeCliente.length > 0 && 
-    c.nome.toLowerCase() !== form.nomeCliente.toLowerCase()
+    removerAcentos(c.nome.toLowerCase()) !== removerAcentos(form.nomeCliente.toLowerCase())
   );
 
   const handleCPF = (v: string) => {

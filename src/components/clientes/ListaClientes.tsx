@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useClientes } from '../../context/ClientesContext';
 import { Users, Search, Edit2, Trash2, Eye, Shield, Copy, Check } from 'lucide-react';
 import { Cliente } from '../../types';
-import { formatarCPF, formatarTelefone } from '../../utils/formatters';
+import { formatarCPF, formatarTelefone, removerAcentos } from '../../utils/formatters';
 import { FormularioCliente } from './FormularioCliente';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
@@ -20,11 +20,11 @@ export function ListaClientes() {
   const [confirmandoDelete, setConfirmandoDelete] = useState<Cliente | null>(null);
 
   const clientesFiltrados = clientes.filter(c => {
-    const termo = busca.toLowerCase();
+    const termo = removerAcentos(busca.toLowerCase());
     const cpfLimpo = c.cpf.replace(/\D/g, '');
     const buscaLimpa = busca.replace(/\D/g, '');
 
-    const matchNome = c.nome.toLowerCase().includes(termo);
+    const matchNome = removerAcentos(c.nome.toLowerCase()).includes(termo);
     // Só filtra por CPF se o usuário digitou algum número na busca
     const matchCPF = buscaLimpa.length > 0 && cpfLimpo.includes(buscaLimpa);
 

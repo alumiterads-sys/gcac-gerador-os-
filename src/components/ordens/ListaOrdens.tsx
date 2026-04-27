@@ -4,7 +4,7 @@ import { Search, Plus, Filter, ChevronRight, FileText, X, Trash2, CheckCircle, C
 import { useOrdens } from '../../context/OrdensContext';
 import { useServicos } from '../../context/ServicosContext';
 import { StatusOS, StatusExecucaoServico } from '../../types';
-import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao, isOrdemConcluida } from '../../utils/formatters';
+import { formatarMoeda, formatarData, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, obterResumoExecucao, isOrdemConcluida, removerAcentos } from '../../utils/formatters';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
@@ -84,8 +84,12 @@ export function ListaOrdens() {
     if (abaAtiva === 'ativas' && statusConclusao) return false;
     if (abaAtiva === 'concluidas' && !statusConclusao) return false;
 
-    const matchBusca = !busca || [o.nomeCliente, o.cpf, o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, String(o.numero)]
-      .some(v => v.toLowerCase().includes(busca.toLowerCase()));
+    const matchBusca = !busca || [
+      o.nomeCliente, 
+      o.cpf, 
+      o.servicos ? o.servicos.map(s => s.nome).join(' ') : (o as any).servico, 
+      String(o.numero)
+    ].some(v => removerAcentos(String(v || '').toLowerCase()).includes(removerAcentos(busca.toLowerCase())));
     
     const matchStatus = filtrosStatus.length === 0 || filtrosStatus.includes(o.status);
     const matchStatusExec = filtrosStatusExec.length === 0 || 

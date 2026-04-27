@@ -5,7 +5,7 @@ import {
   Trash2, Eye, ChevronRight, AlertCircle 
 } from 'lucide-react';
 import { useRecibos } from '../../context/RecibosContext';
-import { formatarMoeda, formatarData } from '../../utils/formatters';
+import { formatarMoeda, formatarData, removerAcentos } from '../../utils/formatters';
 
 export function ListaRecibos() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export function ListaRecibos() {
   const [busca, setBusca] = useState('');
 
   const filtrados = recibos.filter(r => 
-    r.clienteNome.toLowerCase().includes(busca.toLowerCase()) ||
+    removerAcentos(r.clienteNome.toLowerCase()).includes(removerAcentos(busca.toLowerCase())) ||
     String(r.numero).includes(busca)
   );
 

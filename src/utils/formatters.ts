@@ -158,3 +158,7 @@ export function isOrdemConcluida(o: { status: StatusOS, servicos?: { statusExecu
   const execucaoConcluida = (o.servicos || []).every((s: any) => s.statusExecucao === 'Concluído');
   return financeiraConcluida && execucaoConcluida;
 }
+
+export function removerAcentos(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
