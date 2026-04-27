@@ -17,6 +17,7 @@ interface OrdensContextType {
   buscarOrdem: (id: string) => Promise<OrdemDeServico | undefined>;
   registrarPagamento: (ordemId: string, valor: number, metodo: FormaPagamento) => Promise<void>;
   removerPagamento: (ordemId: string, pagamentoId: string) => Promise<void>;
+  sincronizarComPerfil: (ordemId: string) => Promise<boolean>;
   itensFila: number; 
 }
 
@@ -343,6 +344,42 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       status: novoStatus
     });
   }, [ordens, atualizarOrdem]);
+ 
+  const sincronizarComPerfil = useCallback(async (ordemId: string): Promise<boolean> => {
+    try {
+      const ordem = ordens.find(o => o.id === ordemId);
+      if (!ordem) return false;
+
+      // Buscar cliente pelo CPF (que é único e confiável)
+      const { data: cliente, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('cpf', ordem.cpf)
+        .maybeSingle();
+
+      if (error || !cliente) return false;
+
+      // Atualizar a ordem com os dados mais recentes do cliente
+      await atualizarOrdem(ordemId, {
+        nomeCliente: cliente.nome,
+        contato: cliente.contato,
+        senhaGov: cliente.senha_gov || '',
+        endereco: cliente.endereco || '',
+        filiadoProTiro: cliente.filiado_pro_tiro,
+        clubeFiliado: cliente.clube_filiado || '',
+        historicoStatus: adicionarEvento(
+          ordem.historicoStatus,
+          'sistema',
+          'Dados do cliente sincronizados com o perfil do cadastro'
+        )
+      });
+
+      return true;
+    } catch (err) {
+      console.error('Erro ao sincronizar com perfil:', err);
+      return false;
+    }
+  }, [ordens, atualizarOrdem, adicionarEvento]);
 
   return (
     <OrdensContext.Provider value={{
@@ -357,6 +394,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       buscarOrdem,
       registrarPagamento,
       removerPagamento,
+      sincronizarComPerfil,
       itensFila: 0,
     }}>
       {children}

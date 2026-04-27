@@ -11,7 +11,7 @@ import { useClientes } from '../../context/ClientesContext';
 import { useServicos } from '../../context/ServicosContext';
 import { OrdemDeServico, Recibo, Cliente, ServicoConfig, FORMAS_PAGAMENTO, FormaPagamento } from '../../types';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
-import { formatarMoeda } from '../../utils/formatters';
+import { formatarMoeda, removerAcentos } from '../../utils/formatters';
 
 // Configurações do Emitente
 const EMITENTE = {
@@ -384,7 +384,7 @@ function SeletorServicoRapido({ onSelecionar, servicos }: { onSelecionar: (s: Se
   }, [aberto]);
 
   const servicosFiltrados = servicos.filter(s => 
-    s.nome.toLowerCase().includes(busca.toLowerCase())
+    removerAcentos(s.nome.toLowerCase()).includes(removerAcentos(busca.toLowerCase()))
   );
 
   return (

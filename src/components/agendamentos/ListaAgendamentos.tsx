@@ -7,6 +7,7 @@ import { FormularioAgendamento } from './FormularioAgendamento';
 import { ModalConfirmacaoAgendamento } from './ModalConfirmacaoAgendamento';
 import { Plus, Search, Calendar, ArrowLeft } from 'lucide-react';
 import { Agendamento, TipoAgendamento } from '../../types';
+import { removerAcentos } from '../../utils/formatters';
 
 export function ListaAgendamentos() {
   const { usuario } = useAuth();
@@ -29,7 +30,7 @@ export function ListaAgendamentos() {
   }, [location]);
 
   const agendamentosFiltrados = (agendamentos || []).filter(a => {
-    const matchBusca = a.clienteNome.toLowerCase().includes(busca.toLowerCase()) || 
+    const matchBusca = removerAcentos(a.clienteNome.toLowerCase()).includes(removerAcentos(busca.toLowerCase())) || 
                        a.clienteCPF.includes(busca);
     
     if (a.status !== statusFiltro) return false;

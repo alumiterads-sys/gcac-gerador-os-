@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List, ShieldCheck, History, Clock, CreditCard, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List, ShieldCheck, History, Clock, CreditCard, FileText, RefreshCw } from 'lucide-react';
 import { 
   OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, 
   StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO 
@@ -22,7 +22,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const navigate = useNavigate();
   const { 
     deletarOrdem, atualizarStatusServico, atualizarOrdem, 
-    atualizarGruServico, registrarPagamento, removerPagamento 
+    atualizarGruServico, registrarPagamento, removerPagamento,
+    sincronizarComPerfil
   } = useOrdens();
   const { estaAutenticado } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
@@ -30,6 +31,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [imprimindo, setImprimindo] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
+  const [sincronizandoPerfil, setSincronizandoPerfil] = useState(false);
   const [statusAberto, setStatusAberto] = useState<string | null>(null);
   const [dropdownPagoAberto, setDropdownPagoAberto] = useState(false);
   const [dropdownFormaAberto, setDropdownFormaAberto] = useState(false);
@@ -79,6 +81,20 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       }
     } finally {
       setSincronizando(false);
+    }
+  };
+ 
+  const handleSincronizarPerfil = async () => {
+    setSincronizandoPerfil(true);
+    try {
+      const ok = await sincronizarComPerfil(ordem.id);
+      if (ok) {
+        mostrar('sucesso', 'Dados do cliente atualizados com base no perfil do cadastro!');
+      } else {
+        mostrar('erro', 'Não foi possível encontrar o perfil do cliente ou houve um erro.');
+      }
+    } finally {
+      setSincronizandoPerfil(false);
     }
   };
 
@@ -264,7 +280,18 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
 
       {/* ── Dados do Cliente ── */}
       <div className="card">
-        <h3 className="text-sm font-bold text-brand-blue-light uppercase tracking-wider mb-4">Dados do Cliente</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-brand-blue-light uppercase tracking-wider">Dados do Cliente</h3>
+          <button 
+            onClick={handleSincronizarPerfil}
+            disabled={sincronizandoPerfil}
+            className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold bg-brand-blue/10 text-brand-blue-light border border-brand-blue/20 hover:bg-brand-blue/20 transition-all uppercase tracking-widest disabled:opacity-50"
+            title="Atualizar dados desta OS com o que está cadastrado no perfil do cliente"
+          >
+            <RefreshCw size={10} className={sincronizandoPerfil ? 'animate-spin' : ''} />
+            {sincronizandoPerfil ? 'Sincronizando...' : 'Sincronizar Perfil'}
+          </button>
+        </div>
         <dl className="space-y-3">
           <CampoDetalhe rotulo="Nome" valor={ordem.nomeCliente} />
           <CampoDetalhe rotulo="CPF" valor={ordem.cpf} />

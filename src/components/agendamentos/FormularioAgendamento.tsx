@@ -6,6 +6,7 @@ import { useAgendamentos } from '../../context/AgendamentosContext';
 import { useClientes } from '../../context/ClientesContext';
 import { useAuth } from '../../context/AuthContext';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
+import { removerAcentos } from '../../utils/formatters';
 
 interface FormularioAgendamentoProps {
   agendamentoExistente?: Agendamento;
@@ -121,9 +122,9 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
   };
 
   const clientesSugeridos = clientes.filter(c => 
-    c.nome.toLowerCase().includes(form.clienteNome.toLowerCase()) && 
+    removerAcentos(c.nome.toLowerCase()).includes(removerAcentos(form.clienteNome.toLowerCase())) && 
     form.clienteNome.length > 0 && 
-    c.nome.toLowerCase() !== form.clienteNome.toLowerCase()
+    removerAcentos(c.nome.toLowerCase()) !== removerAcentos(form.clienteNome.toLowerCase())
   );
 
   const handleCPF = (v: string) => {

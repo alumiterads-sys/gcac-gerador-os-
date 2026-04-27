@@ -7,7 +7,7 @@ import {
 import { useLembretes } from '../../context/LembretesContext';
 import { useClientes } from '../../context/ClientesContext';
 import { FormularioLembrete } from './FormularioLembrete';
-import { formatarData } from '../../utils/formatters';
+import { formatarData, removerAcentos } from '../../utils/formatters';
 
 export function ListaLembretes() {
   const { lembretes, deletarLembrete, marcarConcluido, estaCarregando } = useLembretes();
@@ -17,10 +17,11 @@ export function ListaLembretes() {
   const [filtro, setFiltro] = useState('');
 
   const lembretesFiltrados = useMemo(() => {
+    const termo = removerAcentos(filtro.toLowerCase());
     return lembretes.filter(l => 
-      l.titulo.toLowerCase().includes(filtro.toLowerCase()) ||
-      l.descricao?.toLowerCase().includes(filtro.toLowerCase()) ||
-      l.clienteNome?.toLowerCase().includes(filtro.toLowerCase())
+      removerAcentos(l.titulo.toLowerCase()).includes(termo) ||
+      removerAcentos(l.descricao?.toLowerCase() || '').includes(termo) ||
+      removerAcentos(l.clienteNome?.toLowerCase() || '').includes(termo)
     );
   }, [lembretes, filtro]);
 
