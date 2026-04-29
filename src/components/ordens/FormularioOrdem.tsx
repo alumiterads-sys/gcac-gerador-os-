@@ -684,24 +684,22 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 </div>
 
                 {/* Controle de GRU */}
-                {(serv.taxaPF || 0) > 0 && (
-                  <div className="mb-3 flex items-center gap-3 bg-brand-dark-3/50 p-2 rounded-lg border border-brand-dark-5/50">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        className="w-4 h-4 rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-brand-blue/30"
-                        checked={serv.pagoGRU || false}
-                        onChange={e => atualizarGruServico(serv.id, e.target.checked)}
-                      />
-                      <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">GRU (Taxa PF) - JÁ ESTÁ PAGA?</span>
-                    </label>
-                    {serv.pagoGRU ? (
-                      <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20 uppercase tracking-widest">Paga</span>
-                    ) : (
-                      <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">Pendente</span>
-                    )}
-                  </div>
-                )}
+                <div className="mb-3 flex items-center gap-3 bg-brand-dark-3/50 p-2 rounded-lg border border-brand-dark-5/50">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-brand-blue/30"
+                      checked={serv.pagoGRU || false}
+                      onChange={e => atualizarGruServico(serv.id, e.target.checked)}
+                    />
+                    <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">GRU (Taxa PF) - JÁ ESTÁ PAGA?</span>
+                  </label>
+                  {serv.pagoGRU ? (
+                    <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20 uppercase tracking-widest">Paga</span>
+                  ) : (
+                    <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">Pendente</span>
+                  )}
+                </div>
 
                 {/* Protocolo Individual do Serviço */}
                 <div className="flex flex-col gap-1.5 mb-3">
