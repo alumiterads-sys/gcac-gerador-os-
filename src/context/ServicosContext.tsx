@@ -31,6 +31,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
           valorPadrao: row.valor_padrao,
           valorFiliado: row.valor_filiado,
           taxaPF: row.taxa_pf,
+          exigeGRU: row.exige_gru !== false, // Default para true se for null ou undefined no BD legados
           categoria: row.categoria || 'Honorário',
           criadoEm: row.criado_em
         })));
@@ -54,6 +55,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
         valor_padrao: dados.valorPadrao,
         valor_filiado: dados.valorFiliado,
         taxa_pf: dados.taxaPF,
+        exige_gru: dados.exigeGRU,
         categoria: dados.categoria
       }]);
 
@@ -67,6 +69,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
     if (dados.valorPadrao !== undefined) payload.valor_padrao = dados.valorPadrao;
     if (dados.valorFiliado !== undefined) payload.valor_filiado = dados.valorFiliado;
     if (dados.taxaPF !== undefined) payload.taxa_pf = dados.taxaPF;
+    if (dados.exigeGRU !== undefined) payload.exige_gru = dados.exigeGRU;
     if (dados.categoria !== undefined) payload.categoria = dados.categoria;
 
     const { error } = await supabase

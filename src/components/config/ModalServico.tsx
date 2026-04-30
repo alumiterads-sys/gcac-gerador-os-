@@ -17,6 +17,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
   const [valorPadrao, setValorPadrao] = useState('');
   const [valorFiliado, setValorFiliado] = useState('');
   const [taxaPF, setTaxaPF] = useState('');
+  const [exigeGRU, setExigeGRU] = useState(false);
   const [categoria, setCategoria] = useState<'Honorário' | 'Laudo'>('Honorário');
 
   useEffect(() => {
@@ -25,12 +26,14 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       setValorPadrao(servicoParaEditar.valorPadrao.toString().replace('.', ','));
       setValorFiliado(servicoParaEditar.valorFiliado?.toString().replace('.', ',') || '');
       setTaxaPF(servicoParaEditar.taxaPF.toString().replace('.', ','));
+      setExigeGRU(servicoParaEditar.exigeGRU ?? false);
       setCategoria(servicoParaEditar.categoria || 'Honorário');
     } else {
       setNome('');
       setValorPadrao('');
       setValorFiliado('');
       setTaxaPF('');
+      setExigeGRU(false);
       setCategoria('Honorário');
     }
   }, [servicoParaEditar, aberto]);
@@ -48,9 +51,9 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       const t = parseFloat(taxaPF.replace(',', '.')) || 0;
 
       if (servicoParaEditar) {
-        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, categoria });
+        await atualizarServico(servicoParaEditar.id, { nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria });
       } else {
-        await criarServico({ nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, categoria });
+        await criarServico({ nome, valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria });
       }
       fechar();
     } catch (err) {
@@ -132,6 +135,19 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
               onChange={e => setTaxaPF(e.target.value.replace(/[^\d,]/g, ''))}
             />
           </div>
+
+          <label className="flex items-center gap-3 p-3 bg-brand-dark-3 border border-brand-blue/20 rounded-xl cursor-pointer hover:bg-brand-dark-2 transition-colors">
+            <input
+              type="checkbox"
+              checked={exigeGRU}
+              onChange={(e) => setExigeGRU(e.target.checked)}
+              className="checkbox checkbox-primary"
+            />
+            <div>
+              <div className="font-bold text-white text-sm">Exige Pagamento de GRU / Taxa?</div>
+              <div className="text-xs text-gray-400">Ative para exibir controles de GRU e protocolo na Ordem de Serviço</div>
+            </div>
+          </label>
 
           <div className="bg-brand-blue/10 border border-brand-blue/20 rounded-lg p-3 flex gap-2">
             <Info size={16} className="text-brand-blue-light shrink-0 mt-0.5" />

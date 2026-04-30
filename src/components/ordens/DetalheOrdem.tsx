@@ -345,21 +345,23 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                     <p className="font-bold text-white text-base leading-tight">• {serv.nome}</p>
                     
                     {/* Selo de GRU */}
-                    <button
-                      onClick={() => handleToggleGru(serv.id, !!serv.pagoGRU)}
-                      className={`text-[9px] font-black px-2 py-0.5 rounded border transition-all uppercase tracking-widest flex items-center gap-1 ${
-                        serv.pagoGRU 
-                          ? 'bg-brand-green/10 text-brand-green border-brand-green/20 hover:bg-brand-green/20' 
-                          : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
-                      }`}
-                      title={serv.pagoGRU ? 'Clique para marcar como Pendente' : 'Clique para marcar como Paga'}
-                    >
-                      {serv.pagoGRU ? (
-                        <><span>✅</span> GRU PAGA</>
-                      ) : (
-                        <><span>❌</span> GRU PENDENTE</>
-                      )}
-                    </button>
+                    {(serv.exigeGRU === true || (serv.exigeGRU === undefined && (serv.taxaPF || 0) > 0)) && (
+                      <button
+                        onClick={() => handleToggleGru(serv.id, !!serv.pagoGRU)}
+                        className={`text-[9px] font-black px-2 py-0.5 rounded border transition-all uppercase tracking-widest flex items-center gap-1 ${
+                          serv.pagoGRU 
+                            ? 'bg-brand-green/10 text-brand-green border-brand-green/20 hover:bg-brand-green/20' 
+                            : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                        }`}
+                        title={serv.pagoGRU ? 'Clique para marcar como Pendente' : 'Clique para marcar como Paga'}
+                      >
+                        {serv.pagoGRU ? (
+                          <><span>✅</span> GRU PAGA</>
+                        ) : (
+                          <><span>❌</span> GRU PENDENTE</>
+                        )}
+                      </button>
+                    )}
                   </div>
                   
                   {/* Dropdown de status */}

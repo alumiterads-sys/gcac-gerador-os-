@@ -254,6 +254,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         nome: serv.nome, 
         detalhes: '', 
         taxaPF: serv.taxaPF, 
+        exigeGRU: serv.exigeGRU,
         valor: valorAplicado, 
         statusExecucao: 'Não Iniciado' as StatusExecucaoServico, 
         pagoGRU: false,
@@ -684,42 +685,46 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 </div>
 
                 {/* Controle de GRU */}
-                <div className="mb-3 flex items-center gap-3 bg-brand-dark-3/50 p-2 rounded-lg border border-brand-dark-5/50">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-brand-blue/30"
-                      checked={serv.pagoGRU || false}
-                      onChange={e => atualizarGruServico(serv.id, e.target.checked)}
-                    />
-                    <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">GRU (Taxa PF) - JÁ ESTÁ PAGA?</span>
-                  </label>
-                  {serv.pagoGRU ? (
-                    <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20 uppercase tracking-widest">Paga</span>
-                  ) : (
-                    <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">Pendente</span>
-                  )}
-                </div>
+                {(serv.exigeGRU === true || (serv.exigeGRU === undefined && (serv.taxaPF || 0) > 0)) && (
+                  <>
+                    <div className="mb-3 flex items-center gap-3 bg-brand-dark-3/50 p-2 rounded-lg border border-brand-dark-5/50">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-brand-blue/30"
+                          checked={serv.pagoGRU || false}
+                          onChange={e => atualizarGruServico(serv.id, e.target.checked)}
+                        />
+                        <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">GRU (Taxa PF) - JÁ ESTÁ PAGA?</span>
+                      </label>
+                      {serv.pagoGRU ? (
+                        <span className="text-[10px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full border border-brand-green/20 uppercase tracking-widest">Paga</span>
+                      ) : (
+                        <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">Pendente</span>
+                      )}
+                    </div>
 
-                {/* Protocolo Individual do Serviço */}
-                <div className="flex flex-col gap-1.5 mb-3">
-                  <label className="text-[10px] font-bold text-brand-blue-light uppercase tracking-widest flex items-center gap-1.5">
-                    <List size={11} className="text-brand-blue" />
-                    Nº do Protocolo (Opcional)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="input bg-brand-dark-3 border-transparent focus:border-brand-blue/30 text-xs py-2 uppercase font-mono"
-                      placeholder="Ex: 08795.000385/2026-65"
-                      value={serv.protocolo || ''}
-                      onChange={e => atualizarProtocoloServicoLocal(serv.id, e.target.value)}
-                    />
-                    <p className="text-[9px] text-gray-500 mt-1 italic">
-                      Caso já possua o número do protocolo da PF ou Exército, preencha aqui para facilitar a consulta futura.
-                    </p>
-                  </div>
-                </div>
+                    {/* Protocolo Individual do Serviço */}
+                    <div className="flex flex-col gap-1.5 mb-3">
+                      <label className="text-[10px] font-bold text-brand-blue-light uppercase tracking-widest flex items-center gap-1.5">
+                        <List size={11} className="text-brand-blue" />
+                        Nº do Protocolo (Opcional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="input bg-brand-dark-3 border-transparent focus:border-brand-blue/30 text-xs py-2 uppercase font-mono"
+                          placeholder="Ex: 08795.000385/2026-65"
+                          value={serv.protocolo || ''}
+                          onChange={e => atualizarProtocoloServicoLocal(serv.id, e.target.value)}
+                        />
+                        <p className="text-[9px] text-gray-500 mt-1 italic">
+                          Caso já possua o número do protocolo da PF ou Exército, preencha aqui para facilitar a consulta futura.
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <textarea
                   className="input resize-none bg-brand-dark-3 border-transparent focus:border-brand-blue/30"

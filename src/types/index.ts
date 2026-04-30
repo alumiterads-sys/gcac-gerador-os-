@@ -44,6 +44,7 @@ export interface ServicoConfig {
   valorPadrao: number;
   valorFiliado: number;
   taxaPF: number;
+  exigeGRU?: boolean;
   categoria: 'Honorário' | 'Laudo';
   pagoDiretoDefault?: boolean;
   criadoEm: string;
@@ -120,6 +121,7 @@ export interface OrdemDeServico {
     nome: string;
     detalhes: string;
     taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
+    exigeGRU?: boolean; // Se este serviço exige controle de GRU
     valor?: number;  // Valor individual editável do serviço
     statusExecucao?: StatusExecucaoServico;
     pagoGRU?: boolean;
@@ -171,6 +173,7 @@ export interface ServicoOrcamento {
   detalhes: string;
   valor: number;
   taxaPF?: number; // Armazenamos o snapshot da taxa no momento da criação
+  exigeGRU?: boolean;
   categoria?: 'Honorário' | 'Laudo';
   pagoDireto?: boolean;
 }
