@@ -11,6 +11,7 @@ import { baixarPdf, imprimirPdf } from '../../services/geradorPdf';
 import { sincronizarOrdem } from '../../services/driveSync';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
+import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 
@@ -25,7 +26,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     atualizarGruServico, registrarPagamento, removerPagamento,
     sincronizarComPerfil
   } = useOrdens();
-  const { estaAutenticado } = useAuth();
+  const { clientes, buscarCreditos, adicionarCredito } = useClientes();
+  const { estaAutenticado, usuario } = useAuth();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
   const [gerandoPdf, setGerandoPdf] = useState(false);
@@ -37,6 +39,17 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [dropdownFormaAberto, setDropdownFormaAberto] = useState(false);
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
   const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
+  
+  const clienteDaOS = clientes.find(c => c.cpf === ordem.cpf);
+  const [saldoCredito, setSaldoCredito] = useState(0);
+
+  React.useEffect(() => {
+    if (clienteDaOS) {
+      buscarCreditos(clienteDaOS.id).then(creds => {
+        setSaldoCredito(creds.reduce((acc, c) => acc + (c.tipo === 'entrada' ? c.valor : -c.valor), 0));
+      });
+    }
+  }, [clienteDaOS, buscarCreditos, ordem.historicoPagamentos]);
 
   const servicos = ordem.servicos || [];
   const totalServicos = servicos.length;
@@ -474,6 +487,12 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                 Histórico de Recebimentos
               </h4>
               
+              <div className="flex gap-2 items-center flex-wrap justify-end">
+                {clienteDaOS && saldoCredito > 0 && (
+                  <span className="text-[10px] font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-1 rounded">
+                    SALDO: {formatarMoeda(saldoCredito)}
+                  </span>
+                )}
               {ordem.valor > (ordem.valorPago || 0) && (
                 <div className="flex gap-2">
                   <input 
@@ -490,21 +509,54 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                       <option key={f} value={f}>{f}</option>
                     ))}
                   </select>
-                  <button 
-                    onClick={() => {
-                      const input = document.getElementById('quick-pag-valor') as HTMLInputElement;
-                      const metodo = (document.getElementById('quick-pag-metodo') as HTMLSelectElement).value as FormaPagamento;
-                      const valor = parseFloat(input.value);
-                      if (valor > 0) {
-                        registrarPagamento(ordem.id, valor, metodo);
-                        input.value = '';
-                      }
-                    }}
-                    className="bg-brand-blue hover:bg-brand-blue-light text-white text-[10px] font-bold px-3 py-1 rounded transition-colors"
-                  >
-                    REGISTRAR
-                  </button>
-                </div>
+                    <button 
+                      onClick={() => {
+                        const input = document.getElementById('quick-pag-valor') as HTMLInputElement;
+                        const metodo = (document.getElementById('quick-pag-metodo') as HTMLSelectElement).value as FormaPagamento;
+                        const valor = parseFloat(input.value);
+                        if (valor > 0) {
+                          if (metodo === 'Crédito de Cliente' && valor > saldoCredito) {
+                            mostrar('erro', 'Saldo insuficiente para este pagamento.');
+                            return;
+                          }
+                          
+                          if (metodo === 'Crédito de Cliente' && clienteDaOS) {
+                            adicionarCredito({
+                              clienteId: clienteDaOS.id,
+                              tipo: 'saida',
+                              valor: valor,
+                              descricao: `Pagamento da O.S. #${formatarNumeroOS(ordem.numero)}`,
+                              origemId: ordem.id,
+                              criadoPorNome: usuario?.nome
+                            });
+                          }
+
+                          registrarPagamento(ordem.id, valor, metodo);
+                          
+                          // Verifica se sobrou troco para gerar crédito
+                          const saldoDevedorAtual = ordem.valor - (ordem.valorPago || 0);
+                          if (valor > saldoDevedorAtual && clienteDaOS && metodo !== 'Crédito de Cliente') {
+                            const troco = valor - saldoDevedorAtual;
+                            if (window.confirm(`Este pagamento gera um troco de ${formatarMoeda(troco)}. Deseja adicionar este troco como crédito (Haver) para o cliente?`)) {
+                              adicionarCredito({
+                                clienteId: clienteDaOS.id,
+                                tipo: 'entrada',
+                                valor: troco,
+                                descricao: `Troco O.S. #${formatarNumeroOS(ordem.numero)}`,
+                                origemId: ordem.id,
+                                criadoPorNome: usuario?.nome
+                              });
+                            }
+                          }
+                          
+                          input.value = '';
+                        }
+                      }}
+                      className="bg-brand-blue hover:bg-brand-blue-light text-white text-[10px] font-bold px-3 py-1 rounded transition-colors"
+                    >
+                      REGISTRAR
+                    </button>
+                  </div>
               )}
             </div>
 
@@ -529,6 +581,18 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                           <button 
                             onClick={() => {
                               if (window.confirm(`Tem certeza que deseja excluir o pagamento de ${formatarMoeda(p.valor)}?`)) {
+                                if (p.metodo === 'Crédito de Cliente' && clienteDaOS) {
+                                  if (window.confirm('Este pagamento usou créditos do cliente. Deseja estornar esse valor de volta para a carteira do cliente?')) {
+                                    adicionarCredito({
+                                      clienteId: clienteDaOS.id,
+                                      tipo: 'entrada',
+                                      valor: p.valor,
+                                      descricao: `Estorno de pagamento O.S. #${formatarNumeroOS(ordem.numero)}`,
+                                      origemId: ordem.id,
+                                      criadoPorNome: usuario?.nome
+                                    });
+                                  }
+                                }
                                 removerPagamento(ordem.id, p.id);
                               }
                             }}

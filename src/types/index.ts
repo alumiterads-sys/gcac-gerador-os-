@@ -22,7 +22,8 @@ export type FormaPagamento =
   | 'A Combinar'
   | 'Pendente'
   | 'Cartão de Crédito'
-  | 'Cartão de Débito';
+  | 'Cartão de Débito'
+  | 'Crédito de Cliente';
 
 export type CanalAtendimento =
   | 'WhatsApp'
@@ -302,6 +303,7 @@ export const FORMAS_PAGAMENTO: FormaPagamento[] = [
   'Transferência',
   'A Combinar',
   'Pendente',
+  'Crédito de Cliente',
 ];
 
 export const STATUS_OS: StatusOS[] = [
@@ -389,5 +391,16 @@ export interface Lembrete {
   clienteId?: string;
   clienteNome?: string;
   usuarioId: string;
+  criadoEm: string;
+}
+
+export interface CreditoCliente {
+  id: string;
+  clienteId: string;
+  tipo: 'entrada' | 'saida';
+  valor: number;
+  descricao: string;
+  origemId?: string;
+  criadoPorNome?: string;
   criadoEm: string;
 }

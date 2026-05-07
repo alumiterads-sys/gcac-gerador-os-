@@ -8,6 +8,7 @@ import {
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { FormularioCliente } from './FormularioCliente';
 import { AbaDocumentacao } from './AbaDocumentacao';
+import { AbaCreditos } from './AbaCreditos';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone, formatarMoeda, formatarData, isOrdemConcluida } from '../../utils/formatters';
 import { useOrdens } from '../../context/OrdensContext';
@@ -29,7 +30,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const { agendamentos } = useAgendamentos();
   const { deletarCliente } = useClientes();
   
-  const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos' | 'documentos'>('ordens');
+  const [abaAtiva, setAbaAtiva] = useState<'ordens' | 'orcamentos' | 'recibos' | 'agendamentos' | 'documentos' | 'creditos'>('ordens');
   const [copiou, setCopiou] = useState(false);
   const [editando, setEditando] = useState(false);
   const [confirmandoDelete, setConfirmandoDelete] = useState(false);
@@ -276,6 +277,9 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
               <TabButton ativo={abaAtiva === 'documentos'} onClick={() => setAbaAtiva('documentos')} count={0}>
                 Documentação
               </TabButton>
+              <TabButton ativo={abaAtiva === 'creditos'} onClick={() => setAbaAtiva('creditos')} count={0}>
+                Créditos (Haver)
+              </TabButton>
             </div>
 
             <div className="p-4">
@@ -346,6 +350,11 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
               )}
               {abaAtiva === 'documentos' && (
                 <AbaDocumentacao cliente={cliente} />
+              )}
+              {abaAtiva === 'creditos' && (
+                <div className="pt-2">
+                  <AbaCreditos cliente={cliente} />
+                </div>
               )}
             </div>
           </div>

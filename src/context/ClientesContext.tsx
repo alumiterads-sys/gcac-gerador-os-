@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo } from '../types';
+import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo, CreditoCliente } from '../types';
 import { supabase } from '../db/supabase';
 
 interface ClientesContextType {
@@ -26,6 +26,11 @@ interface ClientesContextType {
   buscarManejos: (clienteId: string) => Promise<AutorizacaoManejo[]>;
   salvarManejo: (manejo: Omit<AutorizacaoManejo, 'id' | 'criadoEm'>) => Promise<void>;
   deletarManejo: (id: string) => Promise<void>;
+  
+  // Gestão de Créditos
+  buscarCreditos: (clienteId: string) => Promise<CreditoCliente[]>;
+  adicionarCredito: (credito: Omit<CreditoCliente, 'id' | 'criadoEm'>) => Promise<void>;
+  deletarCredito: (id: string) => Promise<void>;
 }
 
 const ClientesContext = createContext<ClientesContextType | null>(null);
@@ -273,6 +278,46 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   }, []);
 
+  // --- Gestão de Créditos ---
+  const buscarCreditos = useCallback(async (clienteId: string) => {
+    const { data, error } = await supabase
+      .from('creditos_cliente')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .order('criado_em', { ascending: false });
+    
+    if (error) throw error;
+    return data.map(row => ({
+      id: row.id,
+      clienteId: row.cliente_id,
+      tipo: row.tipo,
+      valor: Number(row.valor),
+      descricao: row.descricao,
+      origemId: row.origem_id,
+      criadoPorNome: row.criado_por_nome,
+      criadoEm: row.criado_em
+    }));
+  }, []);
+
+  const adicionarCredito = useCallback(async (dados: Omit<CreditoCliente, 'id' | 'criadoEm'>) => {
+    const { error } = await supabase
+      .from('creditos_cliente')
+      .insert([{
+        cliente_id: dados.clienteId,
+        tipo: dados.tipo,
+        valor: dados.valor,
+        descricao: dados.descricao,
+        origem_id: dados.origemId || null,
+        criado_por_nome: dados.criadoPorNome || null
+      }]);
+    if (error) throw error;
+  }, []);
+
+  const deletarCredito = useCallback(async (id: string) => {
+    const { error } = await supabase.from('creditos_cliente').delete().eq('id', id);
+    if (error) throw error;
+  }, []);
+
   return (
     <ClientesContext.Provider value={{
       clientes,
@@ -290,7 +335,10 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       deletarGt,
       buscarManejos,
       salvarManejo,
-      deletarManejo
+      deletarManejo,
+      buscarCreditos,
+      adicionarCredito,
+      deletarCredito
     }}>
       {children}
     </ClientesContext.Provider>
