@@ -287,7 +287,17 @@ export function AbaDocumentacao({ cliente }: Props) {
       {modalGt && (
         <ModalGt 
           onFechar={() => setModalGt(null)} 
-          onSalvar={(d) => salvarGt({ ...d, armaId: modalGt }).then(() => { carregarDados(); setModalGt(null); })} 
+          onSalvar={(d) => 
+            salvarGt({ ...d, armaId: modalGt })
+              .then(() => { 
+                carregarDados(); 
+                setModalGt(null); 
+              })
+              .catch(err => {
+                console.error('Erro ao salvar GT:', err);
+                alert('Erro ao salvar guia de tráfego. Verifique sua conexão ou as permissões do banco de dados.');
+              })
+          } 
         />
       )}
 
@@ -479,7 +489,7 @@ function ModalGt({ onFechar, onSalvar }: { onFechar: () => void, onSalvar: (d: a
           </div>
           <div className="flex gap-3 pt-4">
             <button onClick={onFechar} className="btn-ghost flex-1">Cancelar</button>
-            <button onClick={() => onSalvar(form)} className="btn-primary flex-1">Emitir Guia</button>
+            <button onClick={() => onSalvar(form)} className="btn-primary flex-1">Salvar Guia</button>
           </div>
         </div>
       </div>
