@@ -12,6 +12,11 @@ interface ClientesContextType {
   buscarClientePorNomeExato: (nome: string) => Promise<Cliente | undefined>;
   clubesRegistrados: string[];
   
+  // Metadados de Armas (Listas Dinâmicas)
+  modelosRegistrados: string[];
+  calibresRegistrados: string[];
+  fabricantesRegistrados: string[];
+  
   // Gestão de Armas
   buscarArmas: (clienteId: string) => Promise<Arma[]>;
   salvarArma: (arma: Omit<Arma, 'id' | 'criadoEm'>) => Promise<void>;
@@ -84,12 +89,45 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     
+    
     setClientes(data.map(mapFromDB));
+  }, []);
+
+  const [modelosRegistrados, setModelosRegistrados] = useState<string[]>([]);
+  const [calibresRegistrados, setCalibresRegistrados] = useState<string[]>([]);
+  const [fabricantesRegistrados, setFabricantesRegistrados] = useState<string[]>([]);
+
+  const carregarMetadadosArmas = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('armas')
+      .select('modelo, calibre, fabricante');
+
+    if (error) {
+      console.error('Erro ao buscar metadados de armas:', error);
+      return;
+    }
+
+    if (data) {
+      const modelos = new Set<string>();
+      const calibres = new Set<string>();
+      const fabricantes = new Set<string>();
+
+      data.forEach(arma => {
+        if (arma.modelo && arma.modelo.trim() !== '') modelos.add(arma.modelo.trim().toUpperCase());
+        if (arma.calibre && arma.calibre.trim() !== '') calibres.add(arma.calibre.trim().toUpperCase());
+        if (arma.fabricante && arma.fabricante.trim() !== '') fabricantes.add(arma.fabricante.trim().toUpperCase());
+      });
+
+      setModelosRegistrados(Array.from(modelos).sort());
+      setCalibresRegistrados(Array.from(calibres).sort());
+      setFabricantesRegistrados(Array.from(fabricantes).sort());
+    }
   }, []);
 
   useEffect(() => {
     carregarClientes();
-  }, [carregarClientes]);
+    carregarMetadadosArmas();
+  }, [carregarClientes, carregarMetadadosArmas]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>
@@ -195,12 +233,14 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
         vencimento_craf: dados.vencimentoCraf || null
       }]);
     if (error) throw error;
-  }, []);
+    await carregarMetadadosArmas();
+  }, [carregarMetadadosArmas]);
 
   const deletarArma = useCallback(async (id: string) => {
     const { error } = await supabase.from('armas').delete().eq('id', id);
     if (error) throw error;
-  }, []);
+    await carregarMetadadosArmas();
+  }, [carregarMetadadosArmas]);
 
   // --- Gestão de GTs ---
   const buscarGts = useCallback(async (armaId: string) => {
@@ -327,6 +367,9 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       buscarCliente,
       buscarClientePorNomeExato,
       clubesRegistrados,
+      modelosRegistrados,
+      calibresRegistrados,
+      fabricantesRegistrados,
       buscarArmas,
       salvarArma,
       deletarArma,
