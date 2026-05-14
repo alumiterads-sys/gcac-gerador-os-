@@ -509,7 +509,15 @@ function ModalGt({ armaAcervo, onFechar, onSalvar }: { armaAcervo: string, onFec
         if (!error && data) {
           const uniqueDestinos = new Set<string>();
           data.forEach(gt => {
-            if (gt.destino) uniqueDestinos.add(gt.destino.toUpperCase());
+            if (gt.destino) {
+              // Normaliza para evitar duplicatas (ex: "JATAÍ-GO" vs "JATAÍ - GO")
+              const normalizado = gt.destino
+                .toUpperCase()
+                .replace(/\s+/g, ' ')
+                .replace(/\s?-\s?/g, '-')
+                .trim();
+              uniqueDestinos.add(normalizado);
+            }
           });
           setSugestoes(Array.from(uniqueDestinos).sort());
         }
