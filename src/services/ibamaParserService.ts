@@ -36,8 +36,8 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
   }
 
   // 2. IDENTIFICAR O SOLICITANTE
-  const solicitanteMatch = fullText.match(/Solicitante:?\s*([A-ZÀ-ÿ\s]{10,60})(?=\s+CTF|Data|$)/i);
-  const solicitanteNome = solicitanteMatch ? solicitanteMatch[1].trim().toUpperCase() : '';
+  const solicitanteMatch = fullText.match(/(Solicitante|Interessado):?\s*([A-ZÀ-ÿ\s]{10,60})(?=\s+CTF|Data|$)/i);
+  const solicitanteNome = solicitanteMatch ? solicitanteMatch[solicitanteMatch.length - 1].trim().toUpperCase() : '';
 
   // 3. EXTRAIR CAR
   const carRegex = /([A-Z]{2}-\d{7}-[\w\s-]+)/i;
@@ -50,9 +50,10 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
   }
 
   // 4. EXTRAIR FAZENDA
-  const fazendaMatch = fullText.match(/FAZENDA\s+([A-ZÀ-ÿ\s]{3,40})(?=\s+[A-Z]{2}-\d{7})/i);
+  const propertyPrefixes = 'FAZENDA|SITIO|SÍTIO|STIO|CHACARA|CHÁCARA|ESTANCIA|ESTÂNCIA|GLEBA|LOTE|PROPRIEDADE';
+  const fazendaMatch = fullText.match(new RegExp(`(${propertyPrefixes})\\s+([A-ZÀ-ÿ\\s]{3,40})(?=\\s+[A-Z]{2}-\\d{7})`, 'i'));
   if (fazendaMatch) {
-    data.nomeFazenda = `FAZENDA ${fazendaMatch[1].trim()}`.toUpperCase();
+    data.nomeFazenda = `${fazendaMatch[1]} ${fazendaMatch[2]}`.toUpperCase().trim();
   }
 
   // 5. EXTRAIR CIDADE (Busca elástica para Cidade/UF)
@@ -77,7 +78,8 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
     'INSTITUTO', 'BRASILEIRO', 'IBAMA', 'MINISTERIO', 'AMBIENTE', 'RECURSOS', 'NATURAIS', 
     'RENOVAVEIS', 'SOLICITANTE', 'AUTORIZACAO', 'CONTROLADOR', 'MATRICULA', 'ENDERECO', 
     'CIDADE', 'FAZENDA', 'RODOVIA', 'ESTRADA', 'ESTA', 'PERMITE', 'TRANSPORTE', 'ESPECIES', 
-    'INVASORAS', 'JAVALI', 'ARMADILHA', 'CAES', 'ESPERA', 'SIM', 'NAO', 'PROPRIEDADE', 'NOME', 'PROPRIETARIO'
+    'INVASORAS', 'JAVALI', 'ARMADILHA', 'CAES', 'ESPERA', 'SIM', 'NAO', 'PROPRIEDADE', 'NOME', 'PROPRIETARIO',
+    'SITIO', 'STIO', 'SÍTIO', 'CHACARA', 'CHÁCARA', 'ESTANCIA', 'ESTÂNCIA', 'GLEBA', 'LOTE'
   ];
 
   const allNames = fullText.match(/[A-ZÀ-ÿ]{3,}\s[A-ZÀ-ÿ]{2,}(\s[A-ZÀ-ÿ]{2,})*/g) || [];
@@ -92,7 +94,15 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
 
     if (solicitanteNome && nClean.includes(solicitanteNome.split(' ')[0])) return false;
     if (blacklist.some(b => nClean.includes(b) && nClean.length < 15)) return false;
-    if (data.nomeFazenda && nClean.includes(data.nomeFazenda.replace('FAZENDA ', ''))) return false;
+    
+    // Se o nome contém algum prefixo de propriedade e é curto, provavelmente é o nome da fazenda
+    const prefixes = ['FAZENDA', 'SITIO', 'STIO', 'SÍTIO', 'CHACARA', 'CHÁCARA'];
+    if (prefixes.some(p => nClean.startsWith(p)) && nClean.length < 30) return false;
+
+    if (data.nomeFazenda) {
+      const fazendaSemPrefixo = data.nomeFazenda.split(' ').slice(1).join(' ');
+      if (nClean.includes(fazendaSemPrefixo)) return false;
+    }
     
     return nClean.length >= 5;
   });
