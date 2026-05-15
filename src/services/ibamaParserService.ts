@@ -25,14 +25,17 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
 
   const data: IbamaData = {};
 
-  // 1. Extrair Vencimento (Período Fim)
+  // Normalizar texto para busca
+  const cleanText = fullText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+
+  // 1. Extrair Vencimento
   const matchVenc = fullText.match(/Fim:?\s*(\d{2}\/\d{2}\/\d{4})/i);
   if (matchVenc) {
     const [d, m, y] = matchVenc[1].split('/');
     data.vencimento = `${y}-${m}-${d}`;
   }
 
-  // 2. IDENTIFICAR O SOLICITANTE (PARA FILTRO)
+  // 2. IDENTIFICAR O SOLICITANTE
   const solicitanteMatch = fullText.match(/Solicitante:?\s*([A-ZÀ-ÿ\s]{10,60})(?=\s+CTF|Data|$)/i);
   const solicitanteNome = solicitanteMatch ? solicitanteMatch[1].trim().toUpperCase() : '';
 
@@ -42,11 +45,7 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
   if (carMatch) {
     const carMain = carMatch[0].trim();
     const hashes = fullText.match(/[A-Z0-9]{15,}/g) || [];
-    const filteredHashes = hashes.filter(h => 
-      h.length > 15 && 
-      !h.includes('/') && 
-      !['SOLICITANTE', 'AUTORIZACAO', 'CONTROLADOR'].some(ex => h.includes(ex))
-    );
+    const filteredHashes = hashes.filter(h => h.length > 15 && !h.includes('/') && !h.includes('SOLICITANTE'));
     data.numeroCar = (carMain + ' ' + filteredHashes.join(' ')).replace(/\s+/g, ' ').trim();
   }
 
@@ -56,18 +55,23 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
     data.nomeFazenda = `FAZENDA ${fazendaMatch[1].trim()}`.toUpperCase();
   }
 
-  // 5. EXTRAIR CIDADE
-  const cidadeRegex = /([A-ZÀ-ÿ\s]{3,30})\/([A-Z]{2})(?=\s|$|\n)/g;
-  let matches;
-  while ((matches = cidadeRegex.exec(fullText)) !== null) {
-    let nome = matches[1].trim().toUpperCase();
+  // 5. EXTRAIR CIDADE (Busca elástica para Cidade/UF)
+  const cidadeRegex = /([A-ZÀ-ÿ\s]{3,30})\s*\/\s*([A-Z]{2})(?=\s|$|\n)/gi;
+  let matchC;
+  while ((matchC = cidadeRegex.exec(fullText)) !== null) {
+    let nome = matchC[1].trim().toUpperCase();
     nome = nome.replace(/\d+/g, '').replace('MTS', '').replace('KM', '').trim();
-    if (nome.length > 2 && !['RUA', 'AV', 'RODOVIA', 'ENDERECO', 'MATRICULA'].some(excl => nome.includes(excl))) {
-      data.cidade = `${nome}/${matches[2].toUpperCase()}`;
+    // Se sobrar algo como "27 ITIQUIRA", pegar só o texto
+    const apenasTexto = nome.match(/[A-ZÀ-ÿ]{3,}/g);
+    if (apenasTexto) {
+      const nomeLimpo = apenasTexto.join(' ');
+      if (nomeLimpo.length > 2 && !['RUA', 'AV', 'RODOVIA', 'ENDERECO', 'MATRICULA'].includes(nomeLimpo)) {
+        data.cidade = `${nomeLimpo}/${matchC[2].toUpperCase()}`;
+      }
     }
   }
 
-  // 6. EXTRAIR PROPRIETÁRIO (ESTRATÉGIA DE ELIMINAÇÃO)
+  // 6. EXTRAIR PROPRIETÁRIO (Estratégia de limpeza de cabeçalhos)
   const blacklist = [
     'INSTITUTO', 'BRASILEIRO', 'IBAMA', 'MINISTERIO', 'AMBIENTE', 'RECURSOS', 'NATURAIS', 
     'RENOVAVEIS', 'SOLICITANTE', 'AUTORIZACAO', 'CONTROLADOR', 'MATRICULA', 'ENDERECO', 
@@ -75,24 +79,35 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
     'INVASORAS', 'JAVALI', 'ARMADILHA', 'CAES', 'ESPERA', 'SIM', 'NAO', 'PROPRIEDADE', 'NOME', 'PROPRIETARIO'
   ];
 
-  // Pegar todos os blocos de nomes próprios (Ex: ADEMILTON MORAES RESENDE)
   const allNames = fullText.match(/[A-ZÀ-ÿ]{3,}\s[A-ZÀ-ÿ]{2,}(\s[A-ZÀ-ÿ]{2,})*/g) || [];
   
   const validNames = allNames.filter(n => {
-    const nClean = n.toUpperCase().trim();
-    // Filtros
+    let nClean = n.toUpperCase().trim();
+    
+    // Remover palavras de título que podem estar grudadas no nome
+    blacklist.forEach(b => {
+      if (nClean.startsWith(b + ' ')) nClean = nClean.replace(b + ' ', '').trim();
+      if (nClean.endsWith(' ' + b)) nClean = nClean.replace(' ' + b, '').trim();
+    });
+
     if (solicitanteNome && nClean.includes(solicitanteNome.split(' ')[0])) return false;
-    if (blacklist.some(b => nClean.includes(b))) return false;
+    // Se o bloco ainda contém palavras proibidas no MEIO dele, descartar
+    if (blacklist.some(b => nClean.includes(b) && nClean.length < 15)) return false;
     if (data.nomeFazenda && nClean.includes(data.nomeFazenda.replace('FAZENDA ', ''))) return false;
-    if (data.cidade && nClean.includes(data.cidade.split('/')[0])) return false;
-    return nClean.length >= 8;
+    
+    return nClean.length >= 5;
   });
 
   if (validNames.length > 0) {
-    // O proprietário costuma estar na tabela, perto do CAR
-    const afterCarIdx = data.numeroCar ? fullText.indexOf(data.numeroCar.split(' ')[0]) : 0;
-    const bestMatch = validNames.find(n => fullText.indexOf(n) > afterCarIdx) || validNames[0];
-    data.nomeProprietario = bestMatch.trim().toUpperCase();
+    // Pegar o primeiro nome que faz sentido após o CAR
+    const carIdx = data.numeroCar ? fullText.indexOf(data.numeroCar.split(' ')[0]) : 0;
+    let selecionado = validNames.find(n => fullText.indexOf(n) > carIdx) || validNames[0];
+    
+    // Limpeza final de títulos residuais
+    let final = selecionado.toUpperCase().trim();
+    ['NOME DO', 'PROPRIETARIO', 'CONTROLADOR'].forEach(t => final = final.replace(t, '').trim());
+    
+    data.nomeProprietario = final;
   }
 
   return data;
