@@ -3,7 +3,7 @@ import { supabase } from '../../db/supabase';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useRecibos } from '../../context/RecibosContext';
-import { isSameMonth, parseISO } from 'date-fns';
+import { isSameMonth, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { 
   Users, 
   FileText, 
@@ -19,7 +19,8 @@ import { formatarMoeda, formatarData } from '../../utils/formatters';
 import { useNavigate } from 'react-router-dom';
 
 interface RelatorioEquipeProps {
-  dataFiltro: Date;
+  dataInicio: Date;
+  dataFim: Date;
 }
 
 interface Usuario {
@@ -37,7 +38,7 @@ interface AtividadeDetalhe {
   clienteNome: string;
 }
 
-export function RelatorioEquipe({ dataFiltro }: RelatorioEquipeProps) {
+export function RelatorioEquipe({ dataInicio, dataFim }: RelatorioEquipeProps) {
   const navigate = useNavigate();
   const { ordens } = useOrdens();
   const { orcamentos } = useOrcamentos();
@@ -60,11 +61,20 @@ export function RelatorioEquipe({ dataFiltro }: RelatorioEquipeProps) {
   }, []);
 
   const stats = useMemo(() => {
-    // Filtro por Mês
+    // Filtro por Período
     const filtrosMes = {
-      ordens: ordens.filter(o => isSameMonth(parseISO(o.criadoEm), dataFiltro)),
-      orcamentos: orcamentos.filter(o => isSameMonth(parseISO(o.criadoEm), dataFiltro)),
-      recibos: recibos.filter(r => isSameMonth(parseISO(r.criadoEm), dataFiltro)),
+      ordens: ordens.filter(o => {
+        const d = parseISO(o.criadoEm);
+        return isWithinInterval(d, { start: startOfDay(dataInicio), end: endOfDay(dataFim) });
+      }),
+      orcamentos: orcamentos.filter(o => {
+        const d = parseISO(o.criadoEm);
+        return isWithinInterval(d, { start: startOfDay(dataInicio), end: endOfDay(dataFim) });
+      }),
+      recibos: recibos.filter(r => {
+        const d = parseISO(r.criadoEm);
+        return isWithinInterval(d, { start: startOfDay(dataInicio), end: endOfDay(dataFim) });
+      }),
     };
 
     // Filtro por Colaborador (se selecionado)
@@ -101,8 +111,8 @@ export function RelatorioEquipe({ dataFiltro }: RelatorioEquipeProps) {
       // Histórico Operacional
       if (o.historicoStatus) {
         o.historicoStatus.forEach(evento => {
-          // Apenas eventos que ocorreram no mês selecionado
-          if (isSameMonth(parseISO(evento.data), dataFiltro)) {
+          // Apenas eventos que ocorreram no período selecionado
+          if (isWithinInterval(parseISO(evento.data), { start: startOfDay(dataInicio), end: endOfDay(dataFim) })) {
             if (evento.tipo === 'status_execucao') {
               if (colaboradorSelecionado === 'Todos' || evento.usuario === colaboradorSelecionado) {
                 if (evento.valorNovo === 'Protocolado — Ag. PF') {
@@ -149,7 +159,7 @@ export function RelatorioEquipe({ dataFiltro }: RelatorioEquipeProps) {
       servicosConcluidos,
       atividades
     };
-  }, [ordens, orcamentos, recibos, dataFiltro, colaboradorSelecionado]);
+  }, [ordens, orcamentos, recibos, dataInicio, dataFim, colaboradorSelecionado]);
 
   return (
     <div className="space-y-6">

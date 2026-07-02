@@ -21,7 +21,7 @@ import { useOrdens } from '../../context/OrdensContext';
 import { useFinanceiro, CATEGORIAS_DESPESA } from '../../context/FinanceiroContext';
 import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
-import { isSameMonth, parseISO, startOfMonth, endOfMonth, format } from 'date-fns';
+import { isSameMonth, parseISO, startOfMonth, endOfMonth, format, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfYear, endOfYear, setDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { ExportadorRelatorio } from './ExportadorRelatorio';
@@ -35,7 +35,14 @@ export function Financeiro() {
   const podeExcluir = usuario?.role === 'admin' || usuario?.permissoes?.includes('excluir_registros');
 
   const [abaAtiva, setAbaAtiva] = useState<'relatorio' | 'despesas' | 'equipe' | 'comissoes'>('relatorio');
+  
+  // Estados de Filtro de Períodos
+  const [tipoFiltro, setTipoFiltro] = useState<'semanal' | 'quinzenal' | 'mensal' | 'anual' | 'personalizado'>('mensal');
   const [dataFiltro, setDataFiltro] = useState(new Date());
+  const [quinzenaFiltro, setQuinzenaFiltro] = useState<1 | 2>(1);
+  const [dataInicioCustom, setDataInicioCustom] = useState(format(new Date(), 'yyyy-MM-01'));
+  const [dataFimCustom, setDataFimCustom] = useState(format(new Date(), 'yyyy-MM-dd'));
+
   const [novaDespesaModal, setNovaDespesaModal] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -47,17 +54,63 @@ export function Financeiro() {
     data: format(new Date(), 'yyyy-MM-dd')
   });
 
+  // Corrige inicialização de categoria no state formDespesa
+  useEffect(() => {
+    if (CATEGORIAS_DESPESA && CATEGORIAS_DESPESA.length > 0) {
+      setFormDespesa(prev => ({ ...prev, categoria: CATEGORIAS_DESPESA[0] }));
+    }
+  }, []);
+
+  // Cálculo reativo do intervalo de datas do período
+  const { dataInicio, dataFim } = useMemo(() => {
+    let start = new Date();
+    let end = new Date();
+
+    if (tipoFiltro === 'mensal') {
+      start = startOfMonth(dataFiltro);
+      end = endOfMonth(dataFiltro);
+    } else if (tipoFiltro === 'semanal') {
+      start = startOfWeek(dataFiltro, { weekStartsOn: 1 }); // Segunda-feira
+      end = endOfWeek(dataFiltro, { weekStartsOn: 1 }); // Domingo
+    } else if (tipoFiltro === 'quinzenal') {
+      const monthStart = startOfMonth(dataFiltro);
+      if (quinzenaFiltro === 1) {
+        start = monthStart;
+        end = setDate(new Date(monthStart), 15);
+      } else {
+        start = setDate(new Date(monthStart), 16);
+        end = endOfMonth(dataFiltro);
+      }
+    } else if (tipoFiltro === 'anual') {
+      start = startOfYear(dataFiltro);
+      end = endOfYear(dataFiltro);
+    } else if (tipoFiltro === 'personalizado') {
+      start = dataInicioCustom ? startOfDay(parseISO(dataInicioCustom)) : startOfMonth(new Date());
+      end = dataFimCustom ? endOfDay(parseISO(dataFimCustom)) : endOfMonth(new Date());
+    }
+
+    return {
+      dataInicio: startOfDay(start),
+      dataFim: endOfDay(end)
+    };
+  }, [tipoFiltro, dataFiltro, quinzenaFiltro, dataInicioCustom, dataFimCustom]);
+
   // Filtragem de dados
   const ordensMes = useMemo(() => {
     return ordens.filter(o => {
       const ehMigracao = o.migrado === true || o.observacoes?.includes('[MIGRAÇÃO]');
-      return !ehMigracao && isSameMonth(parseISO(o.criadoEm), dataFiltro);
+      if (ehMigracao) return false;
+      const dataCriacao = parseISO(o.criadoEm);
+      return isWithinInterval(dataCriacao, { start: dataInicio, end: dataFim });
     });
-  }, [ordens, dataFiltro]);
+  }, [ordens, dataInicio, dataFim]);
 
   const despesasMes = useMemo(() => {
-    return despesas.filter(d => isSameMonth(parseISO(d.data), dataFiltro));
-  }, [despesas, dataFiltro]);
+    return despesas.filter(d => {
+      const dataDespesa = parseISO(d.data);
+      return isWithinInterval(dataDespesa, { start: dataInicio, end: dataFim });
+    });
+  }, [despesas, dataInicio, dataFim]);
 
   // Cálculos Financeiros
   const totais = useMemo(() => {
@@ -86,6 +139,26 @@ export function Financeiro() {
     const margemBruta = faturamento - taxas;
     const lucroLiquido = margemBruta - despesasTotal;
 
+    // Agrupamento por formas de pagamento no período selecionado
+    const formasPgtoBreakdown: Record<string, number> = {};
+    ordensMes.forEach(o => {
+      if (o.historicoPagamentos && o.historicoPagamentos.length > 0) {
+        o.historicoPagamentos.forEach(p => {
+          const dataPagamento = parseISO(p.data);
+          if (isWithinInterval(dataPagamento, { start: dataInicio, end: dataFim })) {
+            const metodo = p.metodo || 'Pendente';
+            formasPgtoBreakdown[metodo] = (formasPgtoBreakdown[metodo] || 0) + (p.valor || 0);
+          }
+        });
+      } else if (o.valorPago > 0) {
+        const dataOS = parseISO(o.criadoEm);
+        if (isWithinInterval(dataOS, { start: dataInicio, end: dataFim })) {
+          const metodo = o.formaPagamento || 'Pendente';
+          formasPgtoBreakdown[metodo] = (formasPgtoBreakdown[metodo] || 0) + (o.valorPago || 0);
+        }
+      }
+    });
+
     return {
       faturamento,
       taxas,
@@ -95,9 +168,10 @@ export function Financeiro() {
       pendenteProtocolado,
       countPendenteProtocolado,
       totalOS: ordensMes.length,
-      concluidas: ordensMes.filter(o => o.status === 'Pago').length
+      concluidas: ordensMes.filter(o => o.status === 'Pago').length,
+      formasPgtoBreakdown
     };
-  }, [ordensMes, despesasMes]);
+  }, [ordensMes, despesasMes, dataInicio, dataFim]);
 
   const handleExportarExcel = () => {
     setIsExportModalOpen(true);
@@ -135,22 +209,140 @@ export function Financeiro() {
             <BarChart3 className="text-brand-blue" />
             Gestão Financeira
           </h1>
-          <p className="text-gray-400 text-sm">Controle de faturamento, taxas e despesas PJ</p>
+          <div className="flex items-center gap-2 flex-wrap mt-1">
+            <p className="text-gray-400 text-sm">Controle de faturamento, taxas e despesas PJ</p>
+            <span className="px-2 py-0.5 rounded bg-brand-dark-3 border border-brand-dark-5 text-[10px] text-brand-blue-light font-mono font-bold">
+              Período: {format(dataInicio, 'dd/MM/yyyy')} a {format(dataFim, 'dd/MM/yyyy')}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-3 py-1.5 gap-2">
-            <Calendar size={16} className="text-gray-500" />
-            <input 
-              type="month" 
-              className="bg-transparent text-white border-none focus:ring-0 text-sm outline-none" 
-              value={format(dataFiltro, 'yyyy-MM')}
-              onChange={(e) => setDataFiltro(new Date(e.target.value + '-02'))} // +02 para evitar timezone offset
-            />
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Tipo de Filtro Select */}
+          <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-2.5 py-1.5 gap-1.5">
+            <Filter size={14} className="text-gray-500" />
+            <select
+              className="bg-transparent text-white border-none focus:ring-0 text-xs font-bold outline-none cursor-pointer p-0 pr-6"
+              value={tipoFiltro}
+              onChange={(e) => setTipoFiltro(e.target.value as any)}
+            >
+              <option value="mensal" className="bg-brand-dark-2">Mensal</option>
+              <option value="semanal" className="bg-brand-dark-2">Semanal</option>
+              <option value="quinzenal" className="bg-brand-dark-2">Quinzenal</option>
+              <option value="anual" className="bg-brand-dark-2">Anual</option>
+              <option value="personalizado" className="bg-brand-dark-2">Personalizado</option>
+            </select>
           </div>
+
+          {/* Inputs Condicionais baseados no tipo de período */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {tipoFiltro === 'mensal' && (
+              <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-3 py-1.5 gap-2">
+                <Calendar size={14} className="text-gray-500" />
+                <input 
+                  type="month" 
+                  className="bg-transparent text-white border-none focus:ring-0 text-xs outline-none p-0 w-24" 
+                  value={format(dataFiltro, 'yyyy-MM')}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDataFiltro(new Date(e.target.value + '-02'));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {tipoFiltro === 'semanal' && (
+              <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-3 py-1.5 gap-2">
+                <Calendar size={14} className="text-gray-500" />
+                <input 
+                  type="date" 
+                  className="bg-transparent text-white border-none focus:ring-0 text-xs outline-none p-0 w-28" 
+                  value={format(dataFiltro, 'yyyy-MM-dd')}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDataFiltro(new Date(e.target.value + 'T12:00:00'));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
+            {tipoFiltro === 'quinzenal' && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-3 py-1.5 gap-2">
+                  <Calendar size={14} className="text-gray-500" />
+                  <input 
+                    type="month" 
+                    className="bg-transparent text-white border-none focus:ring-0 text-xs outline-none p-0 w-24" 
+                    value={format(dataFiltro, 'yyyy-MM')}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setDataFiltro(new Date(e.target.value + '-02'));
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-2.5 py-1.5">
+                  <select
+                    className="bg-transparent text-white border-none focus:ring-0 text-xs font-bold outline-none cursor-pointer p-0 pr-6"
+                    value={quinzenaFiltro}
+                    onChange={(e) => setQuinzenaFiltro(parseInt(e.target.value) as any)}
+                  >
+                    <option value={1} className="bg-brand-dark-2">1ª Quinzena (01-15)</option>
+                    <option value={2} className="bg-brand-dark-2">2ª Quinzena (16-Fim)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {tipoFiltro === 'anual' && (
+              <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-3 py-1.5 gap-2">
+                <Calendar size={14} className="text-gray-500" />
+                <select
+                  className="bg-transparent text-white border-none focus:ring-0 text-xs font-bold outline-none cursor-pointer p-0 pr-6"
+                  value={dataFiltro.getFullYear()}
+                  onChange={(e) => {
+                    const newYear = parseInt(e.target.value);
+                    const d = new Date(dataFiltro);
+                    d.setFullYear(newYear);
+                    setDataFiltro(d);
+                  }}
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(year => (
+                    <option key={year} value={year} className="bg-brand-dark-2">{year}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {tipoFiltro === 'personalizado' && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-2 py-1 gap-2">
+                  <span className="text-[10px] text-gray-500 font-bold uppercase">De</span>
+                  <input 
+                    type="date" 
+                    className="bg-transparent text-white border-none focus:ring-0 text-xs outline-none p-0 w-28" 
+                    value={dataInicioCustom}
+                    onChange={(e) => setDataInicioCustom(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center bg-brand-dark-3 border border-brand-dark-5 rounded-xl px-2 py-1 gap-2">
+                  <span className="text-[10px] text-gray-500 font-bold uppercase">Até</span>
+                  <input 
+                    type="date" 
+                    className="bg-transparent text-white border-none focus:ring-0 text-xs outline-none p-0 w-28" 
+                    value={dataFimCustom}
+                    onChange={(e) => setDataFimCustom(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <button 
             onClick={handleExportarExcel}
-            className="btn-ghost flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider"
+            className="btn-ghost flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider animate-pulse-once"
           >
             <FileSpreadsheet size={16} className="text-brand-green" />
             Exportar
@@ -256,7 +448,26 @@ export function Financeiro() {
 
       {/* Conteúdo Aba Relatório */}
       {abaAtiva === 'relatorio' && (
-        <div className="card p-0 overflow-hidden border-brand-dark-5">
+        <div className="space-y-4">
+          {/* Métodos de Pagamento Breakdown */}
+          {Object.keys(totais.formasPgtoBreakdown).length > 0 && (
+            <div className="card border-brand-dark-5 bg-brand-dark-3/30 p-4">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <ArrowRightLeft size={14} className="text-brand-green" />
+                Recebido por Meio de Pagamento
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {Object.entries(totais.formasPgtoBreakdown).map(([metodo, valor]) => (
+                  <div key={metodo} className="bg-brand-dark-4 border border-brand-dark-5 rounded-xl p-2.5 flex flex-col justify-between">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase truncate" title={metodo}>{metodo}</span>
+                    <span className="text-sm font-black text-brand-green mt-1">{formatarMoeda(valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="card p-0 overflow-hidden border-brand-dark-5">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -328,6 +539,7 @@ export function Financeiro() {
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
 
@@ -401,10 +613,10 @@ export function Financeiro() {
       )}
 
       {/* Conteúdo Aba Equipe */}
-      {abaAtiva === 'equipe' && <RelatorioEquipe dataFiltro={dataFiltro} />}
+      {abaAtiva === 'equipe' && <RelatorioEquipe dataInicio={dataInicio} dataFim={dataFim} />}
 
       {/* Conteúdo Aba Comissões */}
-      {abaAtiva === 'comissoes' && <FechamentoComissoes dataFiltro={dataFiltro} />}
+      {abaAtiva === 'comissoes' && <FechamentoComissoes dataInicio={dataInicio} dataFim={dataFim} />}
 
       {/* Modal Nova Despesa */}
       {novaDespesaModal && (
@@ -486,6 +698,8 @@ export function Financeiro() {
       <ExportadorRelatorio 
         isOpen={isExportModalOpen} 
         onClose={() => setIsExportModalOpen(false)} 
+        dataInicioProp={format(dataInicio, 'yyyy-MM-dd')}
+        dataFimProp={format(dataFim, 'yyyy-MM-dd')}
       />
     </div>
   );

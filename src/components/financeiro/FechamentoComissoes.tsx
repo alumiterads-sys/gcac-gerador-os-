@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrdens } from '../../context/OrdensContext';
-import { isSameMonth, parseISO } from 'date-fns';
+import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { DollarSign, CheckCircle, List, User } from 'lucide-react';
 import { formatarMoeda, formatarData, formatarNumeroOS } from '../../utils/formatters';
 
 interface FechamentoComissoesProps {
-  dataFiltro: Date;
+  dataInicio: Date;
+  dataFim: Date;
 }
 
 interface ServicoComissao {
@@ -20,7 +21,7 @@ interface ServicoComissao {
   valorRepasse: number;
 }
 
-export function FechamentoComissoes({ dataFiltro }: FechamentoComissoesProps) {
+export function FechamentoComissoes({ dataInicio, dataFim }: FechamentoComissoesProps) {
   const navigate = useNavigate();
   const { ordens } = useOrdens();
 
@@ -45,7 +46,7 @@ export function FechamentoComissoes({ dataFiltro }: FechamentoComissoesProps) {
           // vamos usar a data de atualização da O.S. (`atualizadoEm`) como referência,
           // que é quando a O.S. possivelmente foi finalizada ou o serviço foi marcado como concluído.
           
-          if (isSameMonth(parseISO(o.atualizadoEm), dataFiltro)) {
+          if (isWithinInterval(parseISO(o.atualizadoEm), { start: startOfDay(dataInicio), end: endOfDay(dataFim) })) {
             comissoes.push({
               id: `${o.id}-${s.id}`,
               ordemId: o.id,
@@ -79,7 +80,7 @@ export function FechamentoComissoes({ dataFiltro }: FechamentoComissoesProps) {
       porColaborador,
       totalGeral: comissoes.reduce((acc, c) => acc + c.valorRepasse, 0)
     };
-  }, [ordens, dataFiltro]);
+  }, [ordens, dataInicio, dataFim]);
 
   const colaboradores = Object.keys(dadosAgrupados.porColaborador).sort();
 
@@ -89,7 +90,7 @@ export function FechamentoComissoes({ dataFiltro }: FechamentoComissoesProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card border-brand-green/20 bg-brand-green/5 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-brand-green" />
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total de Repasses (Mês)</p>
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total de Repasses (Período)</p>
           <p className="text-2xl font-black text-white">{formatarMoeda(dadosAgrupados.totalGeral)}</p>
           <div className="mt-2 text-[10px] text-gray-500 font-bold uppercase">
             Valor devido à equipe por serviços concluídos em OS Pagas
@@ -111,7 +112,7 @@ export function FechamentoComissoes({ dataFiltro }: FechamentoComissoesProps) {
       {colaboradores.length === 0 ? (
         <div className="card p-10 text-center border-dashed border-brand-dark-5">
           <DollarSign size={32} className="mx-auto text-brand-dark-5 mb-3" />
-          <h3 className="text-sm font-bold text-gray-400">Nenhum repasse registrado neste mês.</h3>
+          <h3 className="text-sm font-bold text-gray-400">Nenhum repasse registrado neste período.</h3>
           <p className="text-xs text-gray-500 mt-1">
             Certifique-se de que os serviços possuem um <b>Responsável</b> e <b>Repasse</b>, estão <b>Concluídos</b> e a O.S. está <b>Paga</b>.
           </p>
