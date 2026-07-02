@@ -159,7 +159,7 @@ export function ExportadorRelatorio({ isOpen, onClose, dataInicioProp, dataFimPr
   const handleExportar = (formato: 'excel' | 'pdf' = 'excel') => {
     if (fonte === 'faturamento_detalhado') {
       const ordensFiltradas = ordens.filter(item => {
-        const dataItem = parseISO(item.criadoEm || item.data);
+        const dataItem = parseISO(item.criadoEm);
         const noIntervalo = isWithinInterval(dataItem, {
           start: startOfDay(parseISO(dataInicio)),
           end: endOfDay(parseISO(dataFim))
