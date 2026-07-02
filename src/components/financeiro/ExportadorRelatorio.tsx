@@ -123,7 +123,29 @@ export function ExportadorRelatorio({ isOpen, onClose, dataInicioProp, dataFimPr
     );
   };
 
-  const handleExportar = (formato: 'excel' | 'pdf' = 'excel') => {
+  const handleExportar = async (formato: 'excel' | 'pdf' = 'excel') => {
+    // Tenta carregar a logo da empresa (base64) ou o fallback
+    let logoBase64 = usuario?.dadosEmpresa?.logoUrl || '';
+    if (!logoBase64) {
+      try {
+        const logoRes = await fetch('/LOGO PORTAL G CAC 2 SEM FRASE.png');
+        if (logoRes.ok) {
+          const logoBlob = await logoRes.blob();
+          logoBase64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(logoBlob);
+          });
+        }
+      } catch (e) {
+        console.error('Erro ao buscar logo padrao:', e);
+      }
+    }
+
+    const cnpj = usuario?.dadosEmpresa?.cnpj || '';
+    const contato = usuario?.dadosEmpresa?.contatoTelefone || '';
+    const endereco = usuario?.dadosEmpresa?.endereco || '';
+
     // 1. Filtragem das OSs com base nos critérios selecionados
     const ordensFiltradas = ordens.filter(item => {
       const dataItem = parseISO(item.criadoEm);
@@ -289,21 +311,67 @@ export function ExportadorRelatorio({ isOpen, onClose, dataInicioProp, dataFimPr
         doc.text(`Página ${pageNum}`, 180, 287);
       };
 
-      // Banner principal
-      doc.setFillColor(15, 32, 67); // Azul marinho
-      doc.rect(15, 20, 180, 24, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(255, 255, 255);
-      doc.text('RELATÓRIO DE FATURAMENTO DETALHADO', 20, 30);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(190, 210, 240);
-      doc.text(`Empresa: ${empresaName}   |   Intervalo: ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`, 20, 38);
-
       drawHeaderFooter(pageCount);
 
-      let y = 52;
+      // Renderização do cabeçalho da empresa
+      let textX = 15;
+      let logoValido = false;
+      let imgFormat = 'PNG';
+      if (logoBase64 && logoBase64.startsWith('data:image/')) {
+        logoValido = true;
+        if (logoBase64.startsWith('data:image/jpeg') || logoBase64.startsWith('data:image/jpg')) {
+          imgFormat = 'JPEG';
+        } else if (logoBase64.startsWith('data:image/webp')) {
+          imgFormat = 'WEBP';
+        }
+      }
+
+      if (logoValido) {
+        try {
+          doc.addImage(logoBase64, imgFormat, 15, 20, 24, 24);
+          textX = 44;
+        } catch (e) {
+          console.error('Erro ao renderizar logo no PDF:', e);
+          textX = 15;
+        }
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(15, 32, 67); // Azul marinho
+      doc.text(empresaName, textX, 24);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(80, 80, 80);
+      doc.text(cnpj ? `CNPJ: ${cnpj}` : '', textX, 29);
+      doc.text(contato ? `Contato: ${contato}` : '', textX, 34);
+      if (endereco) {
+        let cleanEndereco = endereco;
+        if (doc.getTextWidth(cleanEndereco) > 195 - textX) {
+          while (cleanEndereco.length > 5 && doc.getTextWidth(cleanEndereco + '...') > 195 - textX) {
+            cleanEndereco = cleanEndereco.slice(0, -1);
+          }
+          cleanEndereco += '...';
+        }
+        doc.text(`Endereço: ${cleanEndereco}`, textX, 39);
+      }
+
+      doc.setDrawColor(200, 205, 210);
+      doc.line(15, 48, 195, 48);
+
+      // Título do documento
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(15, 32, 67);
+      doc.text('RELATÓRIO DE FATURAMENTO DETALHADO', 15, 56);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Período de Referência: ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`, 15, 61);
+
+      let y = 70;
 
       const checkSpace = (needed: number) => {
         if (y + needed > 275) {
@@ -489,6 +557,8 @@ export function ExportadorRelatorio({ isOpen, onClose, dataInicioProp, dataFimPr
       const rowsResumo: any[] = [
         ['PORTAL G CAC - RELATÓRIO DE FATURAMENTO DETALHADO'],
         [`Empresa: ${empresaName}`],
+        [`CNPJ: ${cnpj}`],
+        [`Contato: ${contato}`],
         [`Período: ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`],
         [],
         ['1. DRE SIMPLIFICADA / RESUMO GERAL'],
