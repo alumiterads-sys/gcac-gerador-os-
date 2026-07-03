@@ -83,36 +83,123 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           rawEmpresaNome = empData.nome;
           tipoConta = (empData.tipo_conta || 'empresa') as 'empresa' | 'cac_individual';
           modulosAtivos = empData.modulos_ativos || [];
-          dadosEmpresa = {
-            id: rawEmpresaId,
-            nome: empData.nome,
-            tipoConta,
-            clubeParceiroPadrao: empData.clube_parceiro_padrao,
-            categoriasServico: empData.categorias_servico || undefined,
-            razaoSocialFantasia: empData.razao_social_fantasia,
-            responsavelNome: empData.responsavel_nome,
-            contatoTelefone: empData.contato_telefone,
-            endereco: empData.endereco,
-            cnpj: empData.cnpj,
-            recursosLiberados: empData.recursos_liberados || [],
-            logoUrl: empData.logo_url || undefined,
-            mensagemAlertaCraf: empData.mensagem_alerta_craf,
-            plano: empData.plano,
-            planoStatus: empData.plano_status,
-            frequenciaPagamento: empData.frequencia_pagamento,
-            dataVencimento: empData.data_vencimento,
-            taxaImplementacaoPaga: empData.taxa_implementacao_paga,
-            valorImplementacao: empData.valor_implementacao ? Number(empData.valor_implementacao) : undefined,
-            valorAssinaturaPersonalizado: empData.valor_assinatura_personalizado ? Number(empData.valor_assinatura_personalizado) : undefined,
-            isGratis: empData.is_gratis,
-            limiteUsuariosStaff: empData.limite_usuarios_staff,
-            alertaCr: empData.alerta_cr !== null && empData.alerta_cr !== undefined ? Number(empData.alerta_cr) : 60,
-            alertaCraf: empData.alerta_craf !== null && empData.alerta_craf !== undefined ? Number(empData.alerta_craf) : 60,
-            alertaGt: empData.alerta_gt !== null && empData.alerta_gt !== undefined ? Number(empData.alerta_gt) : 20,
-            alertaManejo: empData.alerta_manejo !== null && empData.alerta_manejo !== undefined ? Number(empData.alerta_manejo) : 7,
-            alertaCrIbama: empData.alerta_ibama_cr !== null && empData.alerta_ibama_cr !== undefined ? Number(empData.alerta_ibama_cr) : 30,
-            ocultarIbama: empData.ocultar_ibama !== null && empData.ocultar_ibama !== undefined ? Boolean(empData.ocultar_ibama) : false
-          };
+
+          const dbAlertaCr = empData.alerta_cr !== null && empData.alerta_cr !== undefined ? Number(empData.alerta_cr) : 60;
+          const dbAlertaCraf = empData.alerta_craf !== null && empData.alerta_craf !== undefined ? Number(empData.alerta_craf) : 60;
+          const dbAlertaGt = empData.alerta_gt !== null && empData.alerta_gt !== undefined ? Number(empData.alerta_gt) : 20;
+          const dbAlertaManejo = empData.alerta_manejo !== null && empData.alerta_manejo !== undefined ? Number(empData.alerta_manejo) : 7;
+          const dbAlertaCrIbama = empData.alerta_ibama_cr !== null && empData.alerta_ibama_cr !== undefined ? Number(empData.alerta_ibama_cr) : 30;
+          const dbOcultarIbama = empData.ocultar_ibama !== null && empData.ocultar_ibama !== undefined ? Boolean(empData.ocultar_ibama) : false;
+
+          // Autocorreção de migração: Se no dispositivo atual o usuário já tinha valores diferentes configurados localmente
+          // e no banco de dados os valores ainda forem os padrões de fábrica (ou seja, primeira migração deste tenant),
+          // fazemos o upload automático das configurações locais do dispositivo para o banco para sincronizar.
+          let needsDbUpdate = false;
+          const updates: any = {};
+
+          const localCr = localStorage.getItem('config_alerta_cr');
+          if (localCr && Number(localCr) !== dbAlertaCr && dbAlertaCr === 60) {
+            updates.alerta_cr = Number(localCr);
+            needsDbUpdate = true;
+          }
+          const localCraf = localStorage.getItem('config_alerta_craf');
+          if (localCraf && Number(localCraf) !== dbAlertaCraf && dbAlertaCraf === 60) {
+            updates.alerta_craf = Number(localCraf);
+            needsDbUpdate = true;
+          }
+          const localGt = localStorage.getItem('config_alerta_gt');
+          if (localGt && Number(localGt) !== dbAlertaGt && dbAlertaGt === 20) {
+            updates.alerta_gt = Number(localGt);
+            needsDbUpdate = true;
+          }
+          const localManejo = localStorage.getItem('config_alerta_manejo');
+          if (localManejo && Number(localManejo) !== dbAlertaManejo && dbAlertaManejo === 7) {
+            updates.alerta_manejo = Number(localManejo);
+            needsDbUpdate = true;
+          }
+          const localCrIbama = localStorage.getItem('config_alerta_ibama_cr');
+          if (localCrIbama && Number(localCrIbama) !== dbAlertaCrIbama && dbAlertaCrIbama === 30) {
+            updates.alerta_ibama_cr = Number(localCrIbama);
+            needsDbUpdate = true;
+          }
+          const localOcultar = localStorage.getItem('config_ocultar_ibama');
+          if (localOcultar && (localOcultar === 'true') !== dbOcultarIbama && dbOcultarIbama === false) {
+            updates.ocultar_ibama = localOcultar === 'true';
+            needsDbUpdate = true;
+          }
+
+          if (needsDbUpdate && rawEmpresaId) {
+            console.log('[DEBUG Auth] Sincronizando valores customizados do localStorage com o banco de dados:', updates);
+            supabase
+              .from('empresas')
+              .update(updates)
+              .eq('id', rawEmpresaId)
+              .then(({ error }) => {
+                if (error) console.error('[DEBUG Auth] Erro ao sincronizar configurações locais com o banco:', error);
+              });
+
+            dadosEmpresa = {
+              id: rawEmpresaId,
+              nome: empData.nome,
+              tipoConta,
+              clubeParceiroPadrao: empData.clube_parceiro_padrao,
+              categoriasServico: empData.categorias_servico || undefined,
+              razaoSocialFantasia: empData.razao_social_fantasia,
+              responsavelNome: empData.responsavel_nome,
+              contatoTelefone: empData.contato_telefone,
+              endereco: empData.endereco,
+              cnpj: empData.cnpj,
+              recursosLiberados: empData.recursos_liberados || [],
+              logoUrl: empData.logo_url || undefined,
+              mensagemAlertaCraf: empData.mensagem_alerta_craf,
+              plano: empData.plano,
+              planoStatus: empData.plano_status,
+              frequenciaPagamento: empData.frequencia_pagamento,
+              dataVencimento: empData.data_vencimento,
+              taxaImplementacaoPaga: empData.taxa_implementacao_paga,
+              valorImplementacao: empData.valor_implementacao ? Number(empData.valor_implementacao) : undefined,
+              valorAssinaturaPersonalizado: empData.valor_assinatura_personalizado ? Number(empData.valor_assinatura_personalizado) : undefined,
+              isGratis: empData.is_gratis,
+              limiteUsuariosStaff: empData.limite_usuarios_staff,
+              alertaCr: updates.alerta_cr !== undefined ? updates.alerta_cr : dbAlertaCr,
+              alertaCraf: updates.alerta_craf !== undefined ? updates.alerta_craf : dbAlertaCraf,
+              alertaGt: updates.alerta_gt !== undefined ? updates.alerta_gt : dbAlertaGt,
+              alertaManejo: updates.alerta_manejo !== undefined ? updates.alerta_manejo : dbAlertaManejo,
+              alertaCrIbama: updates.alerta_ibama_cr !== undefined ? updates.alerta_ibama_cr : dbAlertaCrIbama,
+              ocultarIbama: updates.ocultar_ibama !== undefined ? updates.ocultar_ibama : dbOcultarIbama
+            };
+          } else {
+            dadosEmpresa = {
+              id: rawEmpresaId,
+              nome: empData.nome,
+              tipoConta,
+              clubeParceiroPadrao: empData.clube_parceiro_padrao,
+              categoriasServico: empData.categorias_servico || undefined,
+              razaoSocialFantasia: empData.razao_social_fantasia,
+              responsavelNome: empData.responsavel_nome,
+              contatoTelefone: empData.contato_telefone,
+              endereco: empData.endereco,
+              cnpj: empData.cnpj,
+              recursosLiberados: empData.recursos_liberados || [],
+              logoUrl: empData.logo_url || undefined,
+              mensagemAlertaCraf: empData.mensagem_alerta_craf,
+              plano: empData.plano,
+              planoStatus: empData.plano_status,
+              frequenciaPagamento: empData.frequencia_pagamento,
+              dataVencimento: empData.data_vencimento,
+              taxaImplementacaoPaga: empData.taxa_implementacao_paga,
+              valorImplementacao: empData.valor_implementacao ? Number(empData.valor_implementacao) : undefined,
+              valorAssinaturaPersonalizado: empData.valor_assinatura_personalizado ? Number(empData.valor_assinatura_personalizado) : undefined,
+              isGratis: empData.is_gratis,
+              limiteUsuariosStaff: empData.limite_usuarios_staff,
+              alertaCr: dbAlertaCr,
+              alertaCraf: dbAlertaCraf,
+              alertaGt: dbAlertaGt,
+              alertaManejo: dbAlertaManejo,
+              alertaCrIbama: dbAlertaCrIbama,
+              ocultarIbama: dbOcultarIbama
+            };
+          }
 
           // Sincroniza com o localStorage para que utilitários de vencimentos consumam instantaneamente
           localStorage.setItem('config_alerta_cr', String(dadosEmpresa.alertaCr));
