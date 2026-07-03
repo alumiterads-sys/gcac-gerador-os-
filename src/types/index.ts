@@ -300,6 +300,12 @@ export interface DadosEmpresa {
   valorAssinaturaPersonalizado?: number;
   isGratis?: boolean;
   limiteUsuariosStaff?: number;
+  alertaCr?: number;
+  alertaCraf?: number;
+  alertaGt?: number;
+  alertaManejo?: number;
+  alertaCrIbama?: number;
+  ocultarIbama?: boolean;
 }
 
 export interface UsuarioGoogle {

@@ -68,9 +68,34 @@ export function Configuracoes() {
   const [migrando, setMigrando] = useState(false);
   const [progressoMigracao, setProgressoMigracao] = useState('');
 
-  const salvarAlertaEmpresa = (chave: string, valor: string) => {
+  const salvarAlertaEmpresa = async (chave: string, valor: string) => {
     localStorage.setItem(chave, valor);
     mostrar('sucesso', 'Prazo de alerta atualizado!');
+
+    if (usuario?.empresaId) {
+      let dbColumn = '';
+      if (chave === 'config_alerta_cr') dbColumn = 'alerta_cr';
+      else if (chave === 'config_alerta_craf') dbColumn = 'alerta_craf';
+      else if (chave === 'config_alerta_gt') dbColumn = 'alerta_gt';
+      else if (chave === 'config_alerta_manejo') dbColumn = 'alerta_manejo';
+      else if (chave === 'config_alerta_ibama_cr') dbColumn = 'alerta_ibama_cr';
+
+      if (dbColumn) {
+        const valNum = parseInt(valor, 10);
+        if (!isNaN(valNum)) {
+          try {
+            const { error } = await supabase
+              .from('empresas')
+              .update({ [dbColumn]: valNum })
+              .eq('id', usuario.empresaId);
+            if (error) throw error;
+            await refreshUsuario();
+          } catch (e) {
+            console.error('Erro ao salvar no banco:', e);
+          }
+        }
+      }
+    }
   };
 
   const handleMigrarArquivosParaStorage = async () => {
@@ -298,8 +323,9 @@ export function Configuracoes() {
   const [secoesSelecionadas, setSecoesSelecionadas] = useState<string[]>(CONTEUDO_MANUAL.map(s => s.id));
   const [gerandoManual, setGerandoManual] = useState(false);
 
-  // Configurações do CAC Individual
-  const getSanitizedAlerta = (key: string, defaultValue: string) => {
+  // Configurações do CAC / Empresa sincronizadas
+  const getSanitizedAlerta = (key: string, defaultValue: string, dbValue?: number) => {
+    if (dbValue !== undefined && dbValue !== null) return String(dbValue);
     if (typeof window === 'undefined') return defaultValue;
     const val = localStorage.getItem(key);
     if (!val) return defaultValue;
@@ -308,12 +334,29 @@ export function Configuracoes() {
     return val;
   };
 
-  const [alertaCr, setAlertaCr] = useState(() => getSanitizedAlerta('config_alerta_cr', '60'));
-  const [alertaCraf, setAlertaCraf] = useState(() => getSanitizedAlerta('config_alerta_craf', '60'));
-  const [alertaGt, setAlertaGt] = useState(() => getSanitizedAlerta('config_alerta_gt', '20'));
-  const [alertaManejo, setAlertaManejo] = useState(() => getSanitizedAlerta('config_alerta_manejo', '7'));
-  const [alertaCrIbama, setAlertaCrIbama] = useState(() => getSanitizedAlerta('config_alerta_ibama_cr', '30'));
-  const [ocultarIbama, setOcultarIbama] = useState(() => localStorage.getItem('config_ocultar_ibama') === 'true');
+  const [alertaCr, setAlertaCr] = useState(() => getSanitizedAlerta('config_alerta_cr', '60', usuario?.dadosEmpresa?.alertaCr));
+  const [alertaCraf, setAlertaCraf] = useState(() => getSanitizedAlerta('config_alerta_craf', '60', usuario?.dadosEmpresa?.alertaCraf));
+  const [alertaGt, setAlertaGt] = useState(() => getSanitizedAlerta('config_alerta_gt', '20', usuario?.dadosEmpresa?.alertaGt));
+  const [alertaManejo, setAlertaManejo] = useState(() => getSanitizedAlerta('config_alerta_manejo', '7', usuario?.dadosEmpresa?.alertaManejo));
+  const [alertaCrIbama, setAlertaCrIbama] = useState(() => getSanitizedAlerta('config_alerta_ibama_cr', '30', usuario?.dadosEmpresa?.alertaCrIbama));
+  const [ocultarIbama, setOcultarIbama] = useState(() => {
+    if (usuario?.dadosEmpresa?.ocultarIbama !== undefined && usuario?.dadosEmpresa?.ocultarIbama !== null) {
+      return usuario.dadosEmpresa.ocultarIbama;
+    }
+    return typeof window !== 'undefined' ? localStorage.getItem('config_ocultar_ibama') === 'true' : false;
+  });
+
+  useEffect(() => {
+    if (usuario?.dadosEmpresa) {
+      const de = usuario.dadosEmpresa;
+      if (de.alertaCr !== undefined && de.alertaCr !== null) setAlertaCr(String(de.alertaCr));
+      if (de.alertaCraf !== undefined && de.alertaCraf !== null) setAlertaCraf(String(de.alertaCraf));
+      if (de.alertaGt !== undefined && de.alertaGt !== null) setAlertaGt(String(de.alertaGt));
+      if (de.alertaManejo !== undefined && de.alertaManejo !== null) setAlertaManejo(String(de.alertaManejo));
+      if (de.alertaCrIbama !== undefined && de.alertaCrIbama !== null) setAlertaCrIbama(String(de.alertaCrIbama));
+      if (de.ocultarIbama !== undefined && de.ocultarIbama !== null) setOcultarIbama(de.ocultarIbama);
+    }
+  }, [usuario?.dadosEmpresa]);
   const [exportando, setExportando] = useState(false);
 
   // Push Notifications
@@ -386,15 +429,53 @@ export function Configuracoes() {
     }
   };
 
-  const salvarConfiguracoesCac = (chave: string, valor: string) => {
+  const salvarConfiguracoesCac = async (chave: string, valor: string) => {
     localStorage.setItem(chave, valor);
     mostrar('sucesso', 'Configuração de prazo atualizada!');
+
+    if (usuario?.empresaId) {
+      let dbColumn = '';
+      if (chave === 'config_alerta_cr') dbColumn = 'alerta_cr';
+      else if (chave === 'config_alerta_craf') dbColumn = 'alerta_craf';
+      else if (chave === 'config_alerta_gt') dbColumn = 'alerta_gt';
+      else if (chave === 'config_alerta_manejo') dbColumn = 'alerta_manejo';
+      else if (chave === 'config_alerta_ibama_cr') dbColumn = 'alerta_ibama_cr';
+
+      if (dbColumn) {
+        const valNum = parseInt(valor, 10);
+        if (!isNaN(valNum)) {
+          try {
+            const { error } = await supabase
+              .from('empresas')
+              .update({ [dbColumn]: valNum })
+              .eq('id', usuario.empresaId);
+            if (error) throw error;
+            await refreshUsuario();
+          } catch (e) {
+            console.error('Erro ao salvar no banco:', e);
+          }
+        }
+      }
+    }
   };
 
-  const handleToggleIbama = (checked: boolean) => {
+  const handleToggleIbama = async (checked: boolean) => {
     setOcultarIbama(checked);
     localStorage.setItem('config_ocultar_ibama', String(checked));
     mostrar('sucesso', checked ? 'Monitoramento IBAMA/SIMAF desativado.' : 'Monitoramento IBAMA/SIMAF ativado.');
+
+    if (usuario?.empresaId) {
+      try {
+        const { error } = await supabase
+          .from('empresas')
+          .update({ ocultar_ibama: checked })
+          .eq('id', usuario.empresaId);
+        if (error) throw error;
+        await refreshUsuario();
+      } catch (e) {
+        console.error('Erro ao salvar no banco:', e);
+      }
+    }
   };
 
   const handleExportarPdf = async () => {
@@ -747,8 +828,8 @@ export function Configuracoes() {
                       if (num > 60) val = '60';
                     }
                     setAlertaCr(val);
-                    salvarConfiguracoesCac('config_alerta_cr', val);
                   }}
+                  onBlur={() => salvarConfiguracoesCac('config_alerta_cr', alertaCr)}
                   className="input font-bold text-sm w-20 text-center"
                   placeholder="Ex: 60"
                 />
@@ -776,8 +857,8 @@ export function Configuracoes() {
                       if (num > 60) val = '60';
                     }
                     setAlertaCraf(val);
-                    salvarConfiguracoesCac('config_alerta_craf', val);
                   }}
+                  onBlur={() => salvarConfiguracoesCac('config_alerta_craf', alertaCraf)}
                   className="input font-bold text-sm w-20 text-center"
                   placeholder="Ex: 60"
                 />
@@ -805,8 +886,8 @@ export function Configuracoes() {
                       if (num > 60) val = '60';
                     }
                     setAlertaGt(val);
-                    salvarConfiguracoesCac('config_alerta_gt', val);
                   }}
+                  onBlur={() => salvarConfiguracoesCac('config_alerta_gt', alertaGt)}
                   className="input font-bold text-sm w-20 text-center"
                   placeholder="Ex: 20"
                 />
@@ -835,8 +916,8 @@ export function Configuracoes() {
                         if (num > 60) val = '60';
                       }
                       setAlertaManejo(val);
-                      salvarConfiguracoesCac('config_alerta_manejo', val);
                     }}
+                    onBlur={() => salvarConfiguracoesCac('config_alerta_manejo', alertaManejo)}
                     className="input font-bold text-sm w-20 text-center"
                     placeholder="Ex: 7"
                   />
@@ -866,8 +947,8 @@ export function Configuracoes() {
                         if (num > 60) val = '60';
                       }
                       setAlertaCrIbama(val);
-                      salvarConfiguracoesCac('config_alerta_ibama_cr', val);
                     }}
+                    onBlur={() => salvarConfiguracoesCac('config_alerta_ibama_cr', alertaCrIbama)}
                     className="input font-bold text-sm w-20 text-center"
                     placeholder="Ex: 30"
                   />

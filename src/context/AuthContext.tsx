@@ -105,8 +105,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             valorImplementacao: empData.valor_implementacao ? Number(empData.valor_implementacao) : undefined,
             valorAssinaturaPersonalizado: empData.valor_assinatura_personalizado ? Number(empData.valor_assinatura_personalizado) : undefined,
             isGratis: empData.is_gratis,
-            limiteUsuariosStaff: empData.limite_usuarios_staff
+            limiteUsuariosStaff: empData.limite_usuarios_staff,
+            alertaCr: empData.alerta_cr !== null && empData.alerta_cr !== undefined ? Number(empData.alerta_cr) : 60,
+            alertaCraf: empData.alerta_craf !== null && empData.alerta_craf !== undefined ? Number(empData.alerta_craf) : 60,
+            alertaGt: empData.alerta_gt !== null && empData.alerta_gt !== undefined ? Number(empData.alerta_gt) : 20,
+            alertaManejo: empData.alerta_manejo !== null && empData.alerta_manejo !== undefined ? Number(empData.alerta_manejo) : 7,
+            alertaCrIbama: empData.alerta_ibama_cr !== null && empData.alerta_ibama_cr !== undefined ? Number(empData.alerta_ibama_cr) : 30,
+            ocultarIbama: empData.ocultar_ibama !== null && empData.ocultar_ibama !== undefined ? Boolean(empData.ocultar_ibama) : false
           };
+
+          // Sincroniza com o localStorage para que utilitários de vencimentos consumam instantaneamente
+          localStorage.setItem('config_alerta_cr', String(dadosEmpresa.alertaCr));
+          localStorage.setItem('config_alerta_craf', String(dadosEmpresa.alertaCraf));
+          localStorage.setItem('config_alerta_gt', String(dadosEmpresa.alertaGt));
+          localStorage.setItem('config_alerta_manejo', String(dadosEmpresa.alertaManejo));
+          localStorage.setItem('config_alerta_ibama_cr', String(dadosEmpresa.alertaCrIbama));
+          localStorage.setItem('config_ocultar_ibama', String(dadosEmpresa.ocultarIbama));
         }
 
         if (tipoConta === 'cac_individual') {
