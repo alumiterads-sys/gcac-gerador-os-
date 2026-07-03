@@ -206,50 +206,67 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
   const laudos = (ordem.servicos || []).filter(s => isLaudoExame(s.categoria || '', categoriasConfig)).reduce((acc, s) => acc + (s.valor || 0), 0);
 
   // Caixa valor
+  const desconto = ordem.desconto || 0;
+  const hasDesconto = desconto > 0;
+  const boxHeight = hasDesconto ? 34 : 26;
+
   doc.setFillColor('#EBF5FB');
-  doc.roundedRect(12, y, (largura - 28) / 2, 26, 2, 2, 'F');
+  doc.roundedRect(12, y, (largura - 28) / 2, boxHeight, 2, 2, 'F');
   doc.setDrawColor(LINHA);
-  doc.roundedRect(12, y, (largura - 28) / 2, 26, 2, 2, 'S');
+  doc.roundedRect(12, y, (largura - 28) / 2, boxHeight, 2, 2, 'S');
   doc.setTextColor(CINZA);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.text(`HONORÁRIOS: ${formatarMoeda(honorarios)}`, 17, y + 5);
   doc.text(`LAUDOS/EXTERNOS: ${formatarMoeda(laudos)}`, 17, y + 9);
+  if (hasDesconto) {
+    doc.text(`DESCONTO: -${formatarMoeda(desconto)}`, 17, y + 13);
+  }
   
   doc.setDrawColor('#D6EAF8');
-  doc.line(15, y + 11, (largura - 28) / 2 + 9, y + 11);
+  const lineY = hasDesconto ? y + 16 : y + 11;
+  doc.line(15, lineY, (largura - 28) / 2 + 9, lineY);
 
   doc.setTextColor(CINZA);
   doc.setFontSize(8);
-  doc.text('VALOR TOTAL DA O.S.', 17, y + 16);
+  doc.text(hasDesconto ? 'VALOR LÍQUIDO A PAGAR' : 'VALOR TOTAL DA O.S.', 17, hasDesconto ? y + 21 : y + 16);
   doc.setTextColor(AZUL);
   doc.setFontSize(15);
-  const totalGeral = (ordem.servicos || []).reduce((acc: number, s: any) => acc + (s.valor || 0), 0);
-  doc.text(formatarMoeda(totalGeral), 17, y + 23);
+  const totalCobrado = honorarios + laudos - desconto;
+  doc.text(formatarMoeda(totalCobrado), 17, hasDesconto ? y + 28 : y + 23);
 
   // Caixa pagamento (ajustada altura para alinhar com a da esquerda)
   doc.setFillColor('#EBF5FB');
   const xPag = largura / 2 + 2;
   const wPag = (largura - 28) / 2;
-  doc.roundedRect(xPag, y, wPag, 26, 2, 2, 'F');
-  doc.roundedRect(xPag, y, wPag, 26, 2, 2, 'S');
+  doc.roundedRect(xPag, y, wPag, boxHeight, 2, 2, 'F');
+  doc.roundedRect(xPag, y, wPag, boxHeight, 2, 2, 'S');
   doc.setTextColor(CINZA);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.text('FORMA DE PAGAMENTO', xPag + 5, y + 5);
   doc.setTextColor(ESCURO);
   doc.setFontSize(12);
-  doc.text(ordem.formaPagamento, xPag + 5, y + 16);
+  doc.text(ordem.formaPagamento, xPag + 5, hasDesconto ? y + 14 : y + 16);
+
+  if (hasDesconto || (ordem.valorPago || 0) > 0) {
+    doc.setTextColor(CINZA);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`VALOR PAGO: ${formatarMoeda(ordem.valorPago || 0)}`, xPag + 5, y + 21);
+    const saldoDevedor = Math.max(0, totalCobrado - (ordem.valorPago || 0));
+    doc.text(`SALDO DEVEDOR: ${formatarMoeda(saldoDevedor)}`, xPag + 5, y + 26);
+  }
 
   // Status de pagamento
   doc.setFillColor(corStatus);
-  doc.roundedRect(12, y + 29, largura - 24, 8, 1.5, 1.5, 'F');
+  doc.roundedRect(12, y + boxHeight + 3, largura - 24, 8, 1.5, 1.5, 'F');
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text('STATUS: ' + ordem.status.toUpperCase(), largura / 2, y + 34.5, { align: 'center' });
+  doc.text('STATUS: ' + ordem.status.toUpperCase(), largura / 2, y + boxHeight + 8.5, { align: 'center' });
 
-  y += 44;
+  y += boxHeight + 18;
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (ordem.observacoes && ordem.observacoes.trim()) {

@@ -426,14 +426,20 @@ export function ListaOrdens() {
                 </div>
               </div>
 
-              {/* Valor e Status */}
               <div className="flex-shrink-0 text-right flex flex-col items-end gap-1">
-                <p className={`text-sm font-bold ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor)}</p>
+                {ordem.desconto && ordem.desconto > 0 ? (
+                  <div className="flex flex-col items-end leading-tight">
+                    <span className="text-[10px] text-gray-500 line-through">{formatarMoeda(ordem.valor)}</span>
+                    <span className={`text-sm font-black ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor - ordem.desconto)}</span>
+                  </div>
+                ) : (
+                  <p className={`text-sm font-bold ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor)}</p>
+                )}
                 <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shadow-sm border ${classeStatus(ordem.status)}`}>
                   {ordem.status}
                 </span>
                 {ordem.status === 'Parcialmente Pago' && (
-                  <p className="text-[8px] font-bold text-orange-400 uppercase">Falta {formatarMoeda(ordem.valor - (ordem.valorPago || 0))}</p>
+                  <p className="text-[8px] font-bold text-orange-400 uppercase">Falta {formatarMoeda((ordem.valor - (ordem.desconto || 0)) - (ordem.valorPago || 0))}</p>
                 )}
               </div>
 

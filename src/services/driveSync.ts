@@ -174,6 +174,7 @@ export async function sincronizarPendentes(): Promise<{ ok: number; erro: number
       endereco: row.endereco || '',
       servicos: row.servicos || [],
       valor: row.valor,
+      desconto: row.desconto || 0,
       valorPago: row.valor_pago || 0,
       historicoPagamentos: row.historico_pagamentos || [],
       formaPagamento: row.forma_pagamento as any,

@@ -47,7 +47,7 @@ export function Dashboard() {
     // Financeiro Bruto (Mês Atual)
     receita:     ordensParaStats.reduce((s, o) => s + (o.valorPago || 0), 0),
     taxas:       ordensParaStats.filter(o => o.status === 'Pago' || o.status === 'Parcialmente Pago').reduce((s, o) => s + (o.taxaPFTotal || 0), 0),
-    receitaPendente: ordensParaStats.reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0),
+    receitaPendente: ordensParaStats.reduce((s, o) => s + (o.valor - (o.desconto || 0) - (o.valorPago || 0)), 0),
   };
 
   const margemServicos = stats.receita - stats.taxas;

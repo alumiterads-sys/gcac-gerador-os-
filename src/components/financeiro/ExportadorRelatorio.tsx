@@ -601,6 +601,7 @@ export function ExportadorRelatorio({ isOpen, onClose, dataInicioProp, dataFimPr
           'Cliente': o.nomeCliente,
           'CPF': o.cpf,
           'Valor Total (OS)': o.valor,
+          'Desconto': o.desconto || 0,
           'Valor Pago': o.valorPago,
           'Taxas PF (GRU)': o.taxaPFTotal || 0,
           'Líquido (OS)': (o.valorPago || 0) - (o.taxaPFTotal || 0),

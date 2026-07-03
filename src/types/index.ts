@@ -151,6 +151,7 @@ export interface OrdemDeServico {
     valorRepasse?: number;
   }[];
   valor: number;
+  desconto?: number;
   valorPago: number;
   historicoPagamentos: PagamentoItem[];
   taxaPFTotal?: number; // Total de taxas para esta OS

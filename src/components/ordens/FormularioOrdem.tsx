@@ -200,6 +200,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     observacoes:       ordemExistente?.observacoes       ?? '',
     valorPago:         ordemExistente?.valorPago ?? 0,
     historicoPagamentos: ordemExistente?.historicoPagamentos ?? [] as PagamentoItem[],
+    desconto:          ordemExistente?.desconto ?? 0,
+    descontoTexto:     ordemExistente?.desconto ? String(ordemExistente.desconto).replace('.', ',') : '',
   });
 
   const clienteEncontrado = clientes.find(c => 
@@ -303,9 +305,19 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   };
 
   const handleValor = (v: string) => {
-    const limpo = v.replace(/[^\d,]/g, '').replace(',', '.');
+    const limpo = v.replace(',', '.');
     atualizar('valorTexto', v.replace(/[^\d,]/g, ''));
     atualizar('valor', parseFloat(limpo) || 0);
+  };
+
+  const handleDesconto = (v: string) => {
+    const limpo = v.replace(',', '.');
+    const valor = parseFloat(limpo) || 0;
+    setForm(f => ({
+      ...f,
+      descontoTexto: v.replace(/[^\d,]/g, ''),
+      desconto: valor
+    }));
   };
 
   const adicionarServico = (serv: ServicoConfig) => {
@@ -446,6 +458,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           protocolo: (s.protocolo || '').trim().toUpperCase()
         })),
         valor:             form.valor,
+        desconto:          form.desconto,
         taxaPFTotal:       (form.servicos as any[]).reduce((acc: number, s: any) => acc + (s.taxaPF || 0), 0),
         formaPagamento:    form.formaPagamento,
         status:            form.status,
@@ -839,9 +852,9 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="label">Valor Final (R$)</label>
+            <label className="label">Valor Bruto (R$)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">R$</span>
               <input id="campo-valor" type="text" inputMode="decimal"
@@ -853,11 +866,22 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
             {erros.valor && <p className="text-red-400 text-xs mt-1">{erros.valor}</p>}
           </div>
           <div>
-            <label className="label">Valor Pago (Saldo: {formatarMoeda(form.valor - form.valorPago)})</label>
+            <label className="label">Desconto (R$)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">R$</span>
+              <input id="campo-desconto" type="text" inputMode="decimal"
+                className="input pl-9"
+                placeholder="0,00" value={form.descontoTexto}
+                onChange={e => handleDesconto(e.target.value)}
+                disabled={form.status === 'Gratuidade'} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Valor Pago (Saldo: {formatarMoeda(form.valor - (form.desconto || 0) - form.valorPago)})</label>
             <div className="bg-brand-dark-3 p-3 rounded-lg border border-brand-dark-5 flex justify-between items-center">
               <span className="text-brand-green font-bold text-lg">{formatarMoeda(form.valorPago)}</span>
-              {form.valor > form.valorPago && form.status !== 'Gratuidade' && (
-                <span className="text-red-400 text-xs font-bold animate-pulse">PENDENTE: {formatarMoeda(form.valor - form.valorPago)}</span>
+              {(form.valor - (form.desconto || 0)) > form.valorPago && form.status !== 'Gratuidade' && (
+                <span className="text-red-400 text-xs font-bold animate-pulse">PENDENTE: {formatarMoeda(form.valor - (form.desconto || 0) - form.valorPago)}</span>
               )}
             </div>
           </div>

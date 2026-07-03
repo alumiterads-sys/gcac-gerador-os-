@@ -46,6 +46,7 @@ const mapFromDB = (row: any): OrdemDeServico => {
     endereco: row.endereco || '',
     servicos: servicos,
     valor: row.valor,
+    desconto: row.desconto || 0,
     valorPago: row.valor_pago || 0,
     historicoPagamentos: row.historico_pagamentos || [],
     formaPagamento: row.forma_pagamento as FormaPagamento,
@@ -79,6 +80,7 @@ const mapToDB = (dados: any) => {
   if (dados.endereco !== undefined) payload.endereco = dados.endereco;
   if (dados.servicos !== undefined) payload.servicos = dados.servicos;
   if (dados.valor !== undefined) payload.valor = dados.valor;
+  if (dados.desconto !== undefined) payload.desconto = dados.desconto;
   if (dados.valorPago !== undefined) payload.valor_pago = dados.valorPago;
   if (dados.historicoPagamentos !== undefined) payload.historico_pagamentos = dados.historicoPagamentos;
   if (dados.formaPagamento !== undefined) payload.forma_pagamento = dados.formaPagamento;
@@ -192,17 +194,47 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     const dadosAtualizados = { ...dados };
     const ordemOriginal = ordens.find(o => o.id === id);
     
-    if (dados.status && ordemOriginal && dados.status !== ordemOriginal.status) {
+    if (dados.desconto !== undefined && ordemOriginal) {
+      const novoDesconto = dados.desconto;
+      const valorOriginal = dados.valor !== undefined ? dados.valor : ordemOriginal.valor;
+      const valorPago = dados.valorPago !== undefined ? dados.valorPago : (ordemOriginal.valorPago || 0);
+      
+      let novoStatus = dados.status !== undefined ? dados.status : ordemOriginal.status;
+      let concluidoPorNome = dados.concluidoPorNome !== undefined ? dados.concluidoPorNome : ordemOriginal.concluidoPorNome;
+
+      // Recalcular status baseado no novo saldo, exceto se for Gratuidade
+      if (novoStatus !== 'Gratuidade') {
+        const saldoDevedor = valorOriginal - novoDesconto - valorPago;
+        if (saldoDevedor <= 0 && valorPago > 0) {
+          novoStatus = 'Pago';
+          concluidoPorNome = usuario?.nome || 'Sistema';
+        } else if (valorPago > 0) {
+          novoStatus = 'Parcialmente Pago';
+        } else {
+          novoStatus = 'Aguardando Pagamento';
+        }
+      }
+
+      dadosAtualizados.status = novoStatus;
+      dadosAtualizados.concluidoPorNome = concluidoPorNome;
       dadosAtualizados.historicoStatus = adicionarEvento(
-        ordemOriginal.historicoStatus, 
-        'status_os', 
-        `Status da OS alterado para ${dados.status}`,
-        ordemOriginal.status,
-        dados.status
+        dadosAtualizados.historicoStatus || ordemOriginal.historicoStatus,
+        'sistema',
+        `Desconto alterado para R$ ${novoDesconto.toFixed(2)} (Saldo devedor recalculado)`
       );
     }
 
-    if (dados.status === 'Pago') {
+    if (dadosAtualizados.status && ordemOriginal && dadosAtualizados.status !== ordemOriginal.status) {
+      dadosAtualizados.historicoStatus = adicionarEvento(
+        dadosAtualizados.historicoStatus || ordemOriginal.historicoStatus, 
+        'status_os', 
+        `Status da OS alterado para ${dadosAtualizados.status}`,
+        ordemOriginal.status,
+        dadosAtualizados.status
+      );
+    }
+
+    if (dadosAtualizados.status === 'Pago') {
       dadosAtualizados.concluidoPorNome = usuario?.nome || 'Sistema';
     }
 
@@ -325,7 +357,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     let novoStatus: StatusOS = ordem.status;
     let concluidoPorNome = ordem.concluidoPorNome;
 
-    if (novoValorPago >= ordem.valor) {
+    const valorCobrado = ordem.valor - (ordem.desconto || 0);
+    if (novoValorPago >= valorCobrado) {
       novoStatus = 'Pago';
       concluidoPorNome = usuario?.nome || 'Sistema';
     } else if (novoValorPago > 0) {
@@ -356,7 +389,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     const novoValorPago = novoHistorico.reduce((acc, p) => acc + p.valor, 0);
     
     let novoStatus: StatusOS = 'Aguardando Pagamento';
-    if (novoValorPago >= ordem.valor) {
+    const valorCobrado = ordem.valor - (ordem.desconto || 0);
+    if (novoValorPago >= valorCobrado) {
       novoStatus = 'Pago';
     } else if (novoValorPago > 0) {
       novoStatus = 'Parcialmente Pago';

@@ -40,6 +40,31 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [dropdownFormaAberto, setDropdownFormaAberto] = useState(false);
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = useState(false);
   const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
+  const [editandoDesconto, setEditandoDesconto] = useState(false);
+  const [valorDescontoInput, setValorDescontoInput] = useState(String(ordem.desconto || 0));
+
+  React.useEffect(() => {
+    setValorDescontoInput(String(ordem.desconto || 0));
+  }, [ordem.desconto]);
+
+  const handleSalvarDesconto = async () => {
+    try {
+      const valor = parseFloat(valorDescontoInput.replace(',', '.'));
+      if (isNaN(valor) || valor < 0) {
+        mostrar('erro', 'Por favor, informe um valor de desconto válido.');
+        return;
+      }
+      if (valor > ordem.valor) {
+        mostrar('erro', 'O desconto não pode ser maior que o valor total da O.S.');
+        return;
+      }
+      await atualizarOrdem(ordem.id, { desconto: valor });
+      setEditandoDesconto(false);
+      mostrar('sucesso', 'Desconto atualizado com sucesso!');
+    } catch {
+      mostrar('erro', 'Erro ao atualizar o desconto.');
+    }
+  };
   
   const clienteDaOS = clientes.find(c => c.cpf === ordem.cpf);
   const [saldoCredito, setSaldoCredito] = useState(0);
@@ -487,13 +512,61 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           )}
         </h3>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
-            <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Total da O.S.</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Total Bruto</p>
             <p className="text-xl font-black text-white">{formatarMoeda(ordem.valor)}</p>
             <div className="mt-2 pt-2 border-t border-brand-dark-5 space-y-1">
               <p className="text-[9px] text-gray-500 uppercase flex justify-between">Honorários: <span className="text-gray-300">{formatarMoeda(ordem.servicos?.filter((s: any) => !isLaudoExame(s.categoria || '', usuario?.dadosEmpresa?.categoriasServico)).reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
               <p className="text-[9px] text-gray-500 uppercase flex justify-between">Laudos: <span className="text-gray-300">{formatarMoeda(ordem.servicos?.filter((s: any) => isLaudoExame(s.categoria || '', usuario?.dadosEmpresa?.categoriasServico)).reduce((acc, s) => acc + (s.valor || 0), 0) || 0)}</span></p>
+            </div>
+          </div>
+
+          <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5 relative group">
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-[10px] text-gray-500 font-bold uppercase">Desconto</p>
+              {!editandoDesconto && (
+                <button 
+                  onClick={() => setEditandoDesconto(true)} 
+                  className="text-gray-400 hover:text-white transition-colors p-0.5"
+                  title="Editar Desconto"
+                >
+                  <Edit size={10} />
+                </button>
+              )}
+            </div>
+            {editandoDesconto ? (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs font-bold text-gray-400">R$</span>
+                <input 
+                  type="text"
+                  inputMode="decimal"
+                  value={valorDescontoInput}
+                  onChange={(e) => setValorDescontoInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSalvarDesconto();
+                    if (e.key === 'Escape') {
+                      setEditandoDesconto(false);
+                      setValorDescontoInput(String(ordem.desconto || 0));
+                    }
+                  }}
+                  className="bg-brand-dark-3 border border-brand-dark-5 rounded px-1 py-0.5 text-xs text-white w-14 outline-none focus:border-brand-blue"
+                  autoFocus
+                />
+                <button 
+                  onClick={handleSalvarDesconto}
+                  className="bg-brand-green hover:bg-brand-green-light text-white text-[9px] font-black px-1 py-0.5 rounded transition-colors"
+                >
+                  OK
+                </button>
+              </div>
+            ) : (
+              <p className="text-xl font-black text-amber-500">
+                {ordem.desconto && ordem.desconto > 0 ? `-${formatarMoeda(ordem.desconto)}` : formatarMoeda(0)}
+              </p>
+            )}
+            <div className="mt-2 pt-2 border-t border-brand-dark-5">
+              <p className="text-[9px] text-gray-500 uppercase">Líquido: <span className="text-gray-300 font-bold">{formatarMoeda(ordem.valor - (ordem.desconto || 0))}</span></p>
             </div>
           </div>
           
@@ -507,8 +580,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
 
           <div className="bg-brand-dark-4 rounded-xl p-4 border border-brand-dark-5">
             <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase">Saldo Devedor</p>
-            <p className={`text-xl font-black ${(ordem.valor - (ordem.valorPago || 0)) > 0 ? 'text-red-400' : 'text-gray-500'}`}>
-              {formatarMoeda(Math.max(0, ordem.valor - (ordem.valorPago || 0)))}
+            <p className={`text-xl font-black ${(ordem.valor - (ordem.desconto || 0) - (ordem.valorPago || 0)) > 0 ? 'text-red-400' : 'text-gray-500'}`}>
+              {formatarMoeda(Math.max(0, (ordem.valor - (ordem.desconto || 0)) - (ordem.valorPago || 0)))}
             </p>
             <div className="mt-2 pt-2 border-t border-brand-dark-5">
               <p className="text-[9px] text-gray-500 uppercase">Status: <span className="text-gray-300 font-bold">{ordem.status}</span></p>
@@ -531,7 +604,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                     SALDO: {formatarMoeda(saldoCredito)}
                   </span>
                 )}
-              {ordem.valor > (ordem.valorPago || 0) && (
+              {(ordem.valor - (ordem.desconto || 0)) > (ordem.valorPago || 0) && (
                 <div className="flex gap-2">
                   <input 
                     type="number" 
@@ -572,7 +645,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                           registrarPagamento(ordem.id, valor, metodo);
                           
                           // Verifica se sobrou troco para gerar crédito
-                          const saldoDevedorAtual = ordem.valor - (ordem.valorPago || 0);
+                          const saldoDevedorAtual = (ordem.valor - (ordem.desconto || 0)) - (ordem.valorPago || 0);
                           if (valor > saldoDevedorAtual && clienteDaOS && metodo !== 'Crédito de Cliente') {
                             const troco = valor - saldoDevedorAtual;
                             if (window.confirm(`Este pagamento gera um troco de ${formatarMoeda(troco)}. Deseja adicionar este troco como crédito (Haver) para o cliente?`)) {

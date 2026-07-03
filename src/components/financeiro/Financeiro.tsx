@@ -128,7 +128,7 @@ export function Financeiro() {
         o.status !== 'Gratuidade' && 
         (o.servicos || []).some(s => s.statusExecucao === 'Protocolado — Ag. PF' || s.statusExecucao === 'Concluído')
       )
-      .reduce((s, o) => s + (o.valor - (o.valorPago || 0)), 0);
+      .reduce((s, o) => s + (o.valor - (o.desconto || 0) - (o.valorPago || 0)), 0);
     
     const countPendenteProtocolado = ordensMes.filter(o => 
       o.status !== 'Pago' && 
