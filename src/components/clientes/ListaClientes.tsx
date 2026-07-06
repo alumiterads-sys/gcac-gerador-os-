@@ -181,10 +181,10 @@ export function ListaClientes() {
             <table className="w-full text-left text-sm">
               <thead className="bg-brand-dark-3 text-gray-400 text-xs uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 rounded-l-lg font-semibold">Nome / CPF</th>
-                  <th className="px-4 py-3 font-semibold">Contato</th>
-                  <th className="px-4 py-3 font-semibold">Clube Filiado</th>
-                  <th className="px-4 py-3 rounded-r-lg font-semibold text-right">Ações</th>
+                  <th className="px-4 py-3 rounded-l-lg font-semibold whitespace-nowrap">Nome / CPF</th>
+                  <th className="px-4 py-3 font-semibold whitespace-nowrap">Contato</th>
+                  <th className="px-4 py-3 font-semibold whitespace-nowrap">Clube Filiado</th>
+                  <th className="px-4 py-3 rounded-r-lg font-semibold text-right whitespace-nowrap">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-brand-dark-5">
@@ -194,69 +194,69 @@ export function ListaClientes() {
 
                   return (
                     <tr key={cliente.id} className="hover:bg-brand-dark-4 transition-colors">
-                      <td className="px-4 py-3 cursor-pointer group" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                      <td className="px-4 py-3 cursor-pointer group whitespace-nowrap" onClick={() => navigate(`/clientes/${cliente.id}`)}>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-bold text-white group-hover:text-brand-blue-light transition-colors">{cliente.nome}</p>
+                          <p className="font-bold text-white group-hover:text-brand-blue-light transition-colors whitespace-nowrap">{cliente.nome}</p>
                           {vinculo?.status === 'ativo' && (
                             <span 
-                              className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-brand-green/10 border border-brand-green/30 text-brand-green" 
+                              className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-brand-green/10 border border-brand-green/30 text-brand-green whitespace-nowrap" 
                               title={vinculo.permiteEdicao ? 'Acesso de escrita/edição ativo' : 'Acesso de leitura ativo'}
                             >
                               Portal G CAC {vinculo.permiteEdicao ? '• Edição' : '• Leitura'}
                             </span>
                           )}
                           {vinculo?.status === 'pendente' && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 whitespace-nowrap">
                               Portal Pendente
                             </span>
                           )}
                           {(!vinculo || (vinculo.status !== 'ativo' && vinculo.status !== 'pendente')) && cadastradosNoPortal.has(cpfLimpo) && (
                             <span 
-                              className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-brand-blue/10 border border-brand-blue/30 text-brand-blue-light"
+                              className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-brand-blue/10 border border-brand-blue/30 text-brand-blue-light whitespace-nowrap"
                               title="Cliente possui cadastro no Portal GCAC, mas não está vinculado à sua empresa"
                             >
                               Portal G CAC • Cadastrado (Sem Vínculo)
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-brand-metal">{formatarCPF(cliente.cpf)}</p>
+                        <p className="text-xs text-brand-metal whitespace-nowrap">{formatarCPF(cliente.cpf)}</p>
                       </td>
-                    <td className="px-4 py-3 text-gray-300">
+                    <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
                       {formatarTelefone(cliente.contato)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {cliente.filiadoProTiro ? (
-                        <span className="bg-brand-green/20 text-brand-green border border-brand-green/30 px-2.5 py-1 rounded-full text-xs font-semibold uppercase" title={usuario?.dadosEmpresa?.clubeParceiroPadrao || 'CLUBE DE TIRO E CAÇA PRÓ TIRO'}>
+                        <span className="bg-brand-green/20 text-brand-green border border-brand-green/30 px-2.5 py-1 rounded-full text-xs font-semibold uppercase whitespace-nowrap" title={usuario?.dadosEmpresa?.clubeParceiroPadrao || 'CLUBE DE TIRO E CAÇA PRÓ TIRO'}>
                           {usuario?.dadosEmpresa?.clubeParceiroPadrao 
                             ? (usuario.dadosEmpresa.clubeParceiroPadrao.length > 20 ? usuario.dadosEmpresa.clubeParceiroPadrao.substring(0, 17) + '...' : usuario.dadosEmpresa.clubeParceiroPadrao) 
                             : 'FILIADO'}
                         </span>
                       ) : (
-                        <span className="text-gray-400 text-xs uppercase font-medium" title={cliente.clubeFiliado || 'Não filiado'}>
+                        <span className="text-gray-400 text-xs uppercase font-medium whitespace-nowrap" title={cliente.clubeFiliado || 'Não filiado'}>
                           {cliente.clubeFiliado 
                             ? (cliente.clubeFiliado.length > 20 ? cliente.clubeFiliado.substring(0, 17) + '...' : cliente.clubeFiliado) 
                             : 'Não filiado'}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
+                    <td className="px-4 py-3 text-right flex items-center justify-end gap-1 whitespace-nowrap">
                       <button
                         onClick={() => navigate(`/clientes/${cliente.id}`)}
-                        className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-white transition-colors shrink-0"
                         title="Ver Perfil"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => abrirEdicao(cliente)}
-                        className="p-1.5 text-gray-400 hover:text-brand-blue-light transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-brand-blue-light transition-colors shrink-0"
                         title="Editar"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => setConfirmandoDelete(cliente)}
-                        className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-400 transition-colors shrink-0"
                         title="Excluir"
                       >
                         <Trash2 size={16} />
