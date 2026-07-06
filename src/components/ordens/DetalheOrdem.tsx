@@ -777,6 +777,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                   evento.tipo === 'status_os' ? 'bg-brand-green shadow-[0_0_8px_rgba(109,190,69,0.4)]' :
                   evento.tipo === 'pagamento' ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.4)]' :
                   evento.tipo === 'protocolo' ? 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.4)]' :
+                  evento.tipo === 'gru' ? 'bg-brand-green shadow-[0_0_8px_rgba(109,190,69,0.4)]' :
                   'bg-brand-metal'
                 }`}>
                    <span className="w-1.5 h-1.5 bg-white rounded-full" />

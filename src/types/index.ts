@@ -183,7 +183,7 @@ export interface EventoHistorico {
   id: string;
   data: string;
   usuario: string;
-  tipo: 'status_os' | 'status_execucao' | 'pagamento' | 'criacao' | 'protocolo' | 'sistema';
+  tipo: 'status_os' | 'status_execucao' | 'pagamento' | 'criacao' | 'protocolo' | 'sistema' | 'gru';
   descricao: string;
   valorAnterior?: string;
   valorNovo?: string;

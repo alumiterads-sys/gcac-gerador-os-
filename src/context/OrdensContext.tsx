@@ -289,8 +289,22 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       s.id === servicoId ? { ...s, pagoGRU: pago } : s
     );
 
-    await atualizarOrdem(ordemId, { servicos: novosServicos });
-  }, [ordens, atualizarOrdem]);
+    const servico = ordem.servicos.find(s => s.id === servicoId);
+    const novoStatus = pago ? 'PAGA' : 'PENDENTE';
+    const statusAnterior = servico?.pagoGRU ? 'PAGA' : 'PENDENTE';
+    const novoHistorico = adicionarEvento(
+      ordem.historicoStatus,
+      'gru',
+      `Status da GRU do serviço "${servico?.nome}" alterado para ${novoStatus}`,
+      statusAnterior,
+      novoStatus
+    );
+
+    await atualizarOrdem(ordemId, { 
+      servicos: novosServicos,
+      historicoStatus: novoHistorico
+    });
+  }, [ordens, atualizarOrdem, adicionarEvento]);
 
   const atualizarProtocoloServico = useCallback(async (ordemId: string, servicoId: string, protocolo: string) => {
     const ordem = ordens.find(o => o.id === ordemId);
