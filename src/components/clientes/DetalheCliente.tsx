@@ -152,7 +152,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
         // 2. Busca o perfil do cliente no workspace dele
         const { data: clienteCac } = await supabase
           .from('clientes')
-          .select('id, numero_cr, vencimento_cr, numero_cr_ibama, vencimento_cr_ibama, foto_url, cr_url, cr_ibama_url, endereco, contato')
+          .select('id, numero_cr, vencimento_cr, numero_cr_ibama, vencimento_cr_ibama, foto_url, cr_url, cr_ibama_url, endereco, contato, cr_tiro_desportivo, cr_caca, cr_colecionamento, atirador_nivel')
           .eq('empresa_id', vinculo.cac_empresa_id)
           .maybeSingle();
 
@@ -169,6 +169,10 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
         if (clienteCac.cr_ibama_url && clienteCac.cr_ibama_url !== cliente.crIbamaUrl) mudancas.crIbamaUrl = clienteCac.cr_ibama_url;
         if (clienteCac.endereco && clienteCac.endereco !== cliente.endereco) mudancas.endereco = clienteCac.endereco;
         if (clienteCac.contato && clienteCac.contato !== cliente.contato) mudancas.contato = clienteCac.contato;
+        if (clienteCac.cr_tiro_desportivo !== undefined && !!clienteCac.cr_tiro_desportivo !== !!cliente.crTiroDesportivo) mudancas.crTiroDesportivo = !!clienteCac.cr_tiro_desportivo;
+        if (clienteCac.cr_caca !== undefined && !!clienteCac.cr_caca !== !!cliente.crCaca) mudancas.crCaca = !!clienteCac.cr_caca;
+        if (clienteCac.cr_colecionamento !== undefined && !!clienteCac.cr_colecionamento !== !!cliente.crColecionamento) mudancas.crColecionamento = !!clienteCac.cr_colecionamento;
+        if (clienteCac.atirador_nivel !== undefined && clienteCac.atirador_nivel !== cliente.atiradorNivel) mudancas.atiradorNivel = clienteCac.atirador_nivel;
 
         if (Object.keys(mudancas).length > 0) {
           console.log('Sincronizando dados com o Portal GCAC:', mudancas);
@@ -813,6 +817,25 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                       {cliente.numeroCr || 'Não informado'} 
                       {cliente.vencimentoCr && <span className="text-gray-500 text-xs ml-2">({formatarData(cliente.vencimentoCr)})</span>}
                     </p>
+                    {(cliente.crTiroDesportivo || cliente.crCaca || cliente.crColecionamento) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {cliente.crTiroDesportivo && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-brand-green/10 border border-brand-green/30 text-brand-green">
+                            Atirador{cliente.atiradorNivel ? ` • Nível ${cliente.atiradorNivel}` : ''}
+                          </span>
+                        )}
+                        {cliente.crCaca && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                            Caçador
+                          </span>
+                        )}
+                        {cliente.crColecionamento && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                            Colecionador
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {cliente.crUrl && (
                     <button 

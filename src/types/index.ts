@@ -76,6 +76,10 @@ export interface Cliente {
   dataNascimento?: string;
   nomePai?: string;
   nomeMae?: string;
+  crTiroDesportivo?: boolean;
+  crCaca?: boolean;
+  crColecionamento?: boolean;
+  atiradorNivel?: number | null;
   criadoEm: string;
   atualizadoEm: string;
 }

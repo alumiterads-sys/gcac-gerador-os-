@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert } from 'lucide-react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell } from 'lucide-react';
 import { supabase } from '../../db/supabase';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useAuth } from '../../context/AuthContext';
@@ -61,7 +61,7 @@ const RECURSOS_SISTEMA = [
 import { PainelAtiradores } from '../admin/PainelAtiradores';
 
 interface GestaoUsuariosProps {
-  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs';
+  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast';
 }
 
 export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
@@ -69,7 +69,7 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
 
   // Sub-painel ativo para Master Admin
-  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs'>(abaInicial || 'empresas');
+  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast'>(abaInicial || 'empresas');
 
   useEffect(() => {
     if (abaInicial) {
@@ -98,6 +98,99 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
 
   // Estados para Gestão de Faturamento & Mensalidades
   const [empresaFaturamentoSelecionada, setEmpresaFaturamentoSelecionada] = useState<any | null>(null);
+
+  // Estados para Central de Broadcast / Notificações
+  const [broadcastTitulo, setBroadcastTitulo] = useState('');
+  const [broadcastMensagem, setBroadcastMensagem] = useState('');
+  const [broadcastLink, setBroadcastLink] = useState('');
+  const [enviarParaCacs, setEnviarParaCacs] = useState(true);
+  const [enviarParaDespachantes, setEnviarParaDespachantes] = useState(false);
+  const [enviandoBroadcast, setEnviandoBroadcast] = useState(false);
+  const [progressoBroadcast, setProgressoBroadcast] = useState({ atual: 0, total: 0 });
+
+  const handleEnviarBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!broadcastTitulo.trim() || !broadcastMensagem.trim()) {
+      mostrar('erro', 'Título e Mensagem são obrigatórios.');
+      return;
+    }
+    if (!enviarParaCacs && !enviarParaDespachantes) {
+      mostrar('erro', 'Selecione pelo menos um público-alvo (CAC ou Despachante).');
+      return;
+    }
+
+    setEnviandoBroadcast(true);
+    setProgressoBroadcast({ atual: 0, total: 0 });
+
+    try {
+      const tiposSelecionados: string[] = [];
+      if (enviarParaCacs) tiposSelecionados.push('cac_individual');
+      if (enviarParaDespachantes) tiposSelecionados.push('empresa');
+
+      const { data: targets, error: targetError } = await supabase
+        .from('empresas')
+        .select('id, nome')
+        .in('tipo_conta', tiposSelecionados);
+
+      if (targetError) throw targetError;
+
+      if (!targets || targets.length === 0) {
+        mostrar('aviso', 'Nenhum destinatário encontrado para o público-alvo selecionado.');
+        setEnviandoBroadcast(false);
+        return;
+      }
+
+      setProgressoBroadcast({ atual: 0, total: targets.length });
+
+      let enviadosSucesso = 0;
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        
+        const { error: notifError } = await supabase
+          .from('notificacoes_sistema')
+          .insert([{
+            titulo: broadcastTitulo.trim(),
+            mensagem: broadcastMensagem.trim(),
+            tipo: 'info',
+            link: broadcastLink.trim() || null,
+            empresa_id: target.id
+          }]);
+
+        if (notifError) {
+          console.error(`Erro ao criar notificação do sistema para ${target.nome}:`, notifError);
+        }
+
+        try {
+          const { error: pushError } = await supabase.functions.invoke('enviar-push-imediato', {
+            body: {
+              empresa_id: target.id,
+              titulo: broadcastTitulo.trim(),
+              mensagem: broadcastMensagem.trim(),
+              link: broadcastLink.trim() || '/',
+            },
+          });
+          if (pushError) {
+            console.warn(`Erro ao disparar push imediato para ${target.nome}:`, pushError);
+          }
+        } catch (pushErr) {
+          console.error(`Falha ao invocar Edge Function para ${target.nome}:`, pushErr);
+        }
+
+        enviadosSucesso++;
+        setProgressoBroadcast(p => ({ ...p, atual: enviadosSucesso }));
+      }
+
+      mostrar('sucesso', `Broadcast concluído! Mensagens enviadas para ${enviadosSucesso} destinatários.`);
+      setBroadcastTitulo('');
+      setBroadcastMensagem('');
+      setBroadcastLink('');
+    } catch (err: any) {
+      console.error('Erro ao processar broadcast:', err);
+      mostrar('erro', err?.message || 'Falha ao processar o envio do broadcast.');
+    } finally {
+      setEnviandoBroadcast(false);
+    }
+  };
   const [historicoPagamentos, setHistoricoPagamentos] = useState<any[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(false);
   const [modalPagamentoManualAberto, setModalPagamentoManualAberto] = useState(false);
@@ -1533,6 +1626,18 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
                 <Crosshair size={14} />
                 Monitor de Atiradores (Acervo)
               </button>
+              <button
+                type="button"
+                onClick={() => { setSubPainelAtivo('broadcast'); setBuscaUsuario(''); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                  subPainelAtivo === 'broadcast'
+                    ? 'bg-brand-blue/15 border-brand-blue/30 text-white font-bold'
+                    : 'bg-brand-dark-3 border-brand-dark-5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Bell size={14} />
+                Lançar Notificações (Broadcast)
+              </button>
             </div>
           )}
 
@@ -2892,6 +2997,114 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
           {subPainelAtivo === 'monitor_cacs' && (
             <div className="animate-fade-in pt-2">
               <PainelAtiradores />
+            </div>
+          )}
+
+          {/* ABA 7: ENVIO DE NOTIFICAÇÕES (BROADCAST) */}
+          {subPainelAtivo === 'broadcast' && (
+            <div className="card space-y-6 animate-fade-in">
+              <div className="pb-2 border-b border-brand-dark-5">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Bell size={16} className="text-brand-blue" />
+                  Central de Lançamento de Notificações (Broadcast)
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Envie alertas em tempo real e push notifications para os dispositivos conectados à plataforma</p>
+              </div>
+
+              <form onSubmit={handleEnviarBroadcast} className="space-y-4 max-w-2xl">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Público-Alvo Destinatário</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                      <input 
+                        type="checkbox"
+                        checked={enviarParaCacs}
+                        onChange={e => setEnviarParaCacs(e.target.checked)}
+                        disabled={enviandoBroadcast}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                      />
+                      Clientes CAC Individual (B2C)
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                      <input 
+                        type="checkbox"
+                        checked={enviarParaDespachantes}
+                        onChange={e => setEnviarParaDespachantes(e.target.checked)}
+                        disabled={enviandoBroadcast}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                      />
+                      Empresas Despachantes (B2B)
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Título da Notificação</label>
+                  <input
+                    type="text"
+                    required
+                    value={broadcastTitulo}
+                    onChange={e => setBroadcastTitulo(e.target.value)}
+                    disabled={enviandoBroadcast}
+                    placeholder="Ex: Nova Atualização no Portal G CAC"
+                    className="input w-full text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Mensagem / Conteúdo</label>
+                  <textarea
+                    required
+                    value={broadcastMensagem}
+                    onChange={e => setBroadcastMensagem(e.target.value)}
+                    disabled={enviandoBroadcast}
+                    placeholder="Escreva a mensagem que aparecerá no celular dos usuários..."
+                    className="input min-h-[120px] py-3 resize-none text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Link de Destino (Opcional)</label>
+                  <input
+                    type="text"
+                    value={broadcastLink}
+                    onChange={e => setBroadcastLink(e.target.value)}
+                    disabled={enviandoBroadcast}
+                    placeholder="Ex: /clientes ou /config"
+                    className="input w-full text-sm"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">Ao clicar na notificação, o usuário será direcionado para este caminho interno no sistema</p>
+                </div>
+
+                {enviandoBroadcast && (
+                  <div className="bg-brand-dark-3 border border-brand-dark-5 rounded-2xl p-4 space-y-2">
+                    <div className="flex justify-between items-center text-xs text-white font-bold uppercase tracking-wider">
+                      <span className="flex items-center gap-2">
+                        <span className="w-3 h-3 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+                        Disparando notificações...
+                      </span>
+                      <span>{progressoBroadcast.atual} / {progressoBroadcast.total}</span>
+                    </div>
+                    <div className="w-full bg-brand-dark-5 rounded-full h-1.5 overflow-hidden">
+                      <div 
+                        className="bg-brand-blue h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${(progressoBroadcast.atual / (progressoBroadcast.total || 1)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={enviandoBroadcast}
+                    className="btn-primary w-full sm:w-auto px-6 h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-xs"
+                  >
+                    <Bell size={14} />
+                    {enviandoBroadcast ? 'Enviando Mensagens...' : 'Disparar Notificações em Massa'}
+                  </button>
+                </div>
+              </form>
             </div>
           )}
         </div>

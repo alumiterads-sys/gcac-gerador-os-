@@ -74,6 +74,10 @@ const mapFromDB = (row: any): Cliente => ({
   dataNascimento: row.data_nascimento || '',
   nomePai: row.nome_pai || '',
   nomeMae: row.nome_mae || '',
+  crTiroDesportivo: !!row.cr_tiro_desportivo,
+  crCaca: !!row.cr_caca,
+  crColecionamento: !!row.cr_colecionamento,
+  atiradorNivel: row.atirador_nivel,
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -103,6 +107,10 @@ const mapToDB = (dados: any) => {
   if (dados.dataNascimento !== undefined) payload.data_nascimento = dados.dataNascimento || null;
   if (dados.nomePai !== undefined) payload.nome_pai = dados.nomePai;
   if (dados.nomeMae !== undefined) payload.nome_mae = dados.nomeMae;
+  if (dados.crTiroDesportivo !== undefined) payload.cr_tiro_desportivo = dados.crTiroDesportivo;
+  if (dados.crCaca !== undefined) payload.cr_caca = dados.crCaca;
+  if (dados.crColecionamento !== undefined) payload.cr_colecionamento = dados.crColecionamento;
+  if (dados.atiradorNivel !== undefined) payload.atirador_nivel = dados.atiradorNivel;
   return payload;
 };
 

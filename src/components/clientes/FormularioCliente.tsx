@@ -49,6 +49,10 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     dataNascimento: clienteEditando?.dataNascimento ?? '',
     nomePai: clienteEditando?.nomePai ?? '',
     nomeMae: clienteEditando?.nomeMae ?? '',
+    crTiroDesportivo: clienteEditando?.crTiroDesportivo ?? false,
+    crCaca: clienteEditando?.crCaca ?? false,
+    crColecionamento: clienteEditando?.crColecionamento ?? false,
+    atiradorNivel: clienteEditando?.atiradorNivel ?? '',
   });
 
   const atualizar = (campo: string, valor: any) => {
@@ -127,6 +131,10 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         dataNascimento: form.dataNascimento,
         nomePai: form.nomePai.trim().toUpperCase(),
         nomeMae: form.nomeMae.trim().toUpperCase(),
+        crTiroDesportivo: form.crTiroDesportivo,
+        crCaca: form.crCaca,
+        crColecionamento: form.crColecionamento,
+        atiradorNivel: form.crTiroDesportivo && form.atiradorNivel !== '' ? Number(form.atiradorNivel) : null,
       };
 
       if (clienteEditando) {
@@ -242,6 +250,51 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
               </div>
             </div>
           </div>
+
+          <div className="bg-brand-dark-3 p-3.5 rounded-xl border border-brand-dark-5 space-y-3">
+            <label className="label text-[10px] font-black uppercase tracking-wider text-gray-500">Atividades Apostiladas (CR)</label>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={form.crTiroDesportivo} onChange={e => {
+                    atualizar('crTiroDesportivo', e.target.checked);
+                    if (!e.target.checked) atualizar('atiradorNivel', '');
+                  }}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Tiro Desp.
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={form.crCaca} onChange={e => atualizar('crCaca', e.target.checked)}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Caça
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={form.crColecionamento} onChange={e => atualizar('crColecionamento', e.target.checked)}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Colecionam.
+              </label>
+            </div>
+
+            {form.crTiroDesportivo && (
+              <div className="pt-3 border-t border-brand-dark-5 flex items-center justify-between gap-4">
+                <label className="label text-[11px] font-bold text-gray-400">Nível do Atirador</label>
+                <div className="flex gap-4">
+                  {[1, 2, 3].map(n => (
+                    <label key={n} className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-300 font-medium">
+                      <input type="radio" name="atiradorNivel"
+                        value={n} checked={Number(form.atiradorNivel) === n}
+                        onChange={e => atualizar('atiradorNivel', Number(e.target.value))}
+                        className="bg-brand-dark-4 border-brand-dark-5 text-brand-blue focus:ring-0 w-4 h-4" />
+                      Nível {n}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="-mt-1 mb-2">
             <label className="label">Anexo do CR Exército (PDF/Imagem)</label>
             <div className="flex items-center gap-3">
