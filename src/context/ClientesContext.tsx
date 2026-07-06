@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo, CreditoCliente, ModeloDeclaracao } from '../types';
 import { supabase } from '../db/supabase';
 import { uploadBase64File } from '../utils/fileUtils';
+import { normalizarCalibre, normalizarModelo, normalizarFabricante } from '../utils/formatters';
 
 import { useAuth } from './AuthContext';
 
@@ -149,9 +150,18 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       const fabricantes = new Set<string>();
 
       data.forEach(arma => {
-        if (arma.modelo && arma.modelo.trim() !== '') modelos.add(arma.modelo.trim().toUpperCase());
-        if (arma.calibre && arma.calibre.trim() !== '') calibres.add(arma.calibre.trim().toUpperCase());
-        if (arma.fabricante && arma.fabricante.trim() !== '') fabricantes.add(arma.fabricante.trim().toUpperCase());
+        if (arma.modelo && arma.modelo.trim() !== '') {
+          const mod = normalizarModelo(arma.modelo);
+          if (mod) modelos.add(mod);
+        }
+        if (arma.calibre && arma.calibre.trim() !== '') {
+          const cal = normalizarCalibre(arma.calibre);
+          if (cal) calibres.add(cal);
+        }
+        if (arma.fabricante && arma.fabricante.trim() !== '') {
+          const fab = normalizarFabricante(arma.fabricante);
+          if (fab) fabricantes.add(fab);
+        }
       });
 
       setModelosRegistrados(Array.from(modelos).sort());

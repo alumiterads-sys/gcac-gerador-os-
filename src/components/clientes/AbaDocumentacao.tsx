@@ -7,7 +7,7 @@ import { parseIbamaPdf } from '../../services/ibamaParserService';
 import { parseGtPdf } from '../../services/gtParserService';
 import { useClientes } from '../../context/ClientesContext';
 import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo } from '../../types';
-import { formatarData } from '../../utils/formatters';
+import { formatarData, normalizarCalibre, normalizarModelo, normalizarFabricante } from '../../utils/formatters';
 import { calcularAlerta, obterClasseAlerta } from '../../utils/vencimentos';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -15,15 +15,15 @@ import { buscarAcervoVinculado } from '../../services/vinculosService';
 
 const TIPOS_ARMA = ['Pistola', 'Revólver', 'Carabina / Fuzil', 'Espingarda'];
 const CALIBRES = [
-  '.22 LR', '.223 REM / 5.56 NATO', '.30-06 SPRG', '.308 WIN / 7.62 NATO', 
-  '.357 MAG', '.38 SPL', '.380 ACP', '9mm Luger', '.40 S&W', '.44 MAG', 
+  '.22 LR', '.22 WMR', '.223 REM / 5.56 NATO', '.30-06 SPRG', '.308 WIN / 7.62 NATO', 
+  '.357 MAG', '.38 SPL', '.380 ACP', '9mm LUGER', '.40 S&W', '.44 MAG', 
   '.45 ACP', '.454 CASULL', '12 GA', '20 GA', '28 GA', '36 GA'
 ];
 const FABRICANTES_BASE = [
-  'Benelli', 'Beretta', 'Boito', 'Browning', 'Canik', 'CBC', 'Colt', 'CZ', 
-  'Glock', 'Imbel', 'Remington', 'Rossi', 'Ruger', 'Sig Sauer', 
-  'Smith & Wesson', 'Springfield Armory', 'Stoeger', 'Tanfoglio', 
-  'Taurus', 'Walther', 'Winchester'
+  'BENELLI', 'BERETTA', 'BOITO', 'BROWNING', 'CANIK', 'CBC', 'COLT', 'CZ', 
+  'GLOCK', 'IMBEL', 'REMINGTON', 'ROSSI', 'RUGER', 'SIG SAUER', 
+  'SMITH & WESSON', 'SPRINGFIELD ARMORY', 'STOEGER', 'TANFOGLIO', 
+  'TAURUS', 'WALTHER', 'WINCHESTER'
 ];
 const MODELOS_BASE = [
   // Taurus
@@ -32,7 +32,7 @@ const MODELOS_BASE = [
   // Glock
   'G17', 'G19', 'G19X', 'G20', 'G21', 'G22', 'G25', 'G43', 'G43X', 'G44', 'G45',
   // Outros Nacionais
-  'MD1', 'MD2', 'MD6', 'MD7', 'M1911 A1', 'PUMP MILITARY 3.0', 'CBC 7022', 'CBC 8122', 'PUMP', 'ERA 2001', 'MIURA I', 'MIURA II', 'PUMA', 'RT 718',
+  'MD1', 'MD2', 'MD6', 'MD7', 'M1911 A1', 'PUMP MILITARY 3.0', '7022', '8122', 'PUMP', 'ERA 2001', 'MIURA I', 'MIURA II', 'PUMA', 'RT 718',
   // Internacionais Populares
   'APX', '92FS', 'M9', 'P-10 C', 'P-10 F', 'CZ 75', 'SHADOW 2', 'TS 2', 'SCORPION',
   'P320', 'P365', 'M17', 'M18', 'P226', 'M&P 9', 'M&P 15', 'SHIELD', 'MODEL 686',
@@ -592,9 +592,9 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
               const armaFormatada = {
                 ...d,
                 tipo: d.tipo?.trim().toUpperCase(),
-                modelo: d.modelo?.trim().toUpperCase(),
-                calibre: d.calibre?.trim().toUpperCase(),
-                fabricante: d.fabricante?.trim().toUpperCase(),
+                modelo: normalizarModelo(d.modelo),
+                calibre: normalizarCalibre(d.calibre),
+                fabricante: normalizarFabricante(d.fabricante),
                 numeroSerie: d.numeroSerie?.trim().toUpperCase(),
                 numeroSigma: d.numeroSigma?.trim().toUpperCase(),
                 clienteId: cliente.id,
@@ -946,9 +946,26 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
     crafEmRenovacao: armaParaEditar?.crafEmRenovacao ?? false
   });
 
-  const modelosCombinados = Array.from(new Set([...MODELOS_BASE, ...modelosRegistrados])).sort();
-  const calibresCombinados = Array.from(new Set([...CALIBRES, ...calibresRegistrados])).sort();
-  const fabricantesCombinados = Array.from(new Set([...FABRICANTES_BASE, ...fabricantesRegistrados])).sort();
+  const modelosCombinados = Array.from(
+    new Set([
+      ...MODELOS_BASE.map(normalizarModelo),
+      ...modelosRegistrados.map(normalizarModelo)
+    ])
+  ).filter(Boolean).sort() as string[];
+
+  const calibresCombinados = Array.from(
+    new Set([
+      ...CALIBRES.map(normalizarCalibre),
+      ...calibresRegistrados.map(normalizarCalibre)
+    ])
+  ).filter(Boolean).sort() as string[];
+
+  const fabricantesCombinados = Array.from(
+    new Set([
+      ...FABRICANTES_BASE.map(normalizarFabricante),
+      ...fabricantesRegistrados.map(normalizarFabricante)
+    ])
+  ).filter(Boolean).sort() as string[];
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
