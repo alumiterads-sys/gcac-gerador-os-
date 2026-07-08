@@ -275,7 +275,12 @@ Mensagem: [Escreva a mensagem sugerida aqui - máximo de 250 caracteres]
 
 Você pode adicionar comentários, observações ou uma introdução antes da sugestão, se desejar. Sempre responda em português brasileiro.`;
 
-    const formattedContents = mensagens.map(m => ({
+    // Garantir que o histórico enviado à API comece sempre com o papel 'user', 
+    // conforme exigido pela especificação da API do Gemini.
+    const primeiroIndiceUsuario = mensagens.findIndex(m => m.role === 'user');
+    const mensagensFiltradas = primeiroIndiceUsuario !== -1 ? mensagens.slice(primeiroIndiceUsuario) : mensagens;
+
+    const formattedContents = mensagensFiltradas.map(m => ({
       role: m.role,
       parts: [{ text: m.text }]
     }));
