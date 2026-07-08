@@ -3526,103 +3526,100 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
                                 ? 'bg-brand-blue/15 border border-brand-blue/20 text-white rounded-tr-none max-w-[85%]' 
                                 : 'bg-brand-dark-4 border border-brand-dark-5 text-gray-200 rounded-tl-none max-w-[85%]'
                             }`}>
-                              {(() => {
-                                if (msg.role === 'model' && idx > 0) {
-                                  const parsed = parseGeminiResponse(msg.text);
-                                  if (parsed.isStructured) {
-                                    return (
-                                      <div className="space-y-3 mt-1">
-                                        {parsed.explicacao && (
-                                          <p className="text-[11px] text-gray-400 italic leading-relaxed">{parsed.explicacao}</p>
-                                        )}
-                                        
-                                        <div className="bg-brand-dark-3/80 p-3 rounded-xl border border-brand-dark-5/80 space-y-2.5">
-                                          {parsed.titulo && (
-                                            <div>
-                                              <span className="text-[9px] font-bold text-brand-blue-light uppercase tracking-wider block">Título Sugerido:</span>
-                                              <p className="text-xs text-white font-semibold mt-0.5">{parsed.titulo}</p>
-                                            </div>
-                                          )}
-                                          {parsed.mensagem && (
-                                            <div className="pt-2 border-t border-brand-dark-5/50">
-                                              <span className="text-[9px] font-bold text-brand-blue-light uppercase tracking-wider block">Mensagem Sugerida:</span>
-                                              <p className="text-xs text-white mt-0.5 whitespace-pre-line leading-relaxed">{parsed.mensagem}</p>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex gap-1.5 flex-wrap pt-1.5 border-t border-brand-dark-5/30">
-                                          {parsed.titulo && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setBroadcastTitulo(parsed.titulo);
-                                                mostrar('sucesso', 'Título aplicado!');
-                                              }}
-                                              className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
-                                            >
-                                              Usar Título
-                                            </button>
-                                          )}
-                                          {parsed.mensagem && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setBroadcastMensagem(parsed.mensagem);
-                                                mostrar('sucesso', 'Mensagem aplicada!');
-                                              }}
-                                              className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
-                                            >
-                                              Usar Mensagem
-                                            </button>
-                                          )}
-                                          {parsed.titulo && parsed.mensagem && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setBroadcastTitulo(parsed.titulo);
-                                                setBroadcastMensagem(parsed.mensagem);
-                                                mostrar('sucesso', 'Título e Mensagem aplicados!');
-                                              }}
-                                              className="text-[9px] bg-brand-blue hover:bg-brand-blue-light text-white px-2.5 py-1 rounded-md transition-all font-bold uppercase tracking-wider shadow-sm shadow-brand-blue/20"
-                                            >
-                                              Aplicar Ambos
-                                            </button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                }
-
-                                return <p className="whitespace-pre-line">{msg.text}</p>;
-                              })()}
+                              <p className="whitespace-pre-line">{msg.text}</p>
                               
-                              {msg.role === 'model' && idx > 0 && !parseGeminiResponse(msg.text).isStructured && (
-                                <div className="mt-2.5 pt-2 border-t border-brand-dark-5 flex gap-2 flex-wrap">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const text = msg.text.replace(/["']/g, '').trim();
-                                      setBroadcastTitulo(text.substring(0, 50));
-                                      mostrar('sucesso', 'Texto aplicado ao Título!');
-                                    }}
-                                    className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
-                                  >
-                                    Usar como Título
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setBroadcastMensagem(msg.text.trim());
-                                      mostrar('sucesso', 'Texto aplicado à Mensagem!');
-                                    }}
-                                    className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
-                                  >
-                                    Usar como Mensagem
-                                  </button>
-                                </div>
-                              )}
+                              {msg.role === 'model' && idx > 0 && (() => {
+                                const parsed = parseGeminiResponse(msg.text);
+                                if (parsed.titulo || parsed.mensagem) {
+                                  return (
+                                    <div className="mt-3 pt-2.5 border-t border-brand-dark-5/50 space-y-2">
+                                      <span className="text-[9px] font-bold text-brand-blue-light uppercase tracking-wider block">Sugestão Detectada:</span>
+                                      
+                                      <div className="bg-brand-dark-3/50 p-2.5 rounded-lg border border-brand-dark-5/50 text-[11px] space-y-1.5">
+                                        {parsed.titulo && (
+                                          <div>
+                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Título:</span>
+                                            <span className="text-white font-medium">{parsed.titulo}</span>
+                                          </div>
+                                        )}
+                                        {parsed.mensagem && (
+                                          <div className={parsed.titulo ? "pt-1 border-t border-brand-dark-5/30" : ""}>
+                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem:</span>
+                                            <span className="text-white whitespace-pre-line leading-relaxed">{parsed.mensagem}</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="flex gap-1.5 flex-wrap">
+                                        {parsed.titulo && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setBroadcastTitulo(parsed.titulo);
+                                              mostrar('sucesso', 'Título aplicado!');
+                                            }}
+                                            className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                          >
+                                            Aplicar Título
+                                          </button>
+                                        )}
+                                        {parsed.mensagem && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setBroadcastMensagem(parsed.mensagem);
+                                              mostrar('sucesso', 'Mensagem aplicada!');
+                                            }}
+                                            className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                          >
+                                            Aplicar Mensagem
+                                          </button>
+                                        )}
+                                        {parsed.titulo && parsed.mensagem && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setBroadcastTitulo(parsed.titulo);
+                                              setBroadcastMensagem(parsed.mensagem);
+                                              mostrar('sucesso', 'Título e Mensagem aplicados!');
+                                            }}
+                                            className="text-[9px] bg-brand-blue hover:bg-brand-blue-light text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                          >
+                                            Aplicar Ambos
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Fallback buttons for non-structured model responses
+                                return (
+                                  <div className="mt-2.5 pt-2 border-t border-brand-dark-5 flex gap-2 flex-wrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const text = msg.text.replace(/["']/g, '').trim();
+                                        setBroadcastTitulo(text.substring(0, 50));
+                                        mostrar('sucesso', 'Texto aplicado ao Título!');
+                                      }}
+                                      className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                    >
+                                      Usar como Título
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setBroadcastMensagem(msg.text.trim());
+                                        mostrar('sucesso', 'Texto aplicado à Mensagem!');
+                                      }}
+                                      className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                    >
+                                      Usar como Mensagem
+                                    </button>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         ))}
