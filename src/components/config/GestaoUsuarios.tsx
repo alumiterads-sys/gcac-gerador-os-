@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles } from 'lucide-react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles, X } from 'lucide-react';
 import { supabase } from '../../db/supabase';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useAuth } from '../../context/AuthContext';
@@ -120,6 +120,7 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
 
   const [historicoEnvios, setHistoricoEnvios] = useState<any[]>([]);
   const [carregandoHistoricoEnvios, setCarregandoHistoricoEnvios] = useState(false);
+  const [notificacaoDetalhes, setNotificacaoDetalhes] = useState<any | null>(null);
 
   const carregarHistoricoEnvios = async () => {
     setCarregandoHistoricoEnvios(true);
@@ -3524,7 +3525,12 @@ Sempre responda em português brasileiro.`;
                           const horaFormatada = dataEnvio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
                           return (
-                            <tr key={h.id} className="border-b border-brand-dark-5 last:border-0 hover:bg-white/5 transition-colors">
+                            <tr 
+                              key={h.id} 
+                              onClick={() => setNotificacaoDetalhes(h)}
+                              className="border-b border-brand-dark-5 last:border-0 hover:bg-white/10 cursor-pointer transition-colors"
+                              title="Clique para ver os detalhes completos desta notificação"
+                            >
                               <td className="p-3 font-semibold whitespace-nowrap">
                                 <div>{dataFormatada}</div>
                                 <div className="text-[10px] text-gray-500 font-bold mt-0.5">{horaFormatada}</div>
@@ -5011,6 +5017,94 @@ Sempre responda em português brasileiro.`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Detalhes da Notificação Enviada */}
+      {notificacaoDetalhes && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-brand-dark-2 w-full max-w-lg rounded-2xl border border-brand-dark-5 shadow-2xl p-6 relative flex flex-col gap-4 animate-scale-in text-xs text-gray-300">
+            <button 
+              onClick={() => setNotificacaoDetalhes(null)}
+              type="button"
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+              title="Fechar"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="border-b border-brand-dark-5 pb-3">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Bell size={16} className="text-brand-blue-light" />
+                Detalhes da Notificação
+              </h3>
+              <p className="text-[10px] text-gray-500 mt-0.5">Enviada pelo sistema</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 bg-brand-dark-3/50 p-3 rounded-xl border border-brand-dark-5/50">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Data / Hora</p>
+                  <p className="text-xs font-semibold text-white mt-0.5">
+                    {new Date(notificacaoDetalhes.criado_em).toLocaleDateString('pt-BR')} às {new Date(notificacaoDetalhes.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</p>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mt-1 border ${
+                    notificacaoDetalhes.lida 
+                      ? 'bg-brand-green/20 text-brand-green border-brand-green/30' 
+                      : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                  }`}>
+                    <div className={`w-1 h-1 rounded-full ${notificacaoDetalhes.lida ? 'bg-brand-green' : 'bg-orange-400'}`} />
+                    {notificacaoDetalhes.lida ? 'Lida / Recebida' : 'Não Lida'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Destinatário</p>
+                <p className="text-xs font-bold text-white mt-0.5">
+                  {(() => {
+                    const emp = Array.isArray(notificacaoDetalhes.empresas) ? notificacaoDetalhes.empresas[0] : notificacaoDetalhes.empresas;
+                    return emp 
+                      ? `${emp.tipo_conta === 'cac_individual' ? '👤 [CAC] ' : '🏢 [Despachante] '} ${emp.nome}`
+                      : 'Desconhecido';
+                  })()}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Título da Notificação</p>
+                <p className="text-xs font-bold text-white mt-0.5 bg-brand-dark-3 p-2.5 rounded-xl border border-brand-dark-5/50">
+                  {notificacaoDetalhes.titulo}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mensagem / Conteúdo</p>
+                <p className="text-xs text-gray-200 mt-0.5 bg-brand-dark-3 p-3 rounded-xl border border-brand-dark-5/50 whitespace-pre-line leading-relaxed">
+                  {notificacaoDetalhes.mensagem}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Link de Destino</p>
+                <p className="text-xs font-mono text-gray-400 mt-0.5 bg-brand-dark-3 p-2 rounded-lg border border-brand-dark-5/50">
+                  {notificacaoDetalhes.link || 'Nenhum link configurado'}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-brand-dark-5 flex justify-end">
+              <button 
+                onClick={() => setNotificacaoDetalhes(null)}
+                type="button"
+                className="btn-primary px-4 py-2 text-xs"
+              >
+                Fechar Detalhes
+              </button>
+            </div>
           </div>
         </div>
       )}
