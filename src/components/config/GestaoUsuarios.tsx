@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell } from 'lucide-react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles } from 'lucide-react';
 import { supabase } from '../../db/supabase';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useAuth } from '../../context/AuthContext';
@@ -64,6 +64,13 @@ interface GestaoUsuariosProps {
   abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast';
 }
 
+const PROMPTS_RAPIDOS = [
+  { label: '🔧 Manutenção', prompt: 'Sugira uma notificação curta avisando sobre uma manutenção programada no portal hoje à noite.' },
+  { label: '🚀 Novidades', prompt: 'Escreva um texto anunciando um novo recurso de importação automática de PDFs do Ibama.' },
+  { label: '⚠️ Alertas', prompt: 'Crie uma notificação amigável alertando sobre o vencimento próximo de documentos.' },
+  { label: '💡 Profissional', prompt: 'Como posso reescrever esta notificação para deixá-la mais formal e profissional?' }
+];
+
 export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const { usuario } = useAuth();
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
@@ -110,6 +117,102 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const [broadcastModo, setBroadcastModo] = useState<'todos' | 'individual'>('todos');
   const [broadcastDestinatarioId, setBroadcastDestinatarioId] = useState('');
   const [buscaDestinatario, setBuscaDestinatario] = useState('');
+
+  const [geminiApiKey, setGeminiApiKey] = useState(() => {
+    return import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '';
+  });
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'model'; text: string }[]>([
+    { role: 'model', text: 'Olá! Sou o assistente inteligente do Portal G CAC. Posso ajudar você a criar títulos impactantes, redigir o conteúdo das notificações ou sugerir formatações. O que gostaria de enviar hoje?' }
+  ]);
+  const [geminiInput, setGeminiInput] = useState('');
+  const [carregandoGemini, setCarregandoGemini] = useState(false);
+  const [tempKey, setTempKey] = useState('');
+
+  const chamarGeminiApi = async (mensagens: { role: 'user' | 'model'; text: string }[]) => {
+    const key = geminiApiKey || localStorage.getItem('gemini_api_key');
+    if (!key) {
+      throw new Error('Chave de API do Gemini não configurada.');
+    }
+
+    const systemPrompt = `Você é o assistente de IA do Portal G CAC, uma plataforma para CACs (Atiradores, Caçadores e Colecionadores) e Despachantes de Armas.
+Sua tarefa é ajudar o administrador a escrever notificações e comunicados para os usuários do portal.
+As notificações devem ser diretas, profissionais, informativas e adaptadas para o público de atiradores ou despachantes.
+Quando sugerir notificações, tente estruturar de forma clara com um Título (máximo 50 caracteres) e um Conteúdo/Mensagem (máximo 250 caracteres).
+Sempre responda em português brasileiro.`;
+
+    const formattedContents = mensagens.map(m => ({
+      role: m.role,
+      parts: [{ text: m.text }]
+    }));
+
+    const body = {
+      contents: formattedContents,
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 600
+      }
+    };
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData?.error?.message || `Erro na API do Gemini: ${response.statusText}`);
+    }
+
+    const resData = await response.json();
+    const generatedText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!generatedText) {
+      throw new Error('Não foi possível obter uma resposta válida do modelo.');
+    }
+
+    return generatedText;
+  };
+
+  const handleEnviarMensagemGemini = async (textoInput?: string) => {
+    const texto = (textoInput || geminiInput).trim();
+    if (!texto) return;
+
+    const novasMensagens = [...chatMessages, { role: 'user' as const, text: texto }];
+    setChatMessages(novasMensagens);
+    setGeminiInput('');
+    setCarregandoGemini(true);
+
+    try {
+      const resposta = await chamarGeminiApi(novasMensagens);
+      setChatMessages([...novasMensagens, { role: 'model' as const, text: resposta }]);
+    } catch (err: any) {
+      console.error(err);
+      mostrar('erro', err?.message || 'Erro ao obter resposta do Gemini.');
+      setChatMessages([...novasMensagens, { role: 'model' as const, text: `⚠️ Erro: ${err?.message || 'Não foi possível obter resposta do Gemini.'}` }]);
+    } finally {
+      setCarregandoGemini(false);
+    }
+  };
+
+  const salvarApiKey = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tempKey.trim()) return;
+    localStorage.setItem('gemini_api_key', tempKey.trim());
+    setGeminiApiKey(tempKey.trim());
+    mostrar('sucesso', 'Chave do Gemini salva com sucesso!');
+  };
+
+  const removerApiKey = () => {
+    localStorage.removeItem('gemini_api_key');
+    setGeminiApiKey('');
+    setTempKey('');
+    mostrar('sucesso', 'Chave do Gemini removida.');
+  };
 
   const handleEnviarBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -3034,165 +3137,314 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
                 <p className="text-xs text-gray-400 mt-0.5">Envie alertas em tempo real e push notifications para os dispositivos conectados à plataforma</p>
               </div>
 
-              <form onSubmit={handleEnviarBroadcast} className="space-y-4 max-w-2xl">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Modo de Envio</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
-                      <input 
-                        type="radio"
-                        name="broadcastModo"
-                        checked={broadcastModo === 'todos'}
-                        onChange={() => setBroadcastModo('todos')}
-                        disabled={enviandoBroadcast}
-                        className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
-                      />
-                      Todos os Usuários (Massa)
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
-                      <input 
-                        type="radio"
-                        name="broadcastModo"
-                        checked={broadcastModo === 'individual'}
-                        onChange={() => setBroadcastModo('individual')}
-                        disabled={enviandoBroadcast}
-                        className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
-                      />
-                      Apenas um Usuário Específico
-                    </label>
-                  </div>
-                </div>
-
-                {broadcastModo === 'todos' ? (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Público-Alvo Destinatário</label>
-                    <div className="flex gap-6">
-                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
-                        <input 
-                          type="checkbox"
-                          checked={enviarParaCacs}
-                          onChange={e => setEnviarParaCacs(e.target.checked)}
-                          disabled={enviandoBroadcast}
-                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
-                        />
-                        Clientes CAC Individual (B2C)
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
-                        <input 
-                          type="checkbox"
-                          checked={enviarParaDespachantes}
-                          onChange={e => setEnviarParaDespachantes(e.target.checked)}
-                          disabled={enviandoBroadcast}
-                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
-                        />
-                        Empresas Despachantes (B2B)
-                      </label>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Lado Esquerdo: Formulário */}
+                <div className="lg:col-span-7 space-y-4">
+                  <form onSubmit={handleEnviarBroadcast} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Modo de Envio</label>
+                      <div className="flex gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                          <input 
+                            type="radio"
+                            name="broadcastModo"
+                            checked={broadcastModo === 'todos'}
+                            onChange={() => setBroadcastModo('todos')}
+                            disabled={enviandoBroadcast}
+                            className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                          />
+                          Todos os Usuários (Massa)
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                          <input 
+                            type="radio"
+                            name="broadcastModo"
+                            checked={broadcastModo === 'individual'}
+                            onChange={() => setBroadcastModo('individual')}
+                            disabled={enviandoBroadcast}
+                            className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                          />
+                          Apenas um Usuário Específico
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Selecionar Destinatário</label>
-                    <div className="flex flex-col gap-2">
-                      <input 
-                        type="text"
-                        placeholder="Filtrar destinatários por nome..."
-                        value={buscaDestinatario}
-                        onChange={e => setBuscaDestinatario(e.target.value)}
-                        disabled={enviandoBroadcast}
-                        className="input w-full text-xs"
-                      />
-                      <select
-                        value={broadcastDestinatarioId}
-                        onChange={e => setBroadcastDestinatarioId(e.target.value)}
-                        disabled={enviandoBroadcast}
-                        className="input w-full text-sm"
-                      >
-                        <option value="" className="bg-brand-dark-2 text-gray-500 text-xs">
-                          Selecione o destinatário...
-                        </option>
-                        {empresas
-                          .filter(emp => {
-                            if (!buscaDestinatario.trim()) return true;
-                            return emp.nome.toLowerCase().includes(buscaDestinatario.toLowerCase());
-                          })
-                          .map(emp => (
-                            <option key={emp.id} value={emp.id} className="bg-brand-dark-2 text-white text-xs">
-                              {emp.tipo_conta === 'cac_individual' ? '👤 [CAC] ' : '🏢 [Despachante] '} {emp.nome}
+
+                    {broadcastModo === 'todos' ? (
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Público-Alvo Destinatário</label>
+                        <div className="flex gap-6">
+                          <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                            <input 
+                              type="checkbox"
+                              checked={enviarParaCacs}
+                              onChange={e => setEnviarParaCacs(e.target.checked)}
+                              disabled={enviandoBroadcast}
+                              className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                            />
+                            Clientes CAC Individual (B2C)
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                            <input 
+                              type="checkbox"
+                              checked={enviarParaDespachantes}
+                              onChange={e => setEnviarParaDespachantes(e.target.checked)}
+                              disabled={enviandoBroadcast}
+                              className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                            />
+                            Empresas Despachantes (B2B)
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Selecionar Destinatário</label>
+                        <div className="flex flex-col gap-2">
+                          <input 
+                            type="text"
+                            placeholder="Filtrar destinatários por nome..."
+                            value={buscaDestinatario}
+                            onChange={e => setBuscaDestinatario(e.target.value)}
+                            disabled={enviandoBroadcast}
+                            className="input w-full text-xs"
+                          />
+                          <select
+                            value={broadcastDestinatarioId}
+                            onChange={e => setBroadcastDestinatarioId(e.target.value)}
+                            disabled={enviandoBroadcast}
+                            className="input w-full text-sm"
+                          >
+                            <option value="" className="bg-brand-dark-2 text-gray-500 text-xs">
+                              Selecione o destinatário...
                             </option>
-                          ))
-                        }
-                      </select>
-                    </div>
-                  </div>
-                )}
+                            {empresas
+                              .filter(emp => {
+                                if (!buscaDestinatario.trim()) return true;
+                                return emp.nome.toLowerCase().includes(buscaDestinatario.toLowerCase());
+                              })
+                              .map(emp => (
+                                <option key={emp.id} value={emp.id} className="bg-brand-dark-2 text-white text-xs">
+                                  {emp.tipo_conta === 'cac_individual' ? '👤 [CAC] ' : '🏢 [Despachante] '} {emp.nome}
+                                </option>
+                              ))
+                            }
+                          </select>
+                        </div>
+                      </div>
+                    )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Título da Notificação</label>
-                  <input
-                    type="text"
-                    required
-                    value={broadcastTitulo}
-                    onChange={e => setBroadcastTitulo(e.target.value)}
-                    disabled={enviandoBroadcast}
-                    placeholder="Ex: Nova Atualização no Portal G CAC"
-                    className="input w-full text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Mensagem / Conteúdo</label>
-                  <textarea
-                    required
-                    value={broadcastMensagem}
-                    onChange={e => setBroadcastMensagem(e.target.value)}
-                    disabled={enviandoBroadcast}
-                    placeholder="Escreva a mensagem que aparecerá no celular dos usuários..."
-                    className="input min-h-[120px] py-3 resize-none text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Link de Destino (Opcional)</label>
-                  <input
-                    type="text"
-                    value={broadcastLink}
-                    onChange={e => setBroadcastLink(e.target.value)}
-                    disabled={enviandoBroadcast}
-                    placeholder="Ex: /clientes ou /config"
-                    className="input w-full text-sm"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">Ao clicar na notificação, o usuário será direcionado para este caminho interno no sistema</p>
-                </div>
-
-                {enviandoBroadcast && (
-                  <div className="bg-brand-dark-3 border border-brand-dark-5 rounded-2xl p-4 space-y-2">
-                    <div className="flex justify-between items-center text-xs text-white font-bold uppercase tracking-wider">
-                      <span className="flex items-center gap-2">
-                        <span className="w-3 h-3 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
-                        Disparando notificações...
-                      </span>
-                      <span>{progressoBroadcast.atual} / {progressoBroadcast.total}</span>
-                    </div>
-                    <div className="w-full bg-brand-dark-5 rounded-full h-1.5 overflow-hidden">
-                      <div 
-                        className="bg-brand-blue h-1.5 rounded-full transition-all duration-300"
-                        style={{ width: `${(progressoBroadcast.atual / (progressoBroadcast.total || 1)) * 100}%` }}
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Título da Notificação</label>
+                      <input
+                        type="text"
+                        required
+                        value={broadcastTitulo}
+                        onChange={e => setBroadcastTitulo(e.target.value)}
+                        disabled={enviandoBroadcast}
+                        placeholder="Ex: Nova Atualização no Portal G CAC"
+                        className="input w-full text-sm"
                       />
                     </div>
-                  </div>
-                )}
 
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={enviandoBroadcast}
-                    className="btn-primary w-full sm:w-auto px-6 h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-xs"
-                  >
-                    <Bell size={14} />
-                    {enviandoBroadcast ? 'Enviando Mensagens...' : 'Disparar Notificações em Massa'}
-                  </button>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Mensagem / Conteúdo</label>
+                      <textarea
+                        required
+                        value={broadcastMensagem}
+                        onChange={e => setBroadcastMensagem(e.target.value)}
+                        disabled={enviandoBroadcast}
+                        placeholder="Escreva a mensagem que aparecerá no celular dos usuários..."
+                        className="input min-h-[120px] py-3 resize-none text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Link de Destino (Opcional)</label>
+                      <input
+                        type="text"
+                        value={broadcastLink}
+                        onChange={e => setBroadcastLink(e.target.value)}
+                        disabled={enviandoBroadcast}
+                        placeholder="Ex: /clientes ou /config"
+                        className="input w-full text-sm"
+                      />
+                      <p className="text-[10px] text-gray-500 mt-1 uppercase font-bold tracking-wider">Ao clicar na notificação, o usuário será direcionado para este caminho interno no sistema</p>
+                    </div>
+
+                    {enviandoBroadcast && (
+                      <div className="bg-brand-dark-3 border border-brand-dark-5 rounded-2xl p-4 space-y-2">
+                        <div className="flex justify-between items-center text-xs text-white font-bold uppercase tracking-wider">
+                          <span className="flex items-center gap-2">
+                            <span className="w-3 h-3 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+                            Disparando notificações...
+                          </span>
+                          <span>{progressoBroadcast.atual} / {progressoBroadcast.total}</span>
+                        </div>
+                        <div className="w-full bg-brand-dark-5 rounded-full h-1.5 overflow-hidden">
+                          <div 
+                            className="bg-brand-blue h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${(progressoBroadcast.atual / (progressoBroadcast.total || 1)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={enviandoBroadcast}
+                        className="btn-primary w-full sm:w-auto px-6 h-11 flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-xs"
+                      >
+                        <Bell size={14} />
+                        {enviandoBroadcast ? 'Enviando Mensagens...' : 'Disparar Notificações em Massa'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </form>
+
+                {/* Lado Direito: Assistente Gemini */}
+                <div className="lg:col-span-5 border-t lg:border-t-0 lg:border-l border-brand-dark-5 pt-6 lg:pt-0 lg:pl-6 flex flex-col min-h-[450px]">
+                  <div className="flex items-center justify-between pb-3 border-b border-brand-dark-5/50 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-brand-blue-light animate-pulse" />
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pergunte ao Gemini</h4>
+                    </div>
+                    {geminiApiKey && (
+                      <button 
+                        onClick={removerApiKey}
+                        type="button"
+                        className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
+                        title="Remover Chave de API"
+                      >
+                        Desconectar
+                      </button>
+                    )}
+                  </div>
+
+                  {!geminiApiKey ? (
+                    <div className="flex-1 flex flex-col justify-center items-center text-center p-4 bg-brand-dark-3/30 border border-dashed border-brand-dark-5 rounded-2xl space-y-3">
+                      <Sparkles size={32} className="text-brand-blue-light opacity-50" />
+                      <div>
+                        <p className="text-xs font-bold text-white uppercase">Chave de API do Gemini</p>
+                        <p className="text-[10px] text-gray-400 mt-1 max-w-[280px]">
+                          Para usar o assistente de IA, insira sua chave do Gemini. Você pode obter uma chave gratuita no <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-brand-blue-light underline hover:text-white transition-colors">Google AI Studio</a>.
+                        </p>
+                      </div>
+                      <form onSubmit={salvarApiKey} className="w-full max-w-[280px] flex gap-2 mt-2">
+                        <input 
+                          type="password"
+                          placeholder="Cole sua API Key aqui..."
+                          value={tempKey}
+                          onChange={e => setTempKey(e.target.value)}
+                          className="input flex-1 text-xs py-1.5"
+                          required
+                        />
+                        <button type="submit" className="btn-primary px-3 text-xs h-8">
+                          Salvar
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col h-full space-y-4 justify-between">
+                      {/* Chat Messages */}
+                      <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3 p-3 rounded-2xl bg-brand-dark-3/50 border border-brand-dark-5 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent flex flex-col">
+                        {chatMessages.map((msg, idx) => (
+                          <div 
+                            key={idx}
+                            className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}
+                          >
+                            <div className={`p-2.5 rounded-2xl text-xs leading-relaxed ${
+                              msg.role === 'user' 
+                                ? 'bg-brand-blue/15 border border-brand-blue/20 text-white rounded-tr-none max-w-[85%]' 
+                                : 'bg-brand-dark-4 border border-brand-dark-5 text-gray-200 rounded-tl-none max-w-[85%]'
+                            }`}>
+                              <p className="whitespace-pre-line">{msg.text}</p>
+                              
+                              {msg.role === 'model' && idx > 0 && (
+                                <div className="mt-2.5 pt-2 border-t border-brand-dark-5 flex gap-2 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      // Clean up quotes and text before setting
+                                      const text = msg.text.replace(/["']/g, '').trim();
+                                      setBroadcastTitulo(text.substring(0, 50));
+                                      mostrar('sucesso', 'Texto aplicado ao Título!');
+                                    }}
+                                    className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                  >
+                                    Usar como Título
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBroadcastMensagem(msg.text.trim());
+                                      mostrar('sucesso', 'Texto aplicado à Mensagem!');
+                                    }}
+                                    className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                  >
+                                    Usar como Mensagem
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {carregandoGemini && (
+                          <div className="flex items-center gap-2 text-xs text-gray-500 italic p-2.5">
+                            <span className="w-3.5 h-3.5 border-2 border-brand-blue-light border-t-transparent rounded-full animate-spin shrink-0" />
+                            Gemini está pensando...
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Prompts Rápidos */}
+                      {chatMessages.length === 1 && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Sugestões de Prompts</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {PROMPTS_RAPIDOS.map((p, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => handleEnviarMensagemGemini(p.prompt)}
+                                disabled={carregandoGemini}
+                                className="text-[9px] font-bold bg-brand-dark-3 hover:bg-brand-dark-4 border border-brand-dark-5 hover:border-gray-600 text-gray-300 px-2 py-1 rounded-xl transition-all uppercase tracking-wide"
+                              >
+                                {p.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Chat Input */}
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={geminiInput}
+                          onChange={e => setGeminiInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleEnviarMensagemGemini();
+                            }
+                          }}
+                          disabled={carregandoGemini}
+                          placeholder="Pergunte ou peça sugestões ao Gemini..."
+                          className="input flex-1 text-xs py-2"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleEnviarMensagemGemini()}
+                          disabled={carregandoGemini || !geminiInput.trim()}
+                          className="btn-primary px-3 text-xs h-9 flex items-center justify-center shrink-0"
+                        >
+                          Enviar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
