@@ -290,7 +290,25 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 1000
-      }
+      },
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_NONE'
+        },
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_NONE'
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_NONE'
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_NONE'
+        }
+      ]
     };
 
     const endpointsToTry = [
@@ -329,6 +347,7 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
           throw new Error('Não foi possível obter uma resposta válida do modelo.');
         }
 
+        console.log(`Sucesso com modelo ${endpoint.model} no endpoint ${endpoint.version}`);
         return generatedText;
       } catch (err: any) {
         lastError = err;
