@@ -12,6 +12,7 @@ import { AbaDocumentacao } from './AbaDocumentacao';
 import { AbaCreditos } from './AbaCreditos';
 import { Cliente } from '../../types';
 import { formatarCPF, formatarTelefone, formatarMoeda, formatarData, isOrdemConcluida } from '../../utils/formatters';
+import { calcularAlerta } from '../../utils/vencimentos';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
 import { useRecibos } from '../../context/RecibosContext';
@@ -494,24 +495,18 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
 
         if (cancelado) return;
 
-        // Regra de 30 dias (vencido ou expira em menos de 30 dias)
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        const limite = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
-        limite.setHours(23, 59, 59, 999);
-
-        const isAlerta = (venc?: string | null) => {
+        const isAlerta = (venc: string | null | undefined, tipo: 'CR' | 'IBAMA_CR' | 'CRAF' | 'GT' | 'MANEJO') => {
           if (!venc) return false;
-          const v = new Date(venc);
-          return v <= limite;
+          const res = calcularAlerta(tipo, venc);
+          return res.nivel !== 'OK';
         };
 
         let count = 0;
-        if (isAlerta(crVenc)) count++;
-        if (isAlerta(crIbamaVenc)) count++;
-        armasList.forEach(a => { if (isAlerta(a.vencimentoCraf || a.vencimento_craf)) count++; });
-        gtsList.forEach(g => { if (isAlerta(g.vencimento)) count++; });
-        manejosList.forEach(m => { if (isAlerta(m.vencimento)) count++; });
+        if (isAlerta(crVenc, 'CR')) count++;
+        if (isAlerta(crIbamaVenc, 'IBAMA_CR')) count++;
+        armasList.forEach(a => { if (isAlerta(a.vencimentoCraf || a.vencimento_craf, 'CRAF')) count++; });
+        gtsList.forEach(g => { if (isAlerta(g.vencimento, 'GT')) count++; });
+        manejosList.forEach(m => { if (isAlerta(m.vencimento, 'MANEJO')) count++; });
 
         setAlertasCount(count);
       } catch (err) {

@@ -9,6 +9,7 @@ import { useClientes } from '../../context/ClientesContext';
 import { Arma, GuiaTrafego, AutorizacaoManejo } from '../../types';
 import { ModalArma, ModalGt, ModalManejo } from '../clientes/AbaDocumentacao';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
+import { calcularAlerta } from '../../utils/vencimentos';
 
 interface Props {
   vinculo: VinculoDespachanteCac;
@@ -276,16 +277,18 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
 
   // Calcula alertas totais
   let alertas = 0;
-  const hoje = Date.now();
-  const limite = hoje + 30 * 86400000;
-  const isAlerta = (d?: string) => d && new Date(d).getTime() <= limite;
-  if (isAlerta(cliente.vencimentoCr)) alertas++;
-  if (isAlerta(cliente.vencimentoCrIbama)) alertas++;
+  const isAlerta = (venc: string | null | undefined, tipo: 'CR' | 'IBAMA_CR' | 'CRAF' | 'GT' | 'MANEJO') => {
+    if (!venc) return false;
+    const res = calcularAlerta(tipo, venc);
+    return res.nivel !== 'OK';
+  };
+  if (isAlerta(cliente.vencimentoCr, 'CR')) alertas++;
+  if (isAlerta(cliente.vencimentoCrIbama, 'IBAMA_CR')) alertas++;
   armas.forEach(a => {
-    if (isAlerta(a.vencimentoCraf)) alertas++;
-    a.gts.forEach(g => { if (isAlerta(g.vencimento)) alertas++; });
+    if (isAlerta(a.vencimentoCraf, 'CRAF')) alertas++;
+    a.gts.forEach(g => { if (isAlerta(g.vencimento, 'GT')) alertas++; });
   });
-  manejos.forEach(m => { if (isAlerta(m.vencimento)) alertas++; });
+  manejos.forEach(m => { if (isAlerta(m.vencimento, 'MANEJO')) alertas++; });
 
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
@@ -353,7 +356,7 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-3">
               <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
               <p className="text-xs text-red-300">
-                <strong>{alertas} documento(s)</strong> vencidos ou a vencer em menos de 30 dias. Considere atualizar ou notificar o cliente.
+                <strong>{alertas} documento(s)</strong> vencidos ou no período de alerta. Considere atualizar ou notificar o cliente.
               </p>
             </div>
           )}
@@ -550,7 +553,7 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-bold text-white truncate">{arma.modelo}</p>
-                            {isAlerta(arma.vencimentoCraf) && (
+                            {isAlerta(arma.vencimentoCraf, 'CRAF') && (
                               <AlertTriangle size={12} className="text-yellow-400 shrink-0" />
                             )}
                           </div>

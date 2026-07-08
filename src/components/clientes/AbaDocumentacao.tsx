@@ -97,37 +97,33 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
   const [alertasCriticos, setAlertasCriticos] = useState(0);
   const [alertasItens, setAlertasItens] = useState<{ id: string; tipo: string; nome: string; data: string }[]>([]);
 
-  const isAlerta = (venc?: string | null) => {
+  const isAlerta = (venc: string | null | undefined, tipo: 'CR' | 'IBAMA_CR' | 'CRAF' | 'GT' | 'MANEJO') => {
     if (!venc) return false;
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const limite = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
-    limite.setHours(23, 59, 59, 999);
-    const v = new Date(venc);
-    return v <= limite;
+    const res = calcularAlerta(tipo, venc);
+    return res.nivel !== 'OK';
   };
 
   useEffect(() => {
     const itens: { id: string; tipo: string; nome: string; data: string }[] = [];
-    if (isAlerta(cliente.vencimentoCr)) {
+    if (isAlerta(cliente.vencimentoCr, 'CR')) {
       itens.push({ id: 'cr', tipo: 'CR (PF / Exército)', nome: cliente.numeroCr || 'Não informado', data: cliente.vencimentoCr! });
     }
-    if (isAlerta(cliente.vencimentoCrIbama)) {
+    if (isAlerta(cliente.vencimentoCrIbama, 'IBAMA_CR')) {
       itens.push({ id: 'cr-ibama', tipo: 'CR IBAMA', nome: cliente.numeroCrIbama || 'Não informado', data: cliente.vencimentoCrIbama! });
     }
     armas.forEach(a => {
-      if (isAlerta(a.vencimentoCraf)) {
+      if (isAlerta(a.vencimentoCraf, 'CRAF')) {
         itens.push({ id: `arma-${a.id}`, tipo: 'CRAF de Arma', nome: `${a.tipo || ''} ${a.modelo} (${a.numeroSerie})`, data: a.vencimentoCraf! });
       }
       const gts = gtsPorArma[a.id] || [];
       gts.forEach(g => {
-        if (isAlerta(g.vencimento)) {
+        if (isAlerta(g.vencimento, 'GT')) {
           itens.push({ id: `gt-${g.id}`, tipo: 'Guia de Tráfego (GT)', nome: `Arma ${a.modelo} (${a.numeroSerie}) -> ${g.destino}`, data: g.vencimento! });
         }
       });
     });
     manejos.forEach(m => {
-      if (isAlerta(m.vencimento)) {
+      if (isAlerta(m.vencimento, 'MANEJO')) {
         itens.push({ id: `manejo-${m.id}`, tipo: 'Autorização de Manejo', nome: `Fazenda ${m.nomeFazenda} (CAR: ${m.numeroCar})`, data: m.vencimento! });
       }
     });
@@ -239,7 +235,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
             <div>
               <p className="text-sm font-bold text-red-300">{alertasCriticos} documento(s) com alerta</p>
               <p className="text-xs text-red-400/70 mt-0.5">
-                Documentos vencidos ou com vencimento em menos de 30 dias:
+                Documentos vencidos ou no período de alerta:
               </p>
             </div>
           </div>
@@ -333,7 +329,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
                         </span>
                         {(() => {
                           const gts = gtsPorArma[arma.id] || [];
-                          const gtsAlerta = gts.filter(g => isAlerta(g.vencimento)).length;
+                          const gtsAlerta = gts.filter(g => isAlerta(g.vencimento, 'GT')).length;
                           if (gtsAlerta > 0) {
                             return (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-bold uppercase tracking-tighter shrink-0 flex items-center gap-1">
