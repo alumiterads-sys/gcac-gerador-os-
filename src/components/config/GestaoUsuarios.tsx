@@ -72,40 +72,88 @@ const PROMPTS_RAPIDOS = [
 ];
 
 const parseGeminiResponse = (text: string) => {
-  // Matches tags [TÍTULO], [MENSAGEM] and [EXPLICAÇÃO] in a flexible way
-  const tituloMatch = text.match(/(?:\[TÍTULO\]|\[TITULO\]|\*\*TÍTULO:\*\*|\*\*TITULO:\*\*)\s*\n*([\s\S]*?)(?=\n*\[MENSAGEM\]|\n*\[MENSAGEM\]|\n*\[EXPLICAÇÃO\]|\n*\[EXPLICACAO\]|\n*\*\*MENSAGEM:\*\*|\n*\*\*CONTEÚDO:\*\*|$)/i);
-  const mensagemMatch = text.match(/(?:\[MENSAGEM\]|\[CONTEÚDO\]|\[CONTEUDO\]|\*\*MENSAGEM:\*\*|\*\*CONTEÚDO:\*\*|\*\*CONTEUDO:\*\*)\s*\n*([\s\S]*?)(?=\n*\[EXPLICAÇÃO\]|\n*\[EXPLICACAO\]|\n*\[TÍTULO\]|\n*\[TITULO\]|\n*\*\*TÍTULO:\*\*|\n*\*\*EXPLICAÇÃO:\*\*|$)/i);
-  const explicacaoMatch = text.match(/(?:\[EXPLICAÇÃO\]|\[EXPLICACAO\]|\[OBSERVAÇÃO\]|\[OBSERVACAO\]|\*\*EXPLICAÇÃO:\*\*|\*\*EXPLICACAO:\*\*|\*\*OBSERVAÇÃO:\*\*)\s*\n*([\s\S]*?)$/i);
+  let titulo = '';
+  let mensagem = '';
+  let explicacao = '';
 
-  let titulo = tituloMatch ? tituloMatch[1].trim() : '';
-  let mensagem = mensagemMatch ? mensagemMatch[1].trim() : '';
-  let explicacao = explicacaoMatch ? explicacaoMatch[1].trim() : '';
+  // Split text into lines
+  const lines = text.split('\n');
+  
+  let currentSection = 'none';
 
-  // Clean up quotes and formatting characters
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const lowerLine = trimmedLine.toLowerCase();
+
+    if (!trimmedLine) continue;
+
+    // Heuristics to detect header lines
+    const hasTituloKeyword = lowerLine.includes('título') || lowerLine.includes('titulo') || lowerLine.includes('title');
+    const hasMensagemKeyword = lowerLine.includes('mensagem') || lowerLine.includes('conteúdo') || lowerLine.includes('conteudo') || lowerLine.includes('message') || lowerLine.includes('content');
+    const hasExplicacaoKeyword = lowerLine.includes('explicação') || lowerLine.includes('explicacao') || lowerLine.includes('observação') || lowerLine.includes('observacao');
+
+    const isHeaderFormat = 
+      (trimmedLine.startsWith('[') && trimmedLine.endsWith(']')) || 
+      (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) ||
+      trimmedLine.endsWith(':') ||
+      (trimmedLine.includes(':') && trimmedLine.indexOf(':') < 25) ||
+      (trimmedLine.includes(']') && trimmedLine.indexOf(']') < 20);
+
+    if (isHeaderFormat && hasTituloKeyword) {
+      currentSection = 'titulo';
+      const parts = trimmedLine.split(/\]|:/);
+      const content = parts.slice(1).join(']').replace(/[*#]/g, '').trim();
+      if (content) {
+        titulo += (titulo ? '\n' : '') + content;
+      }
+      continue;
+    }
+    
+    if (isHeaderFormat && hasMensagemKeyword) {
+      currentSection = 'mensagem';
+      const parts = trimmedLine.split(/\]|:/);
+      const content = parts.slice(1).join(']').replace(/[*#]/g, '').trim();
+      if (content) {
+        mensagem += (mensagem ? '\n' : '') + content;
+      }
+      continue;
+    }
+
+    if (isHeaderFormat && hasExplicacaoKeyword) {
+      currentSection = 'explicacao';
+      const parts = trimmedLine.split(/\]|:/);
+      const content = parts.slice(1).join(']').replace(/[*#]/g, '').trim();
+      if (content) {
+        explicacao += (explicacao ? '\n' : '') + content;
+      }
+      continue;
+    }
+
+    // Append line to current section
+    if (currentSection === 'titulo') {
+      titulo += (titulo ? '\n' : '') + trimmedLine;
+    } else if (currentSection === 'mensagem') {
+      mensagem += (mensagem ? '\n' : '') + trimmedLine;
+    } else if (currentSection === 'explicacao') {
+      explicacao += (explicacao ? '\n' : '') + trimmedLine;
+    }
+  }
+
+  // Clean up formatting
   titulo = titulo.replace(/^["']|["']$/g, '').replace(/[*#]/g, '').trim();
   mensagem = mensagem.replace(/^["']|["']$/g, '').replace(/[*#]/g, '').trim();
   explicacao = explicacao.replace(/[*#]/g, '').trim();
 
-  // Fallback: If no tags were matched but we find "Título:" and "Mensagem:" as plain text
+  // If no sections were parsed, check if it has a simple plain text title and message
   if (!titulo && !mensagem) {
-    const plainTituloMatch = text.match(/(?:título|titulo|title)\s*:\s*(.+)/i);
-    const plainMensagemMatch = text.match(/(?:mensagem|conteúdo|conteudo|conteudo\/mensagem|message|content)\s*:\s*([\s\S]+)/i);
-
-    if (plainTituloMatch) {
-      titulo = plainTituloMatch[1].replace(/[*#"\']/g, '').trim();
-      if (titulo.includes('\n')) {
-        titulo = titulo.split('\n')[0].trim();
-      }
-    }
-    if (plainMensagemMatch) {
-      mensagem = plainMensagemMatch[1].replace(/[*#]/g, '').trim();
-      // Clean up explanation from message if it's there
-      const explicacaoIndex = mensagem.toLowerCase().indexOf('explicação');
-      const explicacaoIndex2 = mensagem.toLowerCase().indexOf('explicacao');
-      const index = explicacaoIndex !== -1 ? explicacaoIndex : explicacaoIndex2;
-      if (index !== -1) {
-        explicacao = mensagem.substring(index).replace(/(?:explicação|explicacao)\s*:\s*/i, '').trim();
-        mensagem = mensagem.substring(0, index).trim();
+    const cleanText = text.replace(/[*#]/g, '').trim();
+    const cleanLines = cleanText.split('\n').filter(l => l.trim().length > 0);
+    if (cleanLines.length > 0) {
+      if (cleanLines[0].length < 60) {
+        titulo = cleanLines[0].trim();
+        mensagem = cleanLines.slice(1).join('\n').trim();
+      } else {
+        mensagem = cleanText;
       }
     }
   }
@@ -304,6 +352,7 @@ Sempre responda em português brasileiro e siga essa estrutura rigorosamente.`;
 
     try {
       const resposta = await chamarGeminiApi(novasMensagens);
+      console.log("Resposta Bruta Gemini:", resposta);
       setChatMessages([...novasMensagens, { role: 'model' as const, text: resposta }]);
     } catch (err: any) {
       console.error(err);
