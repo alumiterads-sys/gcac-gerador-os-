@@ -107,6 +107,9 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const [enviarParaDespachantes, setEnviarParaDespachantes] = useState(false);
   const [enviandoBroadcast, setEnviandoBroadcast] = useState(false);
   const [progressoBroadcast, setProgressoBroadcast] = useState({ atual: 0, total: 0 });
+  const [broadcastModo, setBroadcastModo] = useState<'todos' | 'individual'>('todos');
+  const [broadcastDestinatarioId, setBroadcastDestinatarioId] = useState('');
+  const [buscaDestinatario, setBuscaDestinatario] = useState('');
 
   const handleEnviarBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,28 +117,46 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
       mostrar('erro', 'Título e Mensagem são obrigatórios.');
       return;
     }
-    if (!enviarParaCacs && !enviarParaDespachantes) {
-      mostrar('erro', 'Selecione pelo menos um público-alvo (CAC ou Despachante).');
-      return;
+    
+    if (broadcastModo === 'todos') {
+      if (!enviarParaCacs && !enviarParaDespachantes) {
+        mostrar('erro', 'Selecione pelo menos um público-alvo (CAC ou Despachante).');
+        return;
+      }
+    } else {
+      if (!broadcastDestinatarioId) {
+        mostrar('erro', 'Selecione o destinatário da notificação.');
+        return;
+      }
     }
 
     setEnviandoBroadcast(true);
     setProgressoBroadcast({ atual: 0, total: 0 });
 
     try {
-      const tiposSelecionados: string[] = [];
-      if (enviarParaCacs) tiposSelecionados.push('cac_individual');
-      if (enviarParaDespachantes) tiposSelecionados.push('empresa');
+      let targets: { id: string; nome: string }[] = [];
+      
+      if (broadcastModo === 'individual') {
+        const targetObj = empresas.find(emp => emp.id === broadcastDestinatarioId);
+        if (targetObj) {
+          targets = [{ id: targetObj.id, nome: targetObj.nome }];
+        }
+      } else {
+        const tiposSelecionados: string[] = [];
+        if (enviarParaCacs) tiposSelecionados.push('cac_individual');
+        if (enviarParaDespachantes) tiposSelecionados.push('empresa');
 
-      const { data: targets, error: targetError } = await supabase
-        .from('empresas')
-        .select('id, nome')
-        .in('tipo_conta', tiposSelecionados);
+        const { data: qTargets, error: targetError } = await supabase
+          .from('empresas')
+          .select('id, nome')
+          .in('tipo_conta', tiposSelecionados);
 
-      if (targetError) throw targetError;
+        if (targetError) throw targetError;
+        targets = qTargets || [];
+      }
 
-      if (!targets || targets.length === 0) {
-        mostrar('aviso', 'Nenhum destinatário encontrado para o público-alvo selecionado.');
+      if (targets.length === 0) {
+        mostrar('aviso', 'Nenhum destinatário encontrado.');
         setEnviandoBroadcast(false);
         return;
       }
@@ -180,13 +201,15 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
         setProgressoBroadcast(p => ({ ...p, atual: enviadosSucesso }));
       }
 
-      mostrar('sucesso', `Broadcast concluído! Mensagens enviadas para ${enviadosSucesso} destinatários.`);
+      mostrar('sucesso', `Envio concluído com sucesso para ${enviadosSucesso} destinatário(s).`);
       setBroadcastTitulo('');
       setBroadcastMensagem('');
       setBroadcastLink('');
+      setBroadcastDestinatarioId('');
+      setBuscaDestinatario('');
     } catch (err: any) {
       console.error('Erro ao processar broadcast:', err);
-      mostrar('erro', err?.message || 'Falha ao processar o envio do broadcast.');
+      mostrar('erro', err?.message || 'Falha ao processar o envio.');
     } finally {
       setEnviandoBroadcast(false);
     }
@@ -3013,30 +3036,95 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
 
               <form onSubmit={handleEnviarBroadcast} className="space-y-4 max-w-2xl">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Público-Alvo Destinatário</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Modo de Envio</label>
                   <div className="flex gap-6">
                     <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
                       <input 
-                        type="checkbox"
-                        checked={enviarParaCacs}
-                        onChange={e => setEnviarParaCacs(e.target.checked)}
+                        type="radio"
+                        name="broadcastModo"
+                        checked={broadcastModo === 'todos'}
+                        onChange={() => setBroadcastModo('todos')}
                         disabled={enviandoBroadcast}
-                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                        className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
                       />
-                      Clientes CAC Individual (B2C)
+                      Todos os Usuários (Massa)
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
                       <input 
-                        type="checkbox"
-                        checked={enviarParaDespachantes}
-                        onChange={e => setEnviarParaDespachantes(e.target.checked)}
+                        type="radio"
+                        name="broadcastModo"
+                        checked={broadcastModo === 'individual'}
+                        onChange={() => setBroadcastModo('individual')}
                         disabled={enviandoBroadcast}
-                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                        className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
                       />
-                      Empresas Despachantes (B2B)
+                      Apenas um Usuário Específico
                     </label>
                   </div>
                 </div>
+
+                {broadcastModo === 'todos' ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Público-Alvo Destinatário</label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                        <input 
+                          type="checkbox"
+                          checked={enviarParaCacs}
+                          onChange={e => setEnviarParaCacs(e.target.checked)}
+                          disabled={enviandoBroadcast}
+                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                        />
+                        Clientes CAC Individual (B2C)
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-semibold">
+                        <input 
+                          type="checkbox"
+                          checked={enviarParaDespachantes}
+                          onChange={e => setEnviarParaDespachantes(e.target.checked)}
+                          disabled={enviandoBroadcast}
+                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4"
+                        />
+                        Empresas Despachantes (B2B)
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-500 uppercase font-black tracking-wider">Selecionar Destinatário</label>
+                    <div className="flex flex-col gap-2">
+                      <input 
+                        type="text"
+                        placeholder="Filtrar destinatários por nome..."
+                        value={buscaDestinatario}
+                        onChange={e => setBuscaDestinatario(e.target.value)}
+                        disabled={enviandoBroadcast}
+                        className="input w-full text-xs"
+                      />
+                      <select
+                        value={broadcastDestinatarioId}
+                        onChange={e => setBroadcastDestinatarioId(e.target.value)}
+                        disabled={enviandoBroadcast}
+                        className="input w-full text-sm"
+                      >
+                        <option value="" className="bg-brand-dark-2 text-gray-500 text-xs">
+                          Selecione o destinatário...
+                        </option>
+                        {empresas
+                          .filter(emp => {
+                            if (!buscaDestinatario.trim()) return true;
+                            return emp.nome.toLowerCase().includes(buscaDestinatario.toLowerCase());
+                          })
+                          .map(emp => (
+                            <option key={emp.id} value={emp.id} className="bg-brand-dark-2 text-white text-xs">
+                              {emp.tipo_conta === 'cac_individual' ? '👤 [CAC] ' : '🏢 [Despachante] '} {emp.nome}
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 uppercase label-required font-black tracking-wider">Título da Notificação</label>
