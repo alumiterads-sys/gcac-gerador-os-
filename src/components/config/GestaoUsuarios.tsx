@@ -287,12 +287,9 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
 
     const body = {
       contents: formattedContents,
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 600
+        maxOutputTokens: 1000
       }
     };
 
