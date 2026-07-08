@@ -3479,16 +3479,32 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
                       <Sparkles size={16} className="text-brand-blue-light animate-pulse" />
                       <h4 className="text-xs font-bold text-white uppercase tracking-wider">Pergunte ao Gemini</h4>
                     </div>
-                    {geminiApiKey && (
-                      <button 
-                        onClick={removerApiKey}
-                        type="button"
-                        className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
-                        title="Remover Chave de API"
-                      >
-                        Desconectar
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {chatMessages.length > 1 && (
+                        <button
+                          onClick={() => {
+                            setChatMessages([
+                              { role: 'model', text: 'Olá! Sou o assistente inteligente do Portal G CAC. Posso ajudar você a criar títulos impactantes, redigir o conteúdo das notificações ou sugerir formatações. O que gostaria de enviar hoje?' }
+                            ]);
+                            mostrar('sucesso', 'Chat reiniciado!');
+                          }}
+                          type="button"
+                          className="text-[9px] text-brand-blue-light hover:text-white font-bold uppercase tracking-wider transition-colors"
+                        >
+                          Limpar Chat
+                        </button>
+                      )}
+                      {geminiApiKey && (
+                        <button 
+                          onClick={removerApiKey}
+                          type="button"
+                          className="text-[9px] text-gray-500 hover:text-red-400 font-bold uppercase tracking-wider transition-colors"
+                          title="Remover Chave de API"
+                        >
+                          Desconectar
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {!geminiApiKey ? (
