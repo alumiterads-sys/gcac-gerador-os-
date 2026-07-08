@@ -71,6 +71,53 @@ const PROMPTS_RAPIDOS = [
   { label: '💡 Profissional', prompt: 'Como posso reescrever esta notificação para deixá-la mais formal e profissional?' }
 ];
 
+const parseGeminiResponse = (text: string) => {
+  // Matches tags [TÍTULO], [MENSAGEM] and [EXPLICAÇÃO] in a flexible way
+  const tituloMatch = text.match(/(?:\[TÍTULO\]|\[TITULO\]|\*\*TÍTULO:\*\*|\*\*TITULO:\*\*)\s*\n*([\s\S]*?)(?=\n*\[MENSAGEM\]|\n*\[MENSAGEM\]|\n*\[EXPLICAÇÃO\]|\n*\[EXPLICACAO\]|\n*\*\*MENSAGEM:\*\*|\n*\*\*CONTEÚDO:\*\*|$)/i);
+  const mensagemMatch = text.match(/(?:\[MENSAGEM\]|\[CONTEÚDO\]|\[CONTEUDO\]|\*\*MENSAGEM:\*\*|\*\*CONTEÚDO:\*\*|\*\*CONTEUDO:\*\*)\s*\n*([\s\S]*?)(?=\n*\[EXPLICAÇÃO\]|\n*\[EXPLICACAO\]|\n*\[TÍTULO\]|\n*\[TITULO\]|\n*\*\*TÍTULO:\*\*|\n*\*\*EXPLICAÇÃO:\*\*|$)/i);
+  const explicacaoMatch = text.match(/(?:\[EXPLICAÇÃO\]|\[EXPLICACAO\]|\[OBSERVAÇÃO\]|\[OBSERVACAO\]|\*\*EXPLICAÇÃO:\*\*|\*\*EXPLICACAO:\*\*|\*\*OBSERVAÇÃO:\*\*)\s*\n*([\s\S]*?)$/i);
+
+  let titulo = tituloMatch ? tituloMatch[1].trim() : '';
+  let mensagem = mensagemMatch ? mensagemMatch[1].trim() : '';
+  let explicacao = explicacaoMatch ? explicacaoMatch[1].trim() : '';
+
+  // Clean up quotes and formatting characters
+  titulo = titulo.replace(/^["']|["']$/g, '').replace(/[*#]/g, '').trim();
+  mensagem = mensagem.replace(/^["']|["']$/g, '').replace(/[*#]/g, '').trim();
+  explicacao = explicacao.replace(/[*#]/g, '').trim();
+
+  // Fallback: If no tags were matched but we find "Título:" and "Mensagem:" as plain text
+  if (!titulo && !mensagem) {
+    const plainTituloMatch = text.match(/(?:título|titulo|title)\s*:\s*(.+)/i);
+    const plainMensagemMatch = text.match(/(?:mensagem|conteúdo|conteudo|conteudo\/mensagem|message|content)\s*:\s*([\s\S]+)/i);
+
+    if (plainTituloMatch) {
+      titulo = plainTituloMatch[1].replace(/[*#"\']/g, '').trim();
+      if (titulo.includes('\n')) {
+        titulo = titulo.split('\n')[0].trim();
+      }
+    }
+    if (plainMensagemMatch) {
+      mensagem = plainMensagemMatch[1].replace(/[*#]/g, '').trim();
+      // Clean up explanation from message if it's there
+      const explicacaoIndex = mensagem.toLowerCase().indexOf('explicação');
+      const explicacaoIndex2 = mensagem.toLowerCase().indexOf('explicacao');
+      const index = explicacaoIndex !== -1 ? explicacaoIndex : explicacaoIndex2;
+      if (index !== -1) {
+        explicacao = mensagem.substring(index).replace(/(?:explicação|explicacao)\s*:\s*/i, '').trim();
+        mensagem = mensagem.substring(0, index).trim();
+      }
+    }
+  }
+
+  return {
+    isStructured: !!(titulo || mensagem),
+    titulo: titulo.substring(0, 80),
+    mensagem: mensagem.substring(0, 500),
+    explicacao
+  };
+};
+
 export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const { usuario } = useAuth();
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
@@ -169,8 +216,18 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
     const systemPrompt = `Você é o assistente de IA do Portal G CAC, uma plataforma para CACs (Atiradores, Caçadores e Colecionadores) e Despachantes de Armas.
 Sua tarefa é ajudar o administrador a escrever notificações e comunicados para os usuários do portal.
 As notificações devem ser diretas, profissionais, informativas e adaptadas para o público de atiradores ou despachantes.
-Quando sugerir notificações, tente estruturar de forma clara com um Título (máximo 50 caracteres) e um Conteúdo/Mensagem (máximo 250 caracteres).
-Sempre responda em português brasileiro.`;
+
+Sempre formate a sua sugestão final utilizando EXATAMENTE as tags [TÍTULO], [MENSAGEM] e opcionalmente [EXPLICAÇÃO] da seguinte forma:
+[TÍTULO]
+Escreva aqui o título sugerido da notificação (máximo de 50 caracteres, sem aspas)
+
+[MENSAGEM]
+Escreva aqui a mensagem sugerida da notificação (máximo de 250 caracteres)
+
+[EXPLICAÇÃO]
+Se desejar, adicione aqui uma breve explicação ou observação para o administrador (opcional).
+
+Sempre responda em português brasileiro e siga essa estrutura rigorosamente.`;
 
     const formattedContents = mensagens.map(m => ({
       role: m.role,
@@ -3422,14 +3479,83 @@ Sempre responda em português brasileiro.`;
                                 ? 'bg-brand-blue/15 border border-brand-blue/20 text-white rounded-tr-none max-w-[85%]' 
                                 : 'bg-brand-dark-4 border border-brand-dark-5 text-gray-200 rounded-tl-none max-w-[85%]'
                             }`}>
-                              <p className="whitespace-pre-line">{msg.text}</p>
+                              {(() => {
+                                if (msg.role === 'model' && idx > 0) {
+                                  const parsed = parseGeminiResponse(msg.text);
+                                  if (parsed.isStructured) {
+                                    return (
+                                      <div className="space-y-3 mt-1">
+                                        {parsed.explicacao && (
+                                          <p className="text-[11px] text-gray-400 italic leading-relaxed">{parsed.explicacao}</p>
+                                        )}
+                                        
+                                        <div className="bg-brand-dark-3/80 p-3 rounded-xl border border-brand-dark-5/80 space-y-2.5">
+                                          {parsed.titulo && (
+                                            <div>
+                                              <span className="text-[9px] font-bold text-brand-blue-light uppercase tracking-wider block">Título Sugerido:</span>
+                                              <p className="text-xs text-white font-semibold mt-0.5">{parsed.titulo}</p>
+                                            </div>
+                                          )}
+                                          {parsed.mensagem && (
+                                            <div className="pt-2 border-t border-brand-dark-5/50">
+                                              <span className="text-[9px] font-bold text-brand-blue-light uppercase tracking-wider block">Mensagem Sugerida:</span>
+                                              <p className="text-xs text-white mt-0.5 whitespace-pre-line leading-relaxed">{parsed.mensagem}</p>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div className="flex gap-1.5 flex-wrap pt-1.5 border-t border-brand-dark-5/30">
+                                          {parsed.titulo && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setBroadcastTitulo(parsed.titulo);
+                                                mostrar('sucesso', 'Título aplicado!');
+                                              }}
+                                              className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                            >
+                                              Usar Título
+                                            </button>
+                                          )}
+                                          {parsed.mensagem && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setBroadcastMensagem(parsed.mensagem);
+                                                mostrar('sucesso', 'Mensagem aplicada!');
+                                              }}
+                                              className="text-[9px] bg-brand-dark-3 hover:bg-brand-blue/20 border border-brand-dark-5 hover:border-brand-blue text-brand-blue-light hover:text-white px-2 py-1 rounded transition-all font-bold uppercase tracking-wider"
+                                            >
+                                              Usar Mensagem
+                                            </button>
+                                          )}
+                                          {parsed.titulo && parsed.mensagem && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setBroadcastTitulo(parsed.titulo);
+                                                setBroadcastMensagem(parsed.mensagem);
+                                                mostrar('sucesso', 'Título e Mensagem aplicados!');
+                                              }}
+                                              className="text-[9px] bg-brand-blue hover:bg-brand-blue-light text-white px-2.5 py-1 rounded-md transition-all font-bold uppercase tracking-wider shadow-sm shadow-brand-blue/20"
+                                            >
+                                              Aplicar Ambos
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                }
+
+                                return <p className="whitespace-pre-line">{msg.text}</p>;
+                              })()}
                               
-                              {msg.role === 'model' && idx > 0 && (
+                              {msg.role === 'model' && idx > 0 && !parseGeminiResponse(msg.text).isStructured && (
                                 <div className="mt-2.5 pt-2 border-t border-brand-dark-5 flex gap-2 flex-wrap">
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      // Clean up quotes and text before setting
                                       const text = msg.text.replace(/["']/g, '').trim();
                                       setBroadcastTitulo(text.substring(0, 50));
                                       mostrar('sucesso', 'Texto aplicado ao Título!');
