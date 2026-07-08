@@ -265,15 +265,15 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
     }
 
     const systemPrompt = `Você é o assistente de IA do Portal G CAC, uma plataforma para CACs (Atiradores, Caçadores e Colecionadores) e Despachantes de Armas.
-Sua tarefa é ajudar o administrador a criar notificações e comunicados criativos, cativantes, chamativos e profissionais para os usuários do portal.
+Sua tarefa é ajudar o administrador a criar notificações, comunicados e alertas criativos, profissionais e completos.
 
-Leia a solicitação do administrador com atenção e gere uma sugestão de notificação personalizada que atenda de forma excelente ao que foi pedido. Use a sua criatividade, linguagem adequada ao público (atiradores/despachantes) e de forma a despertar o interesse do usuário final.
+Nunca use reticências (...) ou placeholders para abreviar as mensagens. Sempre escreva todo o texto sugerido de forma clara e objetiva, adaptada ao público de atiradores e despachantes.
 
-Apresente a sua sugestão no final da resposta com a seguinte estrutura:
+Apresente a sua sugestão estruturada da seguinte forma no final da sua resposta:
 Título: [Escreva o título sugerido aqui - máximo de 50 caracteres]
 Mensagem: [Escreva a mensagem sugerida aqui - máximo de 250 caracteres]
 
-Você pode adicionar comentários, observações ou uma introdução antes da sugestão, se desejar. Sempre responda em português brasileiro.`;
+Você pode adicionar comentários, observações ou explicações adicionais antes da sugestão se desejar. Sempre responda em português brasileiro de forma prestativa.`;
 
     // Garantir que o histórico enviado à API comece sempre com o papel 'user', 
     // conforme exigido pela especificação da API do Gemini.
@@ -287,6 +287,9 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
 
     const body = {
       contents: formattedContents,
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 1000
@@ -3552,7 +3555,7 @@ Você pode adicionar comentários, observações ou uma introdução antes da su
                   ) : (
                     <div className="flex-1 flex flex-col h-full space-y-4 justify-between">
                       {/* Chat Messages */}
-                      <div className="flex-1 overflow-y-auto max-h-[300px] space-y-3 p-3 rounded-2xl bg-brand-dark-3/50 border border-brand-dark-5 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent flex flex-col">
+                      <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3 p-3 rounded-2xl bg-brand-dark-3/50 border border-brand-dark-5 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent flex flex-col">
                         {chatMessages.map((msg, idx) => (
                           <div 
                             key={idx}
