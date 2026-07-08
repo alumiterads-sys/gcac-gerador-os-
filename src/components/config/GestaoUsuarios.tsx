@@ -136,6 +136,9 @@ const parseGeminiResponse = (text: string) => {
       mensagem += (mensagem ? '\n' : '') + trimmedLine;
     } else if (currentSection === 'explicacao') {
       explicacao += (explicacao ? '\n' : '') + trimmedLine;
+    } else {
+      // Capture preceding text as introduction/explanation
+      explicacao += (explicacao ? '\n' : '') + trimmedLine;
     }
   }
 
@@ -262,20 +265,15 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
     }
 
     const systemPrompt = `Você é o assistente de IA do Portal G CAC, uma plataforma para CACs (Atiradores, Caçadores e Colecionadores) e Despachantes de Armas.
-Sua tarefa é ajudar o administrador a escrever notificações e comunicados para os usuários do portal.
-As notificações devem ser diretas, profissionais, informativas e adaptadas para o público de atiradores ou despachantes.
+Sua tarefa é ajudar o administrador a criar notificações e comunicados criativos, cativantes, chamativos e profissionais para os usuários do portal.
 
-Sempre formate a sua sugestão final utilizando EXATAMENTE as tags [TÍTULO], [MENSAGEM] e opcionalmente [EXPLICAÇÃO] da seguinte forma:
-[TÍTULO]
-Escreva aqui o título sugerido da notificação (máximo de 50 caracteres, sem aspas)
+Leia a solicitação do administrador com atenção e gere uma sugestão de notificação personalizada que atenda de forma excelente ao que foi pedido. Use a sua criatividade, linguagem adequada ao público (atiradores/despachantes) e de forma a despertar o interesse do usuário final.
 
-[MENSAGEM]
-Escreva aqui a mensagem sugerida da notificação (máximo de 250 caracteres)
+Apresente a sua sugestão no final da resposta com a seguinte estrutura:
+Título: [Escreva o título sugerido aqui - máximo de 50 caracteres]
+Mensagem: [Escreva a mensagem sugerida aqui - máximo de 250 caracteres]
 
-[EXPLICAÇÃO]
-Se desejar, adicione aqui uma breve explicação ou observação para o administrador (opcional).
-
-Sempre responda em português brasileiro e siga essa estrutura rigorosamente.`;
+Você pode adicionar comentários, observações ou uma introdução antes da sugestão, se desejar. Sempre responda em português brasileiro.`;
 
     const formattedContents = mensagens.map(m => ({
       role: m.role,
