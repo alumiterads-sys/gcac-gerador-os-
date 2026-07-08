@@ -118,6 +118,37 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const [broadcastDestinatarioId, setBroadcastDestinatarioId] = useState('');
   const [buscaDestinatario, setBuscaDestinatario] = useState('');
 
+  const [historicoEnvios, setHistoricoEnvios] = useState<any[]>([]);
+  const [carregandoHistoricoEnvios, setCarregandoHistoricoEnvios] = useState(false);
+
+  const carregarHistoricoEnvios = async () => {
+    setCarregandoHistoricoEnvios(true);
+    try {
+      const { data, error } = await supabase
+        .from('notificacoes_sistema')
+        .select(`
+          id,
+          titulo,
+          mensagem,
+          tipo,
+          link,
+          criado_em,
+          lida,
+          empresa_id,
+          empresas:empresa_id (nome, tipo_conta)
+        `)
+        .order('criado_em', { ascending: false })
+        .limit(100);
+
+      if (error) throw error;
+      if (data) setHistoricoEnvios(data);
+    } catch (err) {
+      console.error('Erro ao carregar historico de envios:', err);
+    } finally {
+      setCarregandoHistoricoEnvios(false);
+    }
+  };
+
   const [geminiApiKey, setGeminiApiKey] = useState(() => {
     return import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem('gemini_api_key') || '';
   });
@@ -310,6 +341,7 @@ Sempre responda em português brasileiro.`;
       setBroadcastLink('');
       setBroadcastDestinatarioId('');
       setBuscaDestinatario('');
+      carregarHistoricoEnvios();
     } catch (err: any) {
       console.error('Erro ao processar broadcast:', err);
       mostrar('erro', err?.message || 'Falha ao processar o envio.');
@@ -651,6 +683,12 @@ Sempre responda em português brasileiro.`;
   useEffect(() => {
     if (isMasterAdmin && subPainelAtivo === 'leads') {
       carregarLeads();
+    }
+  }, [subPainelAtivo, isMasterAdmin]);
+
+  useEffect(() => {
+    if (isMasterAdmin && subPainelAtivo === 'broadcast') {
+      carregarHistoricoEnvios();
     }
   }, [subPainelAtivo, isMasterAdmin]);
 
@@ -3444,6 +3482,82 @@ Sempre responda em português brasileiro.`;
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Seção de Histórico de Envios */}
+              <div className="pt-6 border-t border-brand-dark-5 space-y-4">
+                <div className="pb-2">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">Histórico de Notificações Enviadas</h4>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Veja abaixo os últimos envios efetuados pelo sistema, incluindo status de leitura dos destinatários</p>
+                </div>
+
+                {carregandoHistoricoEnvios ? (
+                  <div className="flex justify-center py-6">
+                    <span className="w-5 h-5 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : historicoEnvios.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic py-6 text-center bg-brand-dark-2/20 rounded-2xl border border-dashed border-brand-dark-5">
+                    Nenhuma notificação enviada encontrada.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-brand-dark-5 bg-brand-dark-3/20">
+                    <table className="w-full text-left border-collapse min-w-[750px] text-xs text-gray-300">
+                      <thead>
+                        <tr className="bg-brand-dark-3 border-b border-brand-dark-5">
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Data / Hora Envio</th>
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Destinatário</th>
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Título</th>
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Conteúdo</th>
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Destino (Link)</th>
+                          <th className="p-3 font-black text-gray-400 uppercase tracking-wider">Status Recebimento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historicoEnvios.map((h) => {
+                          const emp = Array.isArray(h.empresas) ? h.empresas[0] : h.empresas;
+                          const destinoNome = emp 
+                            ? `${emp.tipo_conta === 'cac_individual' ? '👤 [CAC] ' : '🏢 [Despachante] '} ${emp.nome}`
+                            : 'Desconhecido';
+                          
+                          const dataEnvio = new Date(h.criado_em);
+                          const dataFormatada = dataEnvio.toLocaleDateString('pt-BR');
+                          const horaFormatada = dataEnvio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                          return (
+                            <tr key={h.id} className="border-b border-brand-dark-5 last:border-0 hover:bg-white/5 transition-colors">
+                              <td className="p-3 font-semibold whitespace-nowrap">
+                                <div>{dataFormatada}</div>
+                                <div className="text-[10px] text-gray-500 font-bold mt-0.5">{horaFormatada}</div>
+                              </td>
+                              <td className="p-3 font-bold text-white max-w-[150px] truncate" title={destinoNome}>
+                                {destinoNome}
+                              </td>
+                              <td className="p-3 font-semibold text-gray-200 max-w-[150px] truncate" title={h.titulo}>
+                                {h.titulo}
+                              </td>
+                              <td className="p-3 text-gray-400 max-w-[250px] truncate" title={h.mensagem}>
+                                {h.mensagem}
+                              </td>
+                              <td className="p-3 text-gray-500 font-mono text-[10px] whitespace-nowrap">
+                                {h.link || '—'}
+                              </td>
+                              <td className="p-3 whitespace-nowrap">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                  h.lida 
+                                    ? 'bg-brand-green/20 text-brand-green border-brand-green/30' 
+                                    : 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                                }`}>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${h.lida ? 'bg-brand-green' : 'bg-orange-400'}`} />
+                                  {h.lida ? 'Lida / Recebida' : 'Enviada (Não Lida)'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
