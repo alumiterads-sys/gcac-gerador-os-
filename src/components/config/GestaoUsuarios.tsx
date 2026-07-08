@@ -188,26 +188,52 @@ Sempre responda em português brasileiro.`;
       }
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    const endpointsToTry = [
+      { version: 'v1', model: 'gemini-3.5-flash' },
+      { version: 'v1beta', model: 'gemini-3.5-flash' },
+      { version: 'v1', model: 'gemini-2.5-flash' },
+      { version: 'v1beta', model: 'gemini-2.5-flash' },
+      { version: 'v1', model: 'gemini-1.5-flash' },
+      { version: 'v1beta', model: 'gemini-1.5-flash' }
+    ];
+    let lastError: any = null;
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData?.error?.message || `Erro na API do Gemini: ${response.statusText}`);
+    for (const endpoint of endpointsToTry) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/${endpoint.version}/models/${endpoint.model}:generateContent?key=${key}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || response.statusText;
+          if (response.status === 404 || errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('not supported')) {
+            lastError = new Error(errMsg);
+            continue;
+          }
+          throw new Error(errMsg);
+        }
+
+        const resData = await response.json();
+        const generatedText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!generatedText) {
+          throw new Error('Não foi possível obter uma resposta válida do modelo.');
+        }
+
+        return generatedText;
+      } catch (err: any) {
+        lastError = err;
+        if (err.message && (err.message.includes('API key') || err.message.includes('KEY_INVALID') || err.message.includes('Chave de API'))) {
+          throw err;
+        }
+      }
     }
 
-    const resData = await response.json();
-    const generatedText = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!generatedText) {
-      throw new Error('Não foi possível obter uma resposta válida do modelo.');
-    }
-
-    return generatedText;
+    throw lastError || new Error('Falha ao obter resposta do Gemini com os modelos e endpoints disponíveis.');
   };
 
   const handleEnviarMensagemGemini = async (textoInput?: string) => {
