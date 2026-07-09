@@ -1308,7 +1308,8 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
           tipo: novoTipo,
           vencimento: data.vencimento || prev.vencimento,
           destino: novoDestino,
-          arquivoUrl: base64
+          arquivoUrl: base64,
+          gtEmRenovacao: false
         };
       });
 
@@ -1486,7 +1487,19 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
 
           <div>
             <label className="label">Data de Vencimento</label>
-            <input type="date" className="input" value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} />
+            <input 
+              type="date" 
+              className="input" 
+              value={form.vencimento} 
+              onChange={e => {
+                const val = e.target.value;
+                setForm(prev => ({
+                  ...prev,
+                  vencimento: val,
+                  gtEmRenovacao: val !== gtParaEditar?.vencimento ? false : prev.gtEmRenovacao
+                }));
+              }} 
+            />
             <div className="flex items-center gap-1.5 mt-1.5">
               <input type="checkbox" id="gtEmRenovacao"
                 checked={form.gtEmRenovacao} onChange={e => setForm({...form, gtEmRenovacao: e.target.checked})}
@@ -1509,7 +1522,7 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
                   if (file) {
                     try {
                       const base64 = await fileToBase64(file);
-                      setForm({...form, arquivoUrl: base64});
+                      setForm({...form, arquivoUrl: base64, gtEmRenovacao: false});
                     } catch (err) {
                       console.error(err);
                       alert('Erro ao carregar o arquivo.');
