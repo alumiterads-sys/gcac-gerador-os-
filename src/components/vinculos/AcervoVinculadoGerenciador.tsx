@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { VinculoDespachanteCac, AcervoVinculado, buscarAcervoVinculado } from '../../services/vinculosService';
 import { useClientes } from '../../context/ClientesContext';
+import { useAuth } from '../../context/AuthContext';
 import { Arma, GuiaTrafego, AutorizacaoManejo } from '../../types';
 import { ModalArma, ModalGt, ModalManejo } from '../clientes/AbaDocumentacao';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
@@ -106,8 +107,9 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
   const [modalManejoAberto, setModalManejoAberto] = useState(false);
   const [manejoParaEditar, setManejoParaEditar] = useState<AutorizacaoManejo | null>(null);
 
+  const { usuario } = useAuth();
   const { cliente, armas, manejos } = dadosAcervo;
-  const podeEditar = !!dadosAcervo.vinculo?.permite_edicao;
+  const podeEditar = !!dadosAcervo.vinculo?.permite_edicao || usuario?.tipoConta === 'empresa';
   const cacEmpresaId = vinculo.cac_empresa_id;
 
   const atualizarDados = async () => {

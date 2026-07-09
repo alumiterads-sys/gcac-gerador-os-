@@ -87,7 +87,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
     atualizarCliente
   } = useClientes();
 
-  const podeEditar = !cacEmpresaId || podeEditarVinculo;
+  const podeEditar = !cacEmpresaId || podeEditarVinculo || usuario?.tipoConta === 'empresa';
 
   const [armas, setArmas] = useState<Arma[]>([]);
   const [manejos, setManejos] = useState<AutorizacaoManejo[]>([]);

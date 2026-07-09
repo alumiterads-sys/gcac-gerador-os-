@@ -281,10 +281,18 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           // Sincronizar GTs
           const { data: currentLocalArmas } = await supabase.from('armas').select('id').eq('cliente_id', cliente.id);
           const currentArmaIds = currentLocalArmas?.map(a => a.id) || [];
-
           if (currentArmaIds.length > 0) {
-            const { data: localGts } = await supabase.from('guias_trafego').select('*').in('arma_id', currentArmaIds);
-            const { data: portalGts } = await supabase.from('guias_trafego').select('*').in('arma_id', currentArmaIds);
+            const { data: localGts } = await supabase
+              .from('guias_trafego')
+              .select('*')
+              .in('arma_id', currentArmaIds)
+              .eq('empresa_id', despachanteEmpresaId);
+
+            const { data: portalGts } = await supabase
+              .from('guias_trafego')
+              .select('*')
+              .in('arma_id', currentArmaIds)
+              .eq('empresa_id', vinculo.cac_empresa_id);
 
             const matchGtKey = (g: any) => `${g.arma_id}_${g.destino?.trim().toUpperCase()}_${g.vencimento}`;
 
