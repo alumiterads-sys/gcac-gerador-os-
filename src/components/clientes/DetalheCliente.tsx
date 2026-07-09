@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   User, Mail, Phone, MapPin, Shield, Copy, Check, 
   FileText, Receipt, Clock, Calendar, Plus, 
-  ArrowLeft, ChevronRight, ExternalLink, MessageCircle, Trash2, Pencil, AlertTriangle
+  ArrowLeft, ChevronRight, ExternalLink, MessageCircle, Trash2, Pencil, AlertTriangle,
+  Loader2, X
 } from 'lucide-react';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { FormularioCliente } from './FormularioCliente';
@@ -53,6 +54,19 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
   const [portalStatus, setPortalStatus] = useState<string | undefined>(undefined);
   const [alertasCount, setAlertasCount] = useState<number>(0);
   const [isUsuarioPortal, setIsUsuarioPortal] = useState<boolean | undefined>(undefined);
+  const [mostrarPromptCR, setMostrarPromptCR] = useState(false);
+
+  useEffect(() => {
+    const temCR = cliente.numeroCr && cliente.numeroCr.trim() !== '';
+    const temAtividades = cliente.crTiroDesportivo || cliente.crCaca || cliente.crColecionamento;
+    const isDespachante = usuario?.tipoConta === 'empresa';
+
+    if (isDespachante && temCR && !temAtividades && !sessionStorage.getItem(`prompt-cr-ignorado-${cliente.id}`)) {
+      setMostrarPromptCR(true);
+    } else {
+      setMostrarPromptCR(false);
+    }
+  }, [cliente.id, cliente.numeroCr, cliente.crTiroDesportivo, cliente.crCaca, cliente.crColecionamento, usuario?.tipoConta]);
 
   // Filtros de histórico
   const todasOrdensCliente = ordens.filter(o => o.cpf === cliente.cpf);
@@ -1061,6 +1075,151 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           onFechar={() => setEditando(false)}
         />
       )}
+
+      {mostrarPromptCR && (
+        <ModalPromptCr
+          cliente={cliente}
+          onFechar={() => {
+            sessionStorage.setItem(`prompt-cr-ignorado-${cliente.id}`, 'true');
+            setMostrarPromptCR(false);
+          }}
+          onSalvar={async (atividades) => {
+            try {
+              await atualizarCliente(cliente.id, atividades);
+              window.location.reload();
+            } catch (err: any) {
+              console.error(err);
+              alert('Erro ao salvar atividades do CR: ' + (err.message || err));
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+interface ModalPromptCrProps {
+  cliente: Cliente;
+  onFechar: () => void;
+  onSalvar: (atividades: { crTiroDesportivo: boolean; crCaca: boolean; crColecionamento: boolean; atiradorNivel: number | null }) => Promise<void>;
+}
+
+function ModalPromptCr({ cliente, onFechar, onSalvar }: ModalPromptCrProps) {
+  const [crTiroDesportivo, setCrTiroDesportivo] = useState(false);
+  const [crCaca, setCrCaca] = useState(false);
+  const [crColecionamento, setCrColecionamento] = useState(false);
+  const [atiradorNivel, setAtiradorNivel] = useState<number | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  const handleSalvar = async () => {
+    setSalvando(true);
+    try {
+      await onSalvar({
+        crTiroDesportivo,
+        crCaca,
+        crColecionamento,
+        atiradorNivel: crTiroDesportivo ? atiradorNivel : null
+      });
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-brand-dark-2 w-full max-w-md rounded-2xl border border-brand-dark-5 p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="absolute top-0 left-0 w-full h-1 bg-brand-blue" />
+        
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-brand-blue/10 p-2.5 rounded-xl border border-brand-blue/20">
+              <Shield size={24} className="text-brand-blue" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white uppercase tracking-tight">Atividades do CR</h2>
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-none mt-1">Atualização Requerida</p>
+            </div>
+          </div>
+          <button 
+            onClick={onFechar}
+            className="text-gray-500 hover:text-white transition-colors p-1 hover:bg-white/5 rounded-lg"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="p-3.5 bg-brand-dark-3 border border-brand-dark-5 rounded-xl text-xs text-gray-400 leading-relaxed">
+            O cliente <strong className="text-white">{cliente.nome}</strong> possui o CR <strong className="text-white">{cliente.numeroCr}</strong> cadastrado, mas as atividades e o nível de atirador ainda não foram configurados.
+          </div>
+
+          <div className="space-y-3">
+            <label className="label text-[10px] font-black uppercase tracking-wider text-gray-500">Atividades Apostiladas (CR)</label>
+            <div className="grid grid-cols-3 gap-2 bg-brand-dark-3 p-3.5 rounded-xl border border-brand-dark-5">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={crTiroDesportivo} onChange={e => {
+                    setCrTiroDesportivo(e.target.checked);
+                    if (!e.target.checked) setAtiradorNivel(null);
+                  }}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Tiro Desp.
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={crCaca} onChange={e => setCrCaca(e.target.checked)}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Caça
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium">
+                <input type="checkbox"
+                  checked={crColecionamento} onChange={e => setCrColecionamento(e.target.checked)}
+                  className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" />
+                Colecionam.
+              </label>
+            </div>
+
+            {crTiroDesportivo && (
+              <div className="p-3.5 bg-brand-dark-3 rounded-xl border border-brand-dark-5 space-y-2">
+                <label className="label text-[11px] font-bold text-gray-400">Nível do Atirador <span className="text-red-500">*</span></label>
+                <div className="flex gap-4">
+                  {[1, 2, 3].map(n => (
+                    <label key={n} className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-300 font-medium">
+                      <input type="radio" name="modalAtiradorNivel"
+                        value={n} checked={atiradorNivel === n}
+                        onChange={e => setAtiradorNivel(Number(e.target.value))}
+                        className="bg-brand-dark-4 border-brand-dark-5 text-brand-blue focus:ring-0 w-4 h-4" />
+                      Nível {n}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-6">
+          <button 
+            onClick={onFechar} 
+            disabled={salvando}
+            className="btn-ghost flex-1 py-2 text-xs uppercase font-bold"
+          >
+            Depois
+          </button>
+          <button 
+            onClick={handleSalvar}
+            disabled={salvando || (!crTiroDesportivo && !crCaca && !crColecionamento) || (crTiroDesportivo && !atiradorNivel)}
+            className="btn-primary flex-1 py-2 text-xs uppercase font-bold flex items-center justify-center gap-2"
+          >
+            {salvando ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Salvando...
+              </>
+            ) : 'Salvar'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
