@@ -506,7 +506,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
         if (isAlerta(crIbamaVenc, 'IBAMA_CR')) count++;
         armasList.forEach(a => { if (isAlerta(a.vencimentoCraf || a.vencimento_craf, 'CRAF')) count++; });
         gtsList.forEach(g => { if (isAlerta(g.vencimento, 'GT')) count++; });
-        manejosList.forEach(m => { if (isAlerta(m.vencimento, 'MANEJO')) count++; });
+        manejosList.forEach(m => { if (m.status !== 'Inerte' && isAlerta(m.vencimento, 'MANEJO')) count++; });
 
         setAlertasCount(count);
       } catch (err) {

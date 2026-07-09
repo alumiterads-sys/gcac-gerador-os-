@@ -108,7 +108,7 @@ export async function buscarTodosAtiradores(): Promise<PerfilAtirador[]> {
   // 6. Busca autorizações de manejo
   const { data: manejos } = await supabase
     .from('autorizacoes_manejo')
-    .select('empresa_id, vencimento')
+    .select('empresa_id, vencimento, status')
     .in('empresa_id', empresaIds);
 
   // 7. Busca todos os vínculos de despachantes ativos desses atiradores
@@ -146,7 +146,7 @@ export async function buscarTodosAtiradores(): Promise<PerfilAtirador[]> {
     if (isAlerta(cliente?.vencimento_cr_ibama)) alertasCriticos++;
     armasDoUser.forEach(a => { if (isAlerta(a.vencimento_craf)) alertasCriticos++; });
     gtsDoUser.forEach(g => { if (isAlerta(g.vencimento)) alertasCriticos++; });
-    manejosDoUser.forEach(m => { if (isAlerta(m.vencimento)) alertasCriticos++; });
+    manejosDoUser.forEach(m => { if (m.status !== 'Inerte' && isAlerta(m.vencimento)) alertasCriticos++; });
 
     return {
       id: u.id,

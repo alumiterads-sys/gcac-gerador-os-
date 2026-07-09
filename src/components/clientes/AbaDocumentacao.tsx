@@ -123,7 +123,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
       });
     });
     manejos.forEach(m => {
-      if (isAlerta(m.vencimento, 'MANEJO')) {
+      if (m.status !== 'Inerte' && isAlerta(m.vencimento, 'MANEJO')) {
         itens.push({ id: `manejo-${m.id}`, tipo: 'Autorização de Manejo', nome: `Fazenda ${m.nomeFazenda} (CAR: ${m.numeroCar})`, data: m.vencimento! });
       }
     });
