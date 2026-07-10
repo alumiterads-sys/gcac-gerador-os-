@@ -990,7 +990,8 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                       date: o.criadoEm, 
                       value: o.valor, 
                       status: o.status,
-                      path: `/ordens/${o.id}`
+                      path: `/ordens/${o.id}`,
+                      servicos: o.servicos ? o.servicos.map(s => s.nome) : []
                     }))} 
                     emptyMsg={mostrarTodasOrdens ? "Nenhuma ordem de serviço encontrada para este cliente." : "Não há ordens de serviço em aberto para este cliente."}
                   />
@@ -1004,7 +1005,8 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                     date: o.criadoEm, 
                     value: o.valorTotal, 
                     status: o.status,
-                    path: `/orcamentos/${o.id}`
+                    path: `/orcamentos/${o.id}`,
+                    servicos: o.servicos ? o.servicos.map(s => s.nome) : []
                   }))} 
                   emptyMsg="Nenhum orçamento encontrado para este cliente."
                 />
@@ -1017,7 +1019,8 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                     date: r.criadoEm, 
                     value: r.valorTotal, 
                     status: 'Pago',
-                    path: `/recibos/${r.id}`
+                    path: `/recibos/${r.id}`,
+                    servicos: r.servicos ? r.servicos.map(s => s.nome) : []
                   }))} 
                   emptyMsg="Nenhum recibo encontrado para este cliente."
                 />
@@ -1262,18 +1265,31 @@ function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
         <div 
           key={item.id} 
           onClick={() => navigate(item.path)}
-          className="flex items-center justify-between p-3 rounded-xl bg-brand-dark-3 border border-brand-dark-5 hover:border-brand-blue/30 transition-all cursor-pointer group"
+          className="flex items-start justify-between p-3 rounded-xl bg-brand-dark-3 border border-brand-dark-5 hover:border-brand-blue/30 transition-all cursor-pointer group"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-brand-dark-2 flex items-center justify-center text-brand-blue group-hover:scale-110 transition-transform">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-brand-dark-2 flex items-center justify-center text-brand-blue group-hover:scale-110 transition-transform shrink-0">
               <FileText size={18} />
             </div>
-            <div>
-              <p className="text-sm font-bold text-white">{item.title}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white truncate">{item.title}</p>
               <p className="text-[10px] text-gray-500">{formatarData(item.date)}</p>
+              
+              {item.servicos && item.servicos.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {item.servicos.map((servico: string, idx: number) => (
+                    <span 
+                      key={idx} 
+                      className="px-1.5 py-0.5 rounded bg-brand-dark-2 text-[9px] text-brand-blue-light border border-brand-dark-5 font-semibold uppercase tracking-wider whitespace-nowrap"
+                    >
+                      {servico}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0 ml-4 self-center">
             <div className="text-right">
               <p className="text-sm font-bold text-white">{formatarMoeda(item.value)}</p>
               <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">{item.status}</p>
