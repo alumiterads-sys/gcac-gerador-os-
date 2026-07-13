@@ -359,10 +359,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
 
   const criarOpcaoArma = async (tipo: 'modelo' | 'calibre' | 'fabricante' | 'clube', nome: string) => {
     if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
-    const nomeFormatado = tipo === 'modelo' ? normalizarModelo(nome) 
-                          : tipo === 'calibre' ? normalizarCalibre(nome) 
-                          : tipo === 'fabricante' ? normalizarFabricante(nome)
-                          : nome.trim().toUpperCase();
+    const nomeFormatado = nome.trim().toUpperCase();
     if (!nomeFormatado) throw new Error('Nome inválido');
 
     // Evitar duplicidade local antes de tentar salvar
@@ -387,10 +384,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     const item = opcoesArmas.find(o => o.id === id);
     if (!item) throw new Error('Item não encontrado');
 
-    const nomeFormatado = item.tipo === 'modelo' ? normalizarModelo(novoNome) 
-                          : item.tipo === 'calibre' ? normalizarCalibre(novoNome) 
-                          : item.tipo === 'fabricante' ? normalizarFabricante(novoNome)
-                          : novoNome.trim().toUpperCase();
+    const nomeFormatado = novoNome.trim().toUpperCase();
     if (!nomeFormatado) throw new Error('Nome inválido');
 
     const duplicado = opcoesArmas.some(o => o.id !== id && o.tipo === item.tipo && o.nome.toUpperCase() === nomeFormatado.toUpperCase());
