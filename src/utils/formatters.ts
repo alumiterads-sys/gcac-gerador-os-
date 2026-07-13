@@ -215,19 +215,19 @@ export function normalizarCalibre(calibre: string | undefined | null): string {
   }
   // 12 GA
   if (c.includes('12 GA') || c.includes('12GA') || c.includes('12 GAUGE') || c.includes('12 ')) {
-    return '12 GA';
+    return c.includes('.') ? '.12 GA' : '12 GA';
   }
   // 20 GA
   if (c.includes('20 GA') || c.includes('20GA') || c.includes('20 GAUGE') || c.includes('20 ')) {
-    return '20 GA';
+    return c.includes('.') ? '.20 GA' : '20 GA';
   }
   // 28 GA
   if (c.includes('28 GA') || c.includes('28GA') || c.includes('28 GAUGE') || c.includes('28 ')) {
-    return '28 GA';
+    return c.includes('.') ? '.28 GA' : '28 GA';
   }
   // 36 GA
   if (c.includes('36 GA') || c.includes('36GA') || c.includes('36 GAUGE') || c.includes('36 ')) {
-    return '36 GA';
+    return c.includes('.') ? '.36 GA' : '36 GA';
   }
   // .308 WIN / 7.62 NATO
   if (c.includes('308') || c.includes('7.62') || c.includes('7.62X51') || c.includes('7.62 NATO')) {
