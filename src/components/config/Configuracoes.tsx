@@ -69,11 +69,11 @@ export function Configuracoes() {
   const [alertasExpandido, setAlertasExpandido] = useState(false);
   const [otimizacaoExpandido, setOtimizacaoExpandido] = useState(false);
   const [opcoesArmasExpandido, setOpcoesArmasExpandido] = useState(false);
-  const [tipoOpcaoAtiva, setTipoOpcaoAtiva] = useState<'modelo' | 'calibre' | 'fabricante'>('modelo');
+  const [tipoOpcaoAtiva, setTipoOpcaoAtiva] = useState<'modelo' | 'calibre' | 'fabricante' | 'clube'>('modelo');
   
   // Controle de modal de opções de armas
   const [modalOpcaoAberta, setModalOpcaoAberta] = useState(false);
-  const [opcaoEditando, setOpcaoEditando] = useState<{ id?: string, tipo: 'modelo' | 'calibre' | 'fabricante', nome: string } | null>(null);
+  const [opcaoEditando, setOpcaoEditando] = useState<{ id?: string, tipo: 'modelo' | 'calibre' | 'fabricante' | 'clube', nome: string } | null>(null);
   const [textoNovaOpcao, setTextoNovaOpcao] = useState('');
   
   const [migrando, setMigrando] = useState(false);
@@ -2039,7 +2039,7 @@ export function Configuracoes() {
             <div className="animate-slide-down space-y-4 pt-3 border-t border-brand-dark-5">
               {/* Abas */}
               <div className="flex gap-2 border-b border-brand-dark-5 pb-2">
-                {(['modelo', 'calibre', 'fabricante'] as const).map(tipo => (
+                {(['modelo', 'calibre', 'fabricante', 'clube'] as const).map(tipo => (
                   <button
                     key={tipo}
                     type="button"
@@ -2050,7 +2050,7 @@ export function Configuracoes() {
                         : 'bg-brand-dark-4 text-gray-400 hover:text-white'
                     }`}
                   >
-                    {tipo === 'modelo' ? 'Modelos' : tipo === 'calibre' ? 'Calibres' : 'Fabricantes'}
+                    {tipo === 'modelo' ? 'Modelos' : tipo === 'calibre' ? 'Calibres' : tipo === 'fabricante' ? 'Fabricantes' : 'Clubes de Tiro'}
                   </button>
                 ))}
               </div>
@@ -2058,7 +2058,7 @@ export function Configuracoes() {
               {/* Botão de Adicionar */}
               <div className="flex justify-between items-center">
                 <p className="text-xs text-gray-400">
-                  Lista de {tipoOpcaoAtiva === 'modelo' ? 'modelos' : tipoOpcaoAtiva === 'calibre' ? 'calibres' : 'fabricantes'} cadastrados.
+                  Lista de {tipoOpcaoAtiva === 'modelo' ? 'modelos' : tipoOpcaoAtiva === 'calibre' ? 'calibres' : tipoOpcaoAtiva === 'fabricante' ? 'fabricantes' : 'clubes de tiro'} cadastrados.
                 </p>
                 <button
                   type="button"
@@ -2288,7 +2288,10 @@ export function Configuracoes() {
 
             <h2 className="text-xl font-bold text-white mb-6">
               {opcaoEditando.id ? 'Editar Item' : 'Novo Item'} ({
-                opcaoEditando.tipo === 'modelo' ? 'Modelo' : opcaoEditando.tipo === 'calibre' ? 'Calibre' : 'Fabricante'
+                opcaoEditando.tipo === 'modelo' ? 'Modelo' 
+                : opcaoEditando.tipo === 'calibre' ? 'Calibre' 
+                : opcaoEditando.tipo === 'fabricante' ? 'Fabricante' 
+                : 'Clube de Tiro'
               })
             </h2>
 
@@ -2319,7 +2322,8 @@ export function Configuracoes() {
                   placeholder={
                     opcaoEditando.tipo === 'modelo' ? 'Ex: G2C, PUMA' 
                     : opcaoEditando.tipo === 'calibre' ? 'Ex: 9MM, .38 SPL' 
-                    : 'Ex: TAURUS, CBC'
+                    : opcaoEditando.tipo === 'fabricante' ? 'Ex: TAURUS, CBC'
+                    : 'Ex: CLUBE DE TIRO E CAÇA PRÓ TIRO'
                   }
                   value={textoNovaOpcao}
                   onChange={e => setTextoNovaOpcao(e.target.value)}

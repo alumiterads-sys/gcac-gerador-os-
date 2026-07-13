@@ -54,7 +54,7 @@ interface ClientesContextType {
   opcoesArmas: OpcaoArma[];
   carregandoOpcoes: boolean;
   inicializarOpcoesArmasPadrao: () => Promise<void>;
-  criarOpcaoArma: (tipo: 'modelo' | 'calibre' | 'fabricante', nome: string) => Promise<void>;
+  criarOpcaoArma: (tipo: 'modelo' | 'calibre' | 'fabricante' | 'clube', nome: string) => Promise<void>;
   atualizarOpcaoArma: (id: string, novoNome: string) => Promise<void>;
   deletarOpcaoArma: (id: string) => Promise<void>;
   
@@ -249,60 +249,97 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     if (!usuario?.empresaId) return;
     setCarregandoOpcoes(true);
     try {
-      // 1. Verificar se já existem opções cadastradas no banco
-      const { count, error: countErr } = await supabase
+      // 1. Verificar o que já existe cadastrado no banco
+      const { data: opcoesExistentes, error: findErr } = await supabase
         .from('opcoes_armas')
-        .select('*', { count: 'exact', head: true })
+        .select('tipo')
         .eq('empresa_id', usuario.empresaId);
 
-      if (countErr) throw countErr;
+      if (findErr) throw findErr;
 
-      // Se já existem registros, não faz nada e apenas carrega
-      if (count && count > 0) {
-        await carregarOpcoesArmas();
-        return;
-      }
+      const hasWeapons = opcoesExistentes && opcoesExistentes.some(row => row.tipo !== 'clube');
+      const hasClubs = opcoesExistentes && opcoesExistentes.some(row => row.tipo === 'clube');
 
-      // 2. Coletar opções a serem criadas
-      // Combinar os padrões com o que já existe no banco de armas do cliente
-      const modelos = new Set<string>(MODELOS_BASE.map(normalizarModelo));
-      const calibres = new Set<string>(CALIBRES_BASE.map(normalizarCalibre));
-      const fabricantes = new Set<string>(FABRICANTES_BASE.map(normalizarFabricante));
+      const rowsToInsert: any[] = [];
 
-      const { data: armasExistentes } = await supabase
-        .from('armas')
-        .select('modelo, calibre, fabricante')
-        .eq('empresa_id', usuario.empresaId);
+      // 2. Se não tem opções de armas (modelo, calibre, fabricante), faz a carga delas
+      if (!hasWeapons) {
+        const modelos = new Set<string>(MODELOS_BASE.map(normalizarModelo));
+        const calibres = new Set<string>(CALIBRES_BASE.map(normalizarCalibre));
+        const fabricantes = new Set<string>(FABRICANTES_BASE.map(normalizarFabricante));
 
-      if (armasExistentes) {
-        armasExistentes.forEach(a => {
-          if (a.modelo) {
-            const m = normalizarModelo(a.modelo);
-            if (m) modelos.add(m);
-          }
-          if (a.calibre) {
-            const c = normalizarCalibre(a.calibre);
-            if (c) calibres.add(c);
-          }
-          if (a.fabricante) {
-            const f = normalizarFabricante(a.fabricante);
-            if (f) fabricantes.add(f);
-          }
+        const { data: armasExistentes } = await supabase
+          .from('armas')
+          .select('modelo, calibre, fabricante')
+          .eq('empresa_id', usuario.empresaId);
+
+        if (armasExistentes) {
+          armasExistentes.forEach(a => {
+            if (a.modelo) {
+              const m = normalizarModelo(a.modelo);
+              if (m) modelos.add(m);
+            }
+            if (a.calibre) {
+              const c = normalizarCalibre(a.calibre);
+              if (c) calibres.add(c);
+            }
+            if (a.fabricante) {
+              const f = normalizarFabricante(a.fabricante);
+              if (f) fabricantes.add(f);
+            }
+          });
+        }
+
+        modelos.forEach(m => {
+          if (m) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'modelo', nome: m });
+        });
+        calibres.forEach(c => {
+          if (c) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'calibre', nome: c });
+        });
+        fabricantes.forEach(f => {
+          if (f) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'fabricante', nome: f });
         });
       }
 
-      // 3. Preparar inserção em massa
-      const rowsToInsert: any[] = [];
-      
-      modelos.forEach(m => {
-        if (m) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'modelo', nome: m });
-      });
-      calibres.forEach(c => {
-        if (c) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'calibre', nome: c });
-      });
-      fabricantes.forEach(f => {
-        if (f) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'fabricante', nome: f });
-      });
+      // 3. Se não tem opções de clubes de tiro, faz a carga deles
+      if (!hasClubs) {
+        const clubes = new Set<string>();
+
+        // a) Clube Parceiro Padrão
+        const clubeParceiro = usuario?.dadosEmpresa?.clubeParceiroPadrao;
+        if (clubeParceiro && clubeParceiro.trim() !== '') {
+          clubes.add(clubeParceiro.trim().toUpperCase());
+        }
+
+        // b) Clubes filiados de clientes existentes
+        clientes.forEach(c => {
+          if (c.clubeFiliado && c.clubeFiliado.trim() !== '' && c.clubeFiliado.toUpperCase() !== 'NÃO RELATADO' && c.clubeFiliado.toUpperCase() !== 'NÃO FILIADO') {
+            clubes.add(c.clubeFiliado.trim().toUpperCase());
+          }
+        });
+
+        // c) Destinos de GTs anteriores (que não sejam em formato Cidade-UF)
+        const { data: gtsExistentes } = await supabase
+          .from('guias_trafego')
+          .select('destino')
+          .eq('empresa_id', usuario.empresaId);
+
+        if (gtsExistentes) {
+          gtsExistentes.forEach(gt => {
+            if (gt.destino && gt.destino.trim() !== '') {
+              const normalizado = gt.destino.trim().toUpperCase();
+              const isCityUf = /^[A-ZÀ-ÿ\s.-]+-[A-Z]{2}$/.test(normalizado);
+              if (!isCityUf) {
+                clubes.add(normalizado);
+              }
+            }
+          });
+        }
+
+        clubes.forEach(clube => {
+          if (clube) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'clube', nome: clube });
+        });
+      }
 
       if (rowsToInsert.length > 0) {
         const { error: insertErr } = await supabase
@@ -314,17 +351,18 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
 
       await carregarOpcoesArmas();
     } catch (err) {
-      console.error('Erro ao inicializar opções de armas padrão:', err);
+      console.error('Erro ao inicializar opções padrão:', err);
     } finally {
       setCarregandoOpcoes(false);
     }
-  }, [usuario, carregarOpcoesArmas]);
+  }, [usuario, carregarOpcoesArmas, clientes]);
 
-  const criarOpcaoArma = async (tipo: 'modelo' | 'calibre' | 'fabricante', nome: string) => {
+  const criarOpcaoArma = async (tipo: 'modelo' | 'calibre' | 'fabricante' | 'clube', nome: string) => {
     if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
     const nomeFormatado = tipo === 'modelo' ? normalizarModelo(nome) 
                           : tipo === 'calibre' ? normalizarCalibre(nome) 
-                          : normalizarFabricante(nome);
+                          : tipo === 'fabricante' ? normalizarFabricante(nome)
+                          : nome.trim().toUpperCase();
     if (!nomeFormatado) throw new Error('Nome inválido');
 
     // Evitar duplicidade local antes de tentar salvar
@@ -351,7 +389,8 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
 
     const nomeFormatado = item.tipo === 'modelo' ? normalizarModelo(novoNome) 
                           : item.tipo === 'calibre' ? normalizarCalibre(novoNome) 
-                          : normalizarFabricante(novoNome);
+                          : item.tipo === 'fabricante' ? normalizarFabricante(novoNome)
+                          : novoNome.trim().toUpperCase();
     if (!nomeFormatado) throw new Error('Nome inválido');
 
     const duplicado = opcoesArmas.some(o => o.id !== id && o.tipo === item.tipo && o.nome.toUpperCase() === nomeFormatado.toUpperCase());

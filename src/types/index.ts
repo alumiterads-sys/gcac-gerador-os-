@@ -491,7 +491,7 @@ export interface ModeloDeclaracao {
 export interface OpcaoArma {
   id: string;
   empresaId: string;
-  tipo: 'modelo' | 'calibre' | 'fabricante';
+  tipo: 'modelo' | 'calibre' | 'fabricante' | 'clube';
   nome: string;
   criadoEm?: string;
 }

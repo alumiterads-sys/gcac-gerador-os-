@@ -1115,15 +1115,15 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
 }
 
 export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, onSalvar }: { armaAcervo: string, armaNumeroSerie?: string, gtParaEditar?: GuiaTrafego, onFechar: () => void, onSalvar: (d: any) => void }) {
+  const { opcoesArmas, buscarGts } = useClientes();
   const [form, setForm] = useState({ 
     id: gtParaEditar?.id,
-    tipo: (gtParaEditar?.tipo || 'Caça') as string, 
+    tipo: (gtParaEditar?.tipo || (armaAcervo?.toUpperCase() === 'CAÇA' ? 'Caça' : 'Treino')) as string, 
     vencimento: gtParaEditar?.vencimento || '', 
     destino: gtParaEditar?.destino || '',
     arquivoUrl: gtParaEditar?.arquivoUrl || '',
     gtEmRenovacao: gtParaEditar?.gtEmRenovacao ?? false
   });
-  const [sugestoes, setSugestoes] = useState<string[]>([]);
   
   // Estados para UF e Cidade (para guias do tipo Caça)
   const [selectedUf, setSelectedUf] = useState('');
@@ -1132,8 +1132,6 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
   const [carregandoCidades, setCarregandoCidades] = useState(false);
   const [importando, setImportando] = useState(false);
   const [pendingCidade, setPendingCidade] = useState('');
-
-  const { buscarGts } = useClientes();
 
   // Parsing inicial na edição
   useEffect(() => {
@@ -1197,45 +1195,13 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
     }
   }, [cidades, pendingCidade, selectedUf]);
 
-  // Carregar sugestões do banco de dados baseadas em guias existentes
-  useEffect(() => {
-    const carregarSugestoes = async () => {
-      try {
-        const { supabase } = await import('../../db/supabase');
-        // Buscamos destinos únicos de todas as guias do sistema para popular o autocomplete
-        const { data, error } = await supabase
-          .from('guias_trafego')
-          .select('destino, tipo');
-        
-        if (!error && data) {
-          const uniqueDestinos = new Set<string>();
-          data.forEach(gt => {
-            if (gt.destino) {
-              // Normaliza para evitar duplicatas
-              const normalizado = gt.destino
-                .toUpperCase()
-                .replace(/\s+/g, ' ')
-                .replace(/\s?-\s?/g, '-')
-                .trim();
-              
-              // Verifica se o destino tem formato de cidade/UF (ex: JATAÍ-GO)
-              const isCityUf = /^[A-ZÀ-ÿ\s.-]+-[A-Z]{2}$/.test(normalizado);
-
-              if (form.tipo === 'Caça') {
-                if (isCityUf) uniqueDestinos.add(normalizado);
-              } else {
-                if (!isCityUf) uniqueDestinos.add(normalizado);
-              }
-            }
-          });
-          setSugestoes(Array.from(uniqueDestinos).sort());
-        }
-      } catch (err) {
-        console.error('Erro ao carregar sugestões:', err);
-      }
-    };
-    carregarSugestoes();
-  }, [form.tipo]);
+  const clubesConfigurados = opcoesArmas.filter(o => o.tipo === 'clube').map(o => o.nome);
+  const destinosCombinados = Array.from(
+    new Set([
+      ...clubesConfigurados,
+      ...(form.destino ? [form.destino.trim().toUpperCase()] : [])
+    ])
+  ).filter(Boolean).sort() as string[];
 
   const handleUfChange = (uf: string) => {
     setSelectedUf(uf);
@@ -1454,17 +1420,18 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
           ) : (
             <div>
               <label className="label">{getLabelDestino()} <span className="text-red-500">*</span></label>
-              <input 
-                list="sugestoes-destino"
-                type="text" 
-                className="input uppercase" 
-                placeholder={getPlaceholderDestino()} 
+              <select 
+                className="input uppercase font-bold" 
                 value={form.destino} 
-                onChange={e => setForm({...form, destino: e.target.value})} 
-              />
-              <datalist id="sugestoes-destino">
-                {sugestoes.map(s => <option key={s} value={s} />)}
-              </datalist>
+                onChange={e => setForm({...form, destino: e.target.value})}
+              >
+                <option value="" disabled>SELECIONE...</option>
+                {destinosCombinados.map(d => (
+                  <option key={d} value={d} className="bg-brand-dark-4 text-white">
+                    {d.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
