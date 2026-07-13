@@ -59,9 +59,10 @@ const RECURSOS_SISTEMA = [
 ];
 
 import { PainelAtiradores } from '../admin/PainelAtiradores';
+import { EditorSitePortal } from '../admin/EditorSitePortal';
 
 interface GestaoUsuariosProps {
-  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast';
+  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site';
 }
 
 const PROMPTS_RAPIDOS = [
@@ -174,7 +175,7 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
 
   // Sub-painel ativo para Master Admin
-  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast'>(abaInicial || 'empresas');
+  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site'>(abaInicial || 'empresas');
 
   useEffect(() => {
     if (abaInicial) {
@@ -1956,6 +1957,18 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
               >
                 <Bell size={14} />
                 Lançar Notificações (Broadcast)
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSubPainelAtivo('site'); setBuscaUsuario(''); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                  subPainelAtivo === 'site'
+                    ? 'bg-brand-blue/15 border-brand-blue/30 text-white font-bold'
+                    : 'bg-brand-dark-3 border-brand-dark-5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Settings2 size={14} />
+                Site Portal G CAC
               </button>
             </div>
           )}
@@ -3801,6 +3814,20 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ABA 8: SITE PORTAL G CAC */}
+          {subPainelAtivo === 'site' && (
+            <div className="card space-y-6 animate-fade-in">
+              <div className="pb-2 border-b border-brand-dark-5">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Settings2 size={16} className="text-brand-blue" />
+                  SITE PORTAL G CAC - Gerenciamento de Conteúdo
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Gerencie os blocos, textos, imagens, planos e vídeos exibidos na página inicial pública do Portal GCAC</p>
+              </div>
+              <EditorSitePortal />
             </div>
           )}
         </div>
