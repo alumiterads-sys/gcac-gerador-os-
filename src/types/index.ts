@@ -487,3 +487,12 @@ export interface ModeloDeclaracao {
   empresaId: string;
   criadoEm: string;
 }
+
+export interface OpcaoArma {
+  id: string;
+  empresaId: string;
+  tipo: 'modelo' | 'calibre' | 'fabricante';
+  nome: string;
+  criadoEm?: string;
+}
+

@@ -14,32 +14,6 @@ import { useAuth } from '../../context/AuthContext';
 import { buscarAcervoVinculado } from '../../services/vinculosService';
 
 const TIPOS_ARMA = ['Pistola', 'Revólver', 'Carabina / Fuzil', 'Espingarda'];
-const CALIBRES = [
-  '.22 LR', '.22 WMR', '.223 REM / 5.56 NATO', '.30-06 SPRG', '.308 WIN / 7.62 NATO', 
-  '.357 MAG', '.38 SPL', '.380 ACP', '9mm LUGER', '.40 S&W', '.44 MAG', 
-  '.45 ACP', '.454 CASULL', '12 GA', '20 GA', '28 GA', '36 GA'
-];
-const FABRICANTES_BASE = [
-  'BENELLI', 'BERETTA', 'BOITO', 'BROWNING', 'CANIK', 'CBC', 'COLT', 'CZ', 
-  'GLOCK', 'IMBEL', 'REMINGTON', 'ROSSI', 'RUGER', 'SIG SAUER', 
-  'SMITH & WESSON', 'SPRINGFIELD ARMORY', 'STOEGER', 'TANFOGLIO', 
-  'TAURUS', 'WALTHER', 'WINCHESTER'
-];
-const MODELOS_BASE = [
-  // Taurus
-  'G2C', 'G3', 'G3C', 'G3 TORO', 'GX4', 'TH9', 'TH380', 'TH40', 'TS9',
-  'PT 92', 'PT 100', 'PT 838', 'PT 1911', 'RT 85', 'RT 88', 'RT 856', 'RT 608', 'RT 817', 'T4', 'CTT40',
-  // Glock
-  'G17', 'G19', 'G19X', 'G20', 'G21', 'G22', 'G25', 'G43', 'G43X', 'G44', 'G45',
-  // Outros Nacionais
-  'MD1', 'MD2', 'MD6', 'MD7', 'M1911 A1', 'PUMP MILITARY 3.0', '7022', '8122', 'PUMP', 'ERA 2001', 'MIURA I', 'MIURA II', 'PUMA', 'RT 718',
-  // Internacionais Populares
-  'APX', '92FS', 'M9', 'P-10 C', 'P-10 F', 'CZ 75', 'SHADOW 2', 'TS 2', 'SCORPION',
-  'P320', 'P365', 'M17', 'M18', 'P226', 'M&P 9', 'M&P 15', 'SHIELD', 'MODEL 686',
-  'TP9', 'TP9SF', 'TP9 ELITE', 'RIVAL', '1911', 'M4', 'PYTHON', 'HELLCAT', 'XD', 'M1A',
-  'PPQ', 'PDP', 'P22', '10/22', 'MARK IV', 'LCP', 'SECURITY-9', '870', '700', 'STR-9', 'M3000',
-  'SUPERNOVA', 'STOCK II', 'STOCK III', 'DEFORCE', 'HI-POWER', 'BUCK MARK', 'SXP', 'MODEL 70'
-];
 
 const ESTADOS_BRASIL = [
   { sigla: 'AC', nome: 'Acre' },
@@ -927,7 +901,7 @@ function EmptyState({ msg }: { msg: string }) {
 // --- Formulários Internos (Modais) ---
 
 export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEditar?: Arma, onFechar: () => void, onSalvar: (d: any) => void }) {
-  const { modelosRegistrados, calibresRegistrados, fabricantesRegistrados } = useClientes();
+  const { opcoesArmas } = useClientes();
   const [form, setForm] = useState({
     id: armaParaEditar?.id,
     tipo: armaParaEditar?.tipo || '', 
@@ -942,24 +916,28 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
     crafEmRenovacao: armaParaEditar?.crafEmRenovacao ?? false
   });
 
+  const modelosConfigurados = opcoesArmas.filter(o => o.tipo === 'modelo').map(o => o.nome);
+  const calibresConfigurados = opcoesArmas.filter(o => o.tipo === 'calibre').map(o => o.nome);
+  const fabricantesConfigurados = opcoesArmas.filter(o => o.tipo === 'fabricante').map(o => o.nome);
+
   const modelosCombinados = Array.from(
     new Set([
-      ...MODELOS_BASE.map(normalizarModelo),
-      ...modelosRegistrados.map(normalizarModelo)
+      ...modelosConfigurados,
+      ...(form.modelo ? [normalizarModelo(form.modelo)] : [])
     ])
   ).filter(Boolean).sort() as string[];
 
   const calibresCombinados = Array.from(
     new Set([
-      ...CALIBRES.map(normalizarCalibre),
-      ...calibresRegistrados.map(normalizarCalibre)
+      ...calibresConfigurados,
+      ...(form.calibre ? [normalizarCalibre(form.calibre)] : [])
     ])
   ).filter(Boolean).sort() as string[];
 
   const fabricantesCombinados = Array.from(
     new Set([
-      ...FABRICANTES_BASE.map(normalizarFabricante),
-      ...fabricantesRegistrados.map(normalizarFabricante)
+      ...fabricantesConfigurados,
+      ...(form.fabricante ? [normalizarFabricante(form.fabricante)] : [])
     ])
   ).filter(Boolean).sort() as string[];
 
@@ -995,45 +973,50 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Modelo</label>
-              <input 
-                list="modelos-arma"
-                type="text" 
-                className="input uppercase" 
+              <select 
+                className="input uppercase font-bold" 
                 value={form.modelo} 
-                onChange={e => setForm({...form, modelo: e.target.value})} 
-                placeholder="Ex: G2C"
-              />
-              <datalist id="modelos-arma">
-                {modelosCombinados.map(m => <option key={m} value={m} />)}
-              </datalist>
+                onChange={e => setForm({...form, modelo: e.target.value})}
+              >
+                <option value="" disabled>SELECIONE...</option>
+                {modelosCombinados.map(m => (
+                  <option key={m} value={m} className="bg-brand-dark-4 text-white">
+                    {m.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Calibre</label>
-              <input 
-                list="calibres-arma"
-                className="input uppercase" 
+              <select 
+                className="input uppercase font-bold" 
                 value={form.calibre} 
-                onChange={e => setForm({...form, calibre: e.target.value})} 
-                placeholder="Ex: 9mm"
-              />
-              <datalist id="calibres-arma">
-                {calibresCombinados.map(c => <option key={c} value={c} />)}
-              </datalist>
+                onChange={e => setForm({...form, calibre: e.target.value})}
+              >
+                <option value="" disabled>SELECIONE...</option>
+                {calibresCombinados.map(c => (
+                  <option key={c} value={c} className="bg-brand-dark-4 text-white">
+                    {c.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Fabricante</label>
-              <input 
-                list="fabricantes-arma"
-                className="input uppercase" 
+              <select 
+                className="input uppercase font-bold" 
                 value={form.fabricante} 
-                onChange={e => setForm({...form, fabricante: e.target.value})} 
-                placeholder="Ex: Taurus"
-              />
-              <datalist id="fabricantes-arma">
-                {fabricantesCombinados.map(f => <option key={f} value={f} />)}
-              </datalist>
+                onChange={e => setForm({...form, fabricante: e.target.value})}
+              >
+                <option value="" disabled>SELECIONE...</option>
+                {fabricantesCombinados.map(f => (
+                  <option key={f} value={f} className="bg-brand-dark-4 text-white">
+                    {f.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="label">Nº de Série</label>

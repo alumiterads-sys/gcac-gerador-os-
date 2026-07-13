@@ -1,11 +1,40 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo, CreditoCliente, ModeloDeclaracao } from '../types';
+import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo, CreditoCliente, ModeloDeclaracao, OpcaoArma } from '../types';
 import { supabase } from '../db/supabase';
 import { uploadBase64File } from '../utils/fileUtils';
 import { normalizarCalibre, normalizarModelo, normalizarFabricante } from '../utils/formatters';
 
 import { useAuth } from './AuthContext';
+
+// Padrões de Armas para Importação / Inicialização
+export const CALIBRES_BASE = [
+  '.22 LR', '.22 WMR', '.223 REM / 5.56 NATO', '.30-06 SPRG', '.308 WIN / 7.62 NATO', 
+  '.357 MAG', '.38 SPL', '.380 ACP', '9mm LUGER', '.40 S&W', '.44 MAG', 
+  '.45 ACP', '.454 CASULL', '12 GA', '20 GA', '28 GA', '36 GA'
+];
+export const FABRICANTES_BASE = [
+  'BENELLI', 'BERETTA', 'BOITO', 'BROWNING', 'CANIK', 'CBC', 'COLT', 'CZ', 
+  'GLOCK', 'IMBEL', 'REMINGTON', 'ROSSI', 'RUGER', 'SIG SAUER', 
+  'SMITH & WESSON', 'SPRINGFIELD ARMORY', 'STOEGER', 'TANFOGLIO', 
+  'TAURUS', 'WALTHER', 'WINCHESTER'
+];
+export const MODELOS_BASE = [
+  // Taurus
+  'G2C', 'G3', 'G3C', 'G3 TORO', 'GX4', 'TH9', 'TH380', 'TH40', 'TS9',
+  'PT 92', 'PT 100', 'PT 838', 'PT 1911', 'RT 85', 'RT 88', 'RT 856', 'RT 608', 'RT 817', 'T4', 'CTT40',
+  // Glock
+  'G17', 'G19', 'G19X', 'G20', 'G21', 'G22', 'G25', 'G43', 'G43X', 'G44', 'G45',
+  // Outros Nacionais
+  'MD1', 'MD2', 'MD6', 'MD7', 'M1911 A1', 'PUMP MILITARY 3.0', '7022', '8122', 'PUMP', 'ERA 2001', 'MIURA I', 'MIURA II', 'PUMA', 'RT 718',
+  // Internacionais Populares
+  'APX', '92FS', 'M9', 'P-10 C', 'P-10 F', 'CZ 75', 'SHADOW 2', 'TS 2', 'SCORPION',
+  'P320', 'P365', 'M17', 'M18', 'P226', 'M&P 9', 'M&P 15', 'SHIELD', 'MODEL 686',
+  'TP9', 'TP9SF', 'TP9 ELITE', 'RIVAL', '1911', 'M4', 'PYTHON', 'HELLCAT', 'XD', 'M1A',
+  'PPQ', 'PDP', 'P22', '10/22', 'MARK IV', 'LCP', 'SECURITY-9', '870', '700', 'STR-9', 'M3000',
+  'SUPERNOVA', 'STOCK II', 'STOCK III', 'DEFORCE', 'HI-POWER', 'BUCK MARK', 'SXP', 'MODEL 70'
+];
+
 
 interface ClientesContextType {
   clientes: Cliente[];
@@ -20,6 +49,14 @@ interface ClientesContextType {
   modelosRegistrados: string[];
   calibresRegistrados: string[];
   fabricantesRegistrados: string[];
+  
+  // Opções Cadastradas (Modo Trancado)
+  opcoesArmas: OpcaoArma[];
+  carregandoOpcoes: boolean;
+  inicializarOpcoesArmasPadrao: () => Promise<void>;
+  criarOpcaoArma: (tipo: 'modelo' | 'calibre' | 'fabricante', nome: string) => Promise<void>;
+  atualizarOpcaoArma: (id: string, novoNome: string) => Promise<void>;
+  deletarOpcaoArma: (id: string) => Promise<void>;
   
   // Gestão de Armas
   buscarArmas: (clienteId: string) => Promise<Arma[]>;
@@ -178,10 +215,173 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
     }
   }, [usuario]);
 
+  const [opcoesArmas, setOpcoesArmas] = useState<OpcaoArma[]>([]);
+  const [carregandoOpcoes, setCarregandoOpcoes] = useState(false);
+
+  const carregarOpcoesArmas = useCallback(async () => {
+    if (!usuario?.empresaId) return;
+    setCarregandoOpcoes(true);
+    try {
+      const { data, error } = await supabase
+        .from('opcoes_armas')
+        .select('*')
+        .eq('empresa_id', usuario.empresaId)
+        .order('nome', { ascending: true });
+
+      if (error) throw error;
+      if (data) {
+        setOpcoesArmas(data.map(row => ({
+          id: row.id,
+          empresaId: row.empresa_id,
+          tipo: row.tipo,
+          nome: row.nome,
+          criadoEm: row.criado_em
+        })));
+      }
+    } catch (err) {
+      console.error('Erro ao carregar opções de armas:', err);
+    } finally {
+      setCarregandoOpcoes(false);
+    }
+  }, [usuario]);
+
+  const inicializarOpcoesArmasPadrao = useCallback(async () => {
+    if (!usuario?.empresaId) return;
+    setCarregandoOpcoes(true);
+    try {
+      // 1. Verificar se já existem opções cadastradas no banco
+      const { count, error: countErr } = await supabase
+        .from('opcoes_armas')
+        .select('*', { count: 'exact', head: true })
+        .eq('empresa_id', usuario.empresaId);
+
+      if (countErr) throw countErr;
+
+      // Se já existem registros, não faz nada e apenas carrega
+      if (count && count > 0) {
+        await carregarOpcoesArmas();
+        return;
+      }
+
+      // 2. Coletar opções a serem criadas
+      // Combinar os padrões com o que já existe no banco de armas do cliente
+      const modelos = new Set<string>(MODELOS_BASE.map(normalizarModelo));
+      const calibres = new Set<string>(CALIBRES_BASE.map(normalizarCalibre));
+      const fabricantes = new Set<string>(FABRICANTES_BASE.map(normalizarFabricante));
+
+      const { data: armasExistentes } = await supabase
+        .from('armas')
+        .select('modelo, calibre, fabricante')
+        .eq('empresa_id', usuario.empresaId);
+
+      if (armasExistentes) {
+        armasExistentes.forEach(a => {
+          if (a.modelo) {
+            const m = normalizarModelo(a.modelo);
+            if (m) modelos.add(m);
+          }
+          if (a.calibre) {
+            const c = normalizarCalibre(a.calibre);
+            if (c) calibres.add(c);
+          }
+          if (a.fabricante) {
+            const f = normalizarFabricante(a.fabricante);
+            if (f) fabricantes.add(f);
+          }
+        });
+      }
+
+      // 3. Preparar inserção em massa
+      const rowsToInsert: any[] = [];
+      
+      modelos.forEach(m => {
+        if (m) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'modelo', nome: m });
+      });
+      calibres.forEach(c => {
+        if (c) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'calibre', nome: c });
+      });
+      fabricantes.forEach(f => {
+        if (f) rowsToInsert.push({ empresa_id: usuario.empresaId, tipo: 'fabricante', nome: f });
+      });
+
+      if (rowsToInsert.length > 0) {
+        const { error: insertErr } = await supabase
+          .from('opcoes_armas')
+          .insert(rowsToInsert);
+
+        if (insertErr) throw insertErr;
+      }
+
+      await carregarOpcoesArmas();
+    } catch (err) {
+      console.error('Erro ao inicializar opções de armas padrão:', err);
+    } finally {
+      setCarregandoOpcoes(false);
+    }
+  }, [usuario, carregarOpcoesArmas]);
+
+  const criarOpcaoArma = async (tipo: 'modelo' | 'calibre' | 'fabricante', nome: string) => {
+    if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
+    const nomeFormatado = tipo === 'modelo' ? normalizarModelo(nome) 
+                          : tipo === 'calibre' ? normalizarCalibre(nome) 
+                          : normalizarFabricante(nome);
+    if (!nomeFormatado) throw new Error('Nome inválido');
+
+    // Evitar duplicidade local antes de tentar salvar
+    const duplicado = opcoesArmas.some(o => o.tipo === tipo && o.nome.toUpperCase() === nomeFormatado.toUpperCase());
+    if (duplicado) throw new Error('Este item já está cadastrado.');
+
+    const { error } = await supabase
+      .from('opcoes_armas')
+      .insert([{
+        empresa_id: usuario.empresaId,
+        tipo,
+        nome: nomeFormatado
+      }]);
+
+    if (error) throw error;
+    await carregarOpcoesArmas();
+  };
+
+  const atualizarOpcaoArma = async (id: string, novoNome: string) => {
+    if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
+
+    const item = opcoesArmas.find(o => o.id === id);
+    if (!item) throw new Error('Item não encontrado');
+
+    const nomeFormatado = item.tipo === 'modelo' ? normalizarModelo(novoNome) 
+                          : item.tipo === 'calibre' ? normalizarCalibre(novoNome) 
+                          : normalizarFabricante(novoNome);
+    if (!nomeFormatado) throw new Error('Nome inválido');
+
+    const duplicado = opcoesArmas.some(o => o.id !== id && o.tipo === item.tipo && o.nome.toUpperCase() === nomeFormatado.toUpperCase());
+    if (duplicado) throw new Error('Outro item com este nome já está cadastrado.');
+
+    const { error } = await supabase
+      .from('opcoes_armas')
+      .update({ nome: nomeFormatado })
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarOpcoesArmas();
+  };
+
+  const deletarOpcaoArma = async (id: string) => {
+    if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
+    const { error } = await supabase
+      .from('opcoes_armas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    await carregarOpcoesArmas();
+  };
+
   useEffect(() => {
     carregarClientes();
     carregarMetadadosArmas();
-  }, [carregarClientes, carregarMetadadosArmas]);
+    inicializarOpcoesArmasPadrao();
+  }, [carregarClientes, carregarMetadadosArmas, inicializarOpcoesArmasPadrao]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>
@@ -782,6 +982,12 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       modelosRegistrados,
       calibresRegistrados,
       fabricantesRegistrados,
+      opcoesArmas,
+      carregandoOpcoes,
+      inicializarOpcoesArmasPadrao,
+      criarOpcaoArma,
+      atualizarOpcaoArma,
+      deletarOpcaoArma,
       buscarArmas,
       salvarArma,
       deletarArma,

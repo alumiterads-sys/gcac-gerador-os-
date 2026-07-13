@@ -43,7 +43,10 @@ export function Configuracoes() {
   const isCac = usuario?.tipoConta === 'cac_individual';
   const { ordens, sincronizarPendentes } = useOrdens();
   const { servicos, deletarServico } = useServicos();
-  const { clientes, buscarArmas, buscarGts, buscarManejos } = useClientes();
+  const { 
+    clientes, buscarArmas, buscarGts, buscarManejos,
+    opcoesArmas, carregandoOpcoes, criarOpcaoArma, atualizarOpcaoArma, deletarOpcaoArma 
+  } = useClientes();
   const itensFila = ordens.filter(o => o.pendenteSincronizacao).length;
   
   const online = useStatusConexao();
@@ -65,6 +68,14 @@ export function Configuracoes() {
   const [empresaExpandido, setEmpresaExpandido] = useState(false);
   const [alertasExpandido, setAlertasExpandido] = useState(false);
   const [otimizacaoExpandido, setOtimizacaoExpandido] = useState(false);
+  const [opcoesArmasExpandido, setOpcoesArmasExpandido] = useState(false);
+  const [tipoOpcaoAtiva, setTipoOpcaoAtiva] = useState<'modelo' | 'calibre' | 'fabricante'>('modelo');
+  
+  // Controle de modal de opções de armas
+  const [modalOpcaoAberta, setModalOpcaoAberta] = useState(false);
+  const [opcaoEditando, setOpcaoEditando] = useState<{ id?: string, tipo: 'modelo' | 'calibre' | 'fabricante', nome: string } | null>(null);
+  const [textoNovaOpcao, setTextoNovaOpcao] = useState('');
+  
   const [migrando, setMigrando] = useState(false);
   const [progressoMigracao, setProgressoMigracao] = useState('');
 
@@ -1997,6 +2008,135 @@ export function Configuracoes() {
       </div>
       )}
 
+      {/* ── Modelos, Calibres e Fabricantes de Armas ── */}
+      {!isCac && (
+        <div className="card space-y-4">
+          <div 
+            className="flex items-center justify-between cursor-pointer group"
+            onClick={() => setOpcoesArmasExpandido(!opcoesArmasExpandido)}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg transition-colors ${opcoesArmasExpandido ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-4 text-gray-500 group-hover:text-white'}`}>
+                <Target size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-wider">
+                  Modelos, Calibres e Fabricantes de Armas
+                </h2>
+                {!opcoesArmasExpandido && (
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-left">
+                    Gerenciar listas de seleção permitidas para o cadastro de armas
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className={`text-gray-500 transition-transform duration-300 ${opcoesArmasExpandido ? 'rotate-180' : ''}`}>
+              <ChevronDown size={20} />
+            </div>
+          </div>
+
+          {opcoesArmasExpandido && (
+            <div className="animate-slide-down space-y-4 pt-3 border-t border-brand-dark-5">
+              {/* Abas */}
+              <div className="flex gap-2 border-b border-brand-dark-5 pb-2">
+                {(['modelo', 'calibre', 'fabricante'] as const).map(tipo => (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => setTipoOpcaoAtiva(tipo)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase ${
+                      tipoOpcaoAtiva === tipo 
+                        ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20' 
+                        : 'bg-brand-dark-4 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {tipo === 'modelo' ? 'Modelos' : tipo === 'calibre' ? 'Calibres' : 'Fabricantes'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Botão de Adicionar */}
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-400">
+                  Lista de {tipoOpcaoAtiva === 'modelo' ? 'modelos' : tipoOpcaoAtiva === 'calibre' ? 'calibres' : 'fabricantes'} cadastrados.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpcaoEditando({ tipo: tipoOpcaoAtiva, nome: '' });
+                    setTextoNovaOpcao('');
+                    setModalOpcaoAberta(true);
+                  }}
+                  className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 font-bold"
+                >
+                  <Plus size={14} />
+                  Cadastrar Novo
+                </button>
+              </div>
+
+              {/* Lista de Itens */}
+              <div className="max-h-60 overflow-y-auto border border-brand-dark-5 rounded-xl scrollbar-thin scrollbar-thumb-slate-800">
+                {opcoesArmas.filter(o => o.tipo === tipoOpcaoAtiva).length === 0 ? (
+                  <div className="p-8 text-center text-xs text-gray-500 font-bold uppercase">
+                    Nenhum item cadastrado.
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-brand-dark-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider border-b border-brand-dark-5">
+                        <th className="p-3">Nome</th>
+                        <th className="p-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-dark-5">
+                      {opcoesArmas
+                        .filter(o => o.tipo === tipoOpcaoAtiva)
+                        .map(item => (
+                          <tr key={item.id} className="hover:bg-brand-dark-4 transition-colors">
+                            <td className="p-3 text-xs text-white font-medium uppercase">{item.nome}</td>
+                            <td className="p-3 text-right">
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpcaoEditando({ id: item.id, tipo: item.tipo, nome: item.nome });
+                                    setTextoNovaOpcao(item.nome);
+                                    setModalOpcaoAberta(true);
+                                  }}
+                                  className="text-gray-400 hover:text-brand-blue-light transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!window.confirm(`Tem certeza que deseja excluir o item "${item.nome}"?`)) return;
+                                    try {
+                                      await deletarOpcaoArma(item.id);
+                                      mostrar('sucesso', 'Item excluído com sucesso!');
+                                    } catch (err: any) {
+                                      mostrar('erro', 'Erro ao excluir item: ' + err.message);
+                                    }
+                                  }}
+                                  className="text-gray-400 hover:text-red-500 transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Otimização de Armazenamento (Banco -> Storage) ── */}
       {!isCac && (
         <div className="card space-y-4 mb-5">
@@ -2133,6 +2273,81 @@ export function Configuracoes() {
         categoriaParaEditar={categoriaEditando}
         onSalvar={handleSalvarCategoria}
       />
+
+      {/* Modal para Adicionar/Editar Opção de Arma */}
+      {modalOpcaoAberta && opcaoEditando && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setModalOpcaoAberta(false)} />
+          <div className="card w-full max-w-md shadow-2xl relative z-10 animate-scale-up border border-brand-dark-5 bg-brand-dark-2">
+            <button 
+              onClick={() => setModalOpcaoAberta(false)} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <Plus size={20} className="rotate-45" />
+            </button>
+
+            <h2 className="text-xl font-bold text-white mb-6">
+              {opcaoEditando.id ? 'Editar Item' : 'Novo Item'} ({
+                opcaoEditando.tipo === 'modelo' ? 'Modelo' : opcaoEditando.tipo === 'calibre' ? 'Calibre' : 'Fabricante'
+              })
+            </h2>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!textoNovaOpcao.trim()) return;
+                try {
+                  if (opcaoEditando.id) {
+                    await atualizarOpcaoArma(opcaoEditando.id, textoNovaOpcao.trim());
+                    mostrar('sucesso', 'Item atualizado com sucesso!');
+                  } else {
+                    await criarOpcaoArma(opcaoEditando.tipo, textoNovaOpcao.trim());
+                    mostrar('sucesso', 'Item cadastrado com sucesso!');
+                  }
+                  setModalOpcaoAberta(false);
+                } catch (err: any) {
+                  mostrar('erro', err.message || 'Erro ao salvar item.');
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">Nome / Descrição</label>
+                <input 
+                  type="text" 
+                  className="input uppercase font-bold" 
+                  placeholder={
+                    opcaoEditando.tipo === 'modelo' ? 'Ex: G2C, PUMA' 
+                    : opcaoEditando.tipo === 'calibre' ? 'Ex: 9MM, .38 SPL' 
+                    : 'Ex: TAURUS, CBC'
+                  }
+                  value={textoNovaOpcao}
+                  onChange={e => setTextoNovaOpcao(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setModalOpcaoAberta(false)} 
+                  className="btn-ghost flex-1"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary flex-1 font-bold"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Notificacao {...notif} onFechar={fechar} />
     </div>
   );
