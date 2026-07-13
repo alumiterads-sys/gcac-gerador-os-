@@ -18,7 +18,8 @@ import {
   FileText,
   Users,
   Play,
-  ArrowUpDown
+  ArrowUpDown,
+  Upload
 } from 'lucide-react';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 
@@ -40,12 +41,61 @@ const IconePreview = ({ nome, className = "text-brand-blue" }: { nome: string; c
   return <Sparkles className={className} size={18} />;
 };
 
+const RenderVideoPlayer = ({ url }: { url: string }) => {
+  if (!url) {
+    return (
+      <div className="flex flex-col items-center justify-center text-gray-500 gap-1 py-8 bg-brand-dark-4 border border-brand-dark-5 rounded-lg aspect-video">
+        <Video size={32} />
+        <span className="text-[10px] uppercase font-bold tracking-wider">Nenhum vídeo configurado</span>
+      </div>
+    );
+  }
+
+  const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
+
+  if (isYoutube) {
+    // Converter URL normal do YouTube para URL de embed se necessário
+    let embedUrl = url;
+    if (url.includes('watch?v=')) {
+      const videoId = url.split('watch?v=')[1]?.split('&')[0];
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else if (url.includes('youtu.be/')) {
+      const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    }
+
+    return (
+      <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-brand-dark-5 bg-black">
+        <iframe
+          src={embedUrl}
+          title="Video Player"
+          className="absolute top-0 left-0 w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-brand-dark-5 bg-black flex items-center justify-center">
+      <video
+        src={url}
+        controls
+        preload="metadata"
+        className="w-full h-full object-contain"
+      />
+    </div>
+  );
+};
+
 export function EditorSitePortal() {
   const [configs, setConfigs] = useState<ConfigItem[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [salvandoChave, setSalvandoChave] = useState<string | null>(null);
   const [abaSite, setAbaSite] = useState<'hero' | 'video' | 'recursos' | 'planos' | 'faq'>('hero');
   const { estado: notif, mostrar, fechar } = useNotificacao();
+  const [enviandoVideo, setEnviandoVideo] = useState(false);
 
   // Estados locais para campos individuais (Hero e Vídeo)
   const [heroTitulo, setHeroTitulo] = useState('');
@@ -148,6 +198,49 @@ export function EditorSitePortal() {
       mostrar('erro', err.message || 'Erro ao salvar alterações.');
     } finally {
       setSalvandoChave(null);
+    }
+  };
+
+  const handleUploadVideo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.includes('video/mp4') && !file.name.toLowerCase().endsWith('.mp4')) {
+      mostrar('erro', 'Por favor, selecione um arquivo de vídeo no formato MP4 (.mp4).');
+      return;
+    }
+
+    setEnviandoVideo(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `site-assets/video_institucional_${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('documentos-clientes')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('documentos-clientes')
+        .getPublicUrl(fileName);
+
+      const publicUrl = publicUrlData.publicUrl;
+
+      setHeroVideoUrl(publicUrl);
+      
+      await salvarCampoSimples('hero_video_url', publicUrl);
+      
+      mostrar('sucesso', 'Vídeo enviado e salvo com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao enviar vídeo:', err);
+      mostrar('erro', err.message || 'Falha ao enviar o vídeo.');
+    } finally {
+      setEnviandoVideo(false);
     }
   };
 
@@ -393,25 +486,68 @@ export function EditorSitePortal() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-black text-gray-500 uppercase tracking-wide">URL do Vídeo (Youtube Embed Link)</label>
-                <input 
-                  type="text"
-                  value={heroVideoUrl}
-                  onChange={e => setHeroVideoUrl(e.target.value)}
-                  className="input w-full text-sm font-mono"
-                  placeholder="Ex: https://www.youtube.com/embed/XXXXXX"
-                />
-                <span className="text-[10px] text-gray-500 font-bold block pt-1 uppercase">IMPORTANTE: Cole o link de incorporação (embed), não o link normal do vídeo.</span>
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={() => salvarCampoSimples('hero_video_url', heroVideoUrl)}
-                    disabled={salvandoChave === 'hero_video_url'}
-                    className="btn-primary py-1 px-3 text-xs flex items-center gap-1.5 font-bold"
-                  >
-                    {salvandoChave === 'hero_video_url' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                    Salvar Link do Vídeo
-                  </button>
+              <div className="space-y-4 p-4 bg-brand-dark-3/30 border border-brand-dark-5 rounded-xl">
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-brand-blue-light uppercase tracking-wide">Opção 1: Fazer Upload de Vídeo (.mp4)</label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-brand-dark-4 border border-brand-dark-5 p-3 rounded-lg">
+                    <label className={`btn-secondary py-2 px-4 cursor-pointer inline-flex items-center gap-2 text-xs w-full sm:w-auto justify-center bg-brand-dark-3 hover:bg-brand-dark-5 border border-brand-dark-5 text-white rounded font-bold transition-all ${enviandoVideo ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                      {enviandoVideo ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={14} />
+                          Escolher Vídeo .mp4
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="video/mp4"
+                        className="hidden"
+                        onChange={handleUploadVideo}
+                        disabled={enviandoVideo}
+                      />
+                    </label>
+                    <div className="flex-1 text-left">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase">Formato aceito: MP4 (.mp4)</p>
+                      <p className="text-[9px] text-gray-500 leading-normal">
+                        O vídeo será carregado no Supabase Storage e o link público gerado será salvo automaticamente como URL do vídeo.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-brand-dark-5"></div>
+                  <span className="flex-shrink mx-4 text-[9px] font-black text-gray-600 uppercase tracking-widest">OU</span>
+                  <div className="flex-grow border-t border-brand-dark-5"></div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-black text-brand-blue-light uppercase tracking-wide">Opção 2: URL de Vídeo Externo (YouTube ou Link Direto)</label>
+                  <input 
+                    type="text"
+                    value={heroVideoUrl}
+                    onChange={e => setHeroVideoUrl(e.target.value)}
+                    className="input w-full text-sm font-mono"
+                    placeholder="Ex: https://www.youtube.com/embed/XXXXXX ou link direto mp4"
+                    disabled={enviandoVideo}
+                  />
+                  <span className="text-[10px] text-gray-500 font-bold block pt-1 uppercase">
+                    IMPORTANTE: Se usar YouTube, cole o link de incorporação (embed) para funcionamento correto.
+                  </span>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => salvarCampoSimples('hero_video_url', heroVideoUrl)}
+                      disabled={salvandoChave === 'hero_video_url' || enviandoVideo}
+                      className="btn-primary py-1 px-3 text-xs flex items-center gap-1.5 font-bold"
+                    >
+                      {salvandoChave === 'hero_video_url' ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                      Salvar Link do Vídeo
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -705,13 +841,9 @@ export function EditorSitePortal() {
                   <h3 className="text-xs font-black text-white uppercase">{getSalvo('video_titulo', 'Sem Título')}</h3>
                   <p className="text-[10px] text-gray-400 max-w-md mx-auto leading-relaxed">{getSalvo('video_descricao', 'Sem Descrição')}</p>
                 </div>
-                <div className="relative aspect-video max-w-sm mx-auto bg-brand-dark-4 border border-brand-dark-5 rounded-lg flex flex-col items-center justify-center gap-2 group overflow-hidden">
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="p-3 bg-brand-blue text-white rounded-full shadow-lg group-hover:scale-110 transition-all">
-                      <Play size={20} fill="currentColor" />
-                    </div>
-                  </div>
-                  <span className="absolute bottom-2 left-2 text-[8px] font-mono text-gray-500 truncate max-w-[90%]">
+                <div className="max-w-sm mx-auto overflow-hidden">
+                  <RenderVideoPlayer url={getSalvo('hero_video_url')} />
+                  <span className="block text-[8px] font-mono text-gray-500 truncate mt-2 text-left">
                     {getSalvo('hero_video_url')}
                   </span>
                 </div>
@@ -822,13 +954,9 @@ export function EditorSitePortal() {
                   <h3 className="text-xs font-black text-white uppercase">{videoTitulo || <span className="text-gray-600 italic">Digite o título...</span>}</h3>
                   <p className="text-[10px] text-gray-400 max-w-md mx-auto leading-relaxed">{videoDescricao || <span className="text-gray-600 italic">Digite a descrição...</span>}</p>
                 </div>
-                <div className="relative aspect-video max-w-sm mx-auto bg-brand-dark-4 border border-brand-dark-5 rounded-lg flex flex-col items-center justify-center gap-2 group overflow-hidden">
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="p-3 bg-brand-blue text-white rounded-full shadow-lg">
-                      <Play size={20} fill="currentColor" />
-                    </div>
-                  </div>
-                  <span className="absolute bottom-2 left-2 text-[8px] font-mono text-brand-blue-light truncate max-w-[90%] font-bold">
+                <div className="max-w-sm mx-auto overflow-hidden">
+                  <RenderVideoPlayer url={heroVideoUrl} />
+                  <span className="block text-[8px] font-mono text-brand-blue-light truncate mt-2 font-bold text-left">
                     {heroVideoUrl || 'Nenhum link configurado'}
                   </span>
                 </div>
