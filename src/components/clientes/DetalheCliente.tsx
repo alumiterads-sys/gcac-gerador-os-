@@ -474,7 +474,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     return () => {
       cancelado = true;
     };
-  }, [cliente.id, cliente.cpf, usuario?.empresaId, atualizarCliente]);
+  }, [cliente.id, cliente.cpf, usuario?.empresaId]);
 
   // Conta os alertas de documentos em background para o badge da aba
   useEffect(() => {

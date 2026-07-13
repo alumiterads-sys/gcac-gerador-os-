@@ -411,10 +411,13 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    carregarClientes();
-    carregarMetadadosArmas();
-    inicializarOpcoesArmasPadrao();
-  }, [carregarClientes, carregarMetadadosArmas, inicializarOpcoesArmasPadrao]);
+    if (usuario?.empresaId) {
+      carregarClientes();
+      carregarMetadadosArmas();
+      inicializarOpcoesArmasPadrao();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario?.empresaId]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>
