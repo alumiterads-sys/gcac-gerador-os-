@@ -474,7 +474,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     return () => {
       cancelado = true;
     };
-  }, [cliente, usuario, atualizarCliente]);
+  }, [cliente.id, cliente.cpf, usuario?.empresaId, atualizarCliente]);
 
   // Conta os alertas de documentos em background para o badge da aba
   useEffect(() => {
@@ -541,7 +541,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     return () => {
       cancelado = true;
     };
-  }, [cliente, cacEmpresaId, usuario, buscarArmas, buscarManejos, buscarGts]);
+  }, [cliente.id, cliente.vencimentoCr, cliente.vencimentoCrIbama, cacEmpresaId, usuario?.empresaId]);
 
   const handleCopiarSenha = (senha: string) => {
     navigator.clipboard.writeText(senha);
