@@ -722,7 +722,14 @@ export function ModalEditarCr({
               type="date" 
               className="input" 
               value={form.vencimento} 
-              onChange={e => setForm({...form, vencimento: e.target.value})} 
+              onChange={e => {
+                const val = e.target.value;
+                setForm(prev => ({
+                  ...prev,
+                  vencimento: val,
+                  emRenovacao: val !== (dataInicial || '') ? false : prev.emRenovacao
+                }));
+              }} 
             />
           </div>
 
@@ -752,7 +759,7 @@ export function ModalEditarCr({
                   if (file) {
                     try {
                       const base64 = await fileToBase64(file);
-                      setForm({...form, url: base64});
+                      setForm(prev => ({...prev, url: base64, emRenovacao: false}));
                     } catch (err) {
                       console.error(err);
                       alert('Erro ao carregar o arquivo.');
@@ -1039,7 +1046,19 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
           </div>
           <div>
             <label className="label">Vencimento CRAF</label>
-            <input type="date" className="input" value={form.vencimentoCraf} onChange={e => setForm({...form, vencimentoCraf: e.target.value})} />
+            <input 
+              type="date" 
+              className="input" 
+              value={form.vencimentoCraf} 
+              onChange={e => {
+                const val = e.target.value;
+                setForm(prev => ({
+                  ...prev,
+                  vencimentoCraf: val,
+                  crafEmRenovacao: val !== (armaParaEditar?.vencimentoCraf || '') ? false : prev.crafEmRenovacao
+                }));
+              }} 
+            />
             <div className="flex items-center gap-1.5 mt-1.5">
               <input type="checkbox" id="crafEmRenovacao"
                 checked={form.crafEmRenovacao} onChange={e => setForm({...form, crafEmRenovacao: e.target.checked})}
@@ -1062,7 +1081,7 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
                   if (file) {
                     try {
                       const base64 = await fileToBase64(file);
-                      setForm({...form, crafUrl: base64});
+                      setForm(prev => ({...prev, crafUrl: base64, crafEmRenovacao: false}));
                     } catch (err) {
                       console.error(err);
                       alert('Erro ao carregar o arquivo.');
@@ -1550,7 +1569,8 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
         numeroCar: data.numeroCar || prev.numeroCar,
         cidade: data.cidade || prev.cidade,
         vencimento: data.vencimento || prev.vencimento,
-        arquivoUrl: base64
+        arquivoUrl: base64,
+        manejoEmRenovacao: false
       }));
     } catch (err: any) {
       console.error('Erro ao processar PDF:', err);
@@ -1623,7 +1643,19 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Validade da Autorização</label>
-              <input type="date" className="input" value={form.vencimento} onChange={e => setForm({...form, vencimento: e.target.value})} />
+              <input 
+                type="date" 
+                className="input" 
+                value={form.vencimento} 
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(prev => ({
+                    ...prev,
+                    vencimento: val,
+                    manejoEmRenovacao: val !== (manejoParaEditar?.vencimento || '') ? false : prev.manejoEmRenovacao
+                  }));
+                }} 
+              />
               <div className="flex items-center gap-1.5 mt-1.5">
                 <input type="checkbox" id="manejoEmRenovacao"
                   checked={form.manejoEmRenovacao} onChange={e => setForm({...form, manejoEmRenovacao: e.target.checked})}
@@ -1654,7 +1686,7 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
                   if (file) {
                     try {
                       const base64 = await fileToBase64(file);
-                      setForm({...form, arquivoUrl: base64});
+                      setForm(prev => ({...prev, arquivoUrl: base64, manejoEmRenovacao: false}));
                     } catch (err) {
                       console.error(err);
                       alert('Erro ao carregar o arquivo.');
