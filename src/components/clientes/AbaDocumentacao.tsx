@@ -1651,27 +1651,11 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
       const data = await parseIbamaPdf(file);
       const base64 = await fileToBase64(file);
       
-      let novaCidade = data.cidade || form.cidade;
-      if (novaCidade) {
-        const separator = novaCidade.includes('/') ? '/' : (novaCidade.includes('-') ? '-' : null);
-        if (separator) {
-          const parts = novaCidade.split(separator);
-          if (parts.length === 2) {
-            const ufVal = parts[1].trim().toUpperCase();
-            const cidVal = parts[0].trim().toUpperCase();
-            setSelectedUf(ufVal);
-            setPendingCidade(cidVal);
-          }
-        } else {
-          setSelectedCidade(novaCidade.toUpperCase());
-          setSelectedUf('');
-        }
-      }
-
       setForm(prev => ({
         ...prev,
         numeroCar: data.numeroCar || prev.numeroCar,
-        cidade: novaCidade,
+        nomeFazenda: data.nomeFazenda || prev.nomeFazenda,
+        nomeProprietario: data.nomeProprietario || prev.nomeProprietario,
         vencimento: data.vencimento || prev.vencimento,
         arquivoUrl: base64,
         manejoEmRenovacao: false

@@ -16,7 +16,6 @@ export interface IbamaData {
   numeroCar?: string;
   nomeFazenda?: string;
   nomeProprietario?: string;
-  cidade?: string;
   vencimento?: string;
 }
 
@@ -109,68 +108,6 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
       data.nomeFazenda = propertyCandidate.trim();
     }
   }
-
-  // 6. EXTRAIR CIDADE
-  const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
-  // cidadeRegex agora aceita tanto "/" quanto "-" como separadores
-  const cidadeRegex = /([A-Z\s]{3,30})\s*[\/-]\s*([A-Z]{2})(?=\s|$|\n)/g;
-  let matchC;
-  while ((matchC = cidadeRegex.exec(text)) !== null) {
-    let nome = matchC[1].trim();
-    const uf = matchC[2];
-    if (UFS.includes(uf)) {
-      nome = nome.replace(/\d+/g, '').replace('MTS', '').replace('KM', '').trim();
-      const exclList = [
-        'RUA', 'AV', 'RODOVIA', 'ENDERECO', 'MATRICULA', 'EMENDAS', 'RASURAS', 'VALIDA', 'ESTRADA',
-        'IBAMA', 'SISBIO', 'CTF', 'APP', 'CPF', 'CNPJ', 'RG', 'TELEFONE', 'EMAIL', 'CONTATO',
-        'FIM', 'INICIO', 'DATA', 'AUTORIZACAO', 'MANEJO', 'PAGINA', 'FEDERAL', 'RECURSOS',
-        'AMBIENTE', 'MINISTERIO', 'INSTITUTO', 'PROPRIETARIO', 'POSSEIRO', 'SOLICITANTE', 'INTERESSADO'
-      ];
-      if (!exclList.some(excl => nome.includes(excl))) {
-        data.cidade = `${nome}/${uf}`;
-      }
-    }
-  }
-
-  // Fallback Cidade 1: Buscar por padrões estruturados como "MUNICIPIO: JATAI" ou "MUNICIPIO DE JATAI"
-  if (!data.cidade) {
-    const municipioMatch = text.match(/MUNICIPIO:?\s*DE?\s*([A-Z\s]{3,30})/);
-    const ufMatch = text.match(/(?:UF|ESTADO):?\s*([A-Z]{2})(?=\s|$)/);
-    if (municipioMatch && ufMatch) {
-      const nome = municipioMatch[1].trim();
-      const uf = ufMatch[1].trim();
-      if (UFS.includes(uf)) {
-        data.cidade = `${nome}/${uf}`;
-      }
-    }
-  }
-
-  // Fallback Cidade 2: Se temos município mas não a UF, tenta usar a UF extraída do CAR
-  if (!data.cidade && data.numeroCar) {
-    const carUfMatch = data.numeroCar.match(/^([A-Z]{2})-\d/);
-    if (carUfMatch) {
-      const uf = carUfMatch[1];
-      if (UFS.includes(uf)) {
-        const municipioMatch = text.match(/MUNICIPIO:?\s*DE?\s*([A-Z\s]{3,30})/);
-        if (municipioMatch) {
-          const nome = municipioMatch[1].trim();
-          data.cidade = `${nome}/${uf}`;
-        }
-      }
-    }
-  }
-
-  // Fallback Cidade 3: Se não achou de forma alguma a cidade, mas temos a UF do CAR, preenche apenas a UF para seleção automática
-  if (!data.cidade && data.numeroCar) {
-    const carUfMatch = data.numeroCar.match(/^([A-Z]{2})-\d/);
-    if (carUfMatch) {
-      const uf = carUfMatch[1];
-      if (UFS.includes(uf)) {
-        data.cidade = `/${uf}`;
-      }
-    }
-  }
-
   // 7. REFINAR PROPRIETÁRIO (Se não foi encontrado via Solicitante ou se precisar de validação)
   const blacklist = [
     'INSTITUTO', 'BRASILEIRO', 'IBAMA', 'MINISTERIO', 'AMBIENTE', 'RECURSOS', 'NATURAIS', 
