@@ -218,12 +218,17 @@ export async function exportarAcervoPdf(perfil: any, armas: any[], manejos: any[
       doc.setTextColor(ESCURO);
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${index + 1}. Fazenda: ${m.fazenda} • ${m.cidade}`, 16, y + 6);
+      
+      const fazendaNome = m.fazenda || m.nomeFazenda || '';
+      const carNum = m.car || m.numeroCar || '';
+      const propNome = m.proprietario || m.nomeProprietario || '';
+
+      doc.text(`${index + 1}. Fazenda: ${fazendaNome} • ${m.cidade}`, 16, y + 6);
 
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor('#444444');
-      doc.text(`CAR: ${m.car}  |  Proprietário: ${m.proprietario}  |  Status: ${m.status}`, 16, y + 11);
+      doc.text(`CAR: ${carNum}  |  Proprietário: ${propNome}  |  Status: ${m.status}`, 16, y + 11);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(VERDE);
@@ -305,9 +310,9 @@ export function exportarAcervoExcel(perfil: any, armas: any[], manejos: any[]): 
   if (manejos.length > 0) {
     const manejosData = manejos.map((m, idx) => ({
       Índice: idx + 1,
-      Fazenda: m.fazenda || '',
-      CAR: m.car || '',
-      Proprietário: m.proprietario || '',
+      Fazenda: m.fazenda || m.nomeFazenda || '',
+      CAR: m.car || m.numeroCar || '',
+      Proprietário: m.proprietario || m.nomeProprietario || '',
       Cidade: m.cidade || '',
       Vencimento: m.vencimento ? formatarData(m.vencimento) : '',
       Status: m.status || ''

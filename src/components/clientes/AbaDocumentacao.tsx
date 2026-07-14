@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { parseIbamaPdf } from '../../services/ibamaParserService';
 import { parseGtPdf } from '../../services/gtParserService';
+import { exportarAcervoPdf, exportarAcervoExcel } from '../../services/geradorExportacaoAcervo';
 import { useClientes } from '../../context/ClientesContext';
 import { Cliente, Arma, GuiaTrafego, AutorizacaoManejo } from '../../types';
 import { formatarData, normalizarCalibre, normalizarModelo, normalizarFabricante } from '../../utils/formatters';
@@ -106,6 +107,64 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
     setAlertasCriticos(itens.length);
   }, [cliente, armas, gtsPorArma, manejos]);
 
+  const [exportando, setExportando] = useState(false);
+
+  const handleExportarPdf = async () => {
+    setExportando(true);
+    try {
+      const armasComGts = armas.map(arma => ({
+        ...arma,
+        gts: gtsPorArma[arma.id] || []
+      }));
+
+      const perfil = {
+        nome: cliente.nome,
+        cpf: cliente.cpf,
+        contato: cliente.contato,
+        cr: cliente.numeroCr,
+        vencimentoCr: cliente.vencimentoCr,
+        crIbama: cliente.numeroCrIbama,
+        vencimentoCrIbama: cliente.vencimentoCrIbama,
+        endereco: cliente.endereco
+      };
+
+      await exportarAcervoPdf(perfil, armasComGts, manejos);
+    } catch (e) {
+      console.error(e);
+      alert('Falha ao exportar PDF.');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const handleExportarExcel = () => {
+    setExportando(true);
+    try {
+      const armasComGts = armas.map(arma => ({
+        ...arma,
+        gts: gtsPorArma[arma.id] || []
+      }));
+
+      const perfil = {
+        nome: cliente.nome,
+        cpf: cliente.cpf,
+        contato: cliente.contato,
+        cr: cliente.numeroCr,
+        vencimentoCr: cliente.vencimentoCr,
+        crIbama: cliente.numeroCrIbama,
+        vencimentoCrIbama: cliente.vencimentoCrIbama,
+        endereco: cliente.endereco
+      };
+
+      exportarAcervoExcel(perfil, armasComGts, manejos);
+    } catch (e) {
+      console.error(e);
+      alert('Falha ao exportar Planilha.');
+    } finally {
+      setExportando(false);
+    }
+  };
+
   const [modalArma, setModalArma] = useState(false);
   const [armaParaEditar, setArmaParaEditar] = useState<Arma | null>(null);
   const [modalGt, setModalGt] = useState<{armaId: string, gt?: GuiaTrafego} | null>(null);
@@ -201,6 +260,30 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* ── Barra de Ações de Exportação ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-brand-dark-5 bg-brand-dark-3/30 backdrop-blur-sm">
+        <div>
+          <h4 className="text-sm font-bold text-white">Exportação de Acervo</h4>
+          <p className="text-[10px] text-gray-400">Gere relatórios impressos ou planilhas dos dados consolidados de armas, guias e manejos.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportarPdf}
+            disabled={exportando}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border border-brand-blue/20 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/20 disabled:opacity-50"
+          >
+            <FileText size={14} /> Exportar PDF
+          </button>
+          <button
+            onClick={handleExportarExcel}
+            disabled={exportando}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border border-brand-green/20 bg-brand-green/10 text-brand-green hover:bg-brand-green/20 disabled:opacity-50"
+          >
+            <FileText size={14} /> Exportar Excel
+          </button>
+        </div>
+      </div>
+
       {/* Banner de Alertas Críticos */}
       {alertasCriticos > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex flex-col gap-3">
