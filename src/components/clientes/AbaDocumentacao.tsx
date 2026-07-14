@@ -1556,6 +1556,92 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
   });
   const [importando, setImportando] = useState(false);
 
+  // Estados para UF e Cidade
+  const [selectedUf, setSelectedUf] = useState('');
+  const [selectedCidade, setSelectedCidade] = useState('');
+  const [cidades, setCidades] = useState<string[]>([]);
+  const [carregandoCidades, setCarregandoCidades] = useState(false);
+  const [pendingCidade, setPendingCidade] = useState('');
+
+  // Parsing inicial na edição / carregamento
+  useEffect(() => {
+    if (form.cidade) {
+      const separator = form.cidade.includes('/') ? '/' : (form.cidade.includes('-') ? '-' : null);
+      if (separator) {
+        const parts = form.cidade.split(separator);
+        if (parts.length === 2) {
+          const ufVal = parts[1].trim().toUpperCase();
+          const cidVal = parts[0].trim().toUpperCase();
+          setSelectedUf(ufVal);
+          setPendingCidade(cidVal);
+        }
+      } else {
+        setSelectedCidade(form.cidade.toUpperCase());
+      }
+    }
+  }, []);
+
+  // Carregar cidades do estado via API do IBGE
+  useEffect(() => {
+    if (!selectedUf) {
+      setCidades([]);
+      return;
+    }
+    const carregarCidades = async () => {
+      setCarregandoCidades(true);
+      try {
+        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${selectedUf}/municipios`);
+        if (response.ok) {
+          const data = await response.json();
+          const nomes = data.map((m: any) => m.nome.toUpperCase()).sort();
+          setCidades(nomes);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar cidades do IBGE:', err);
+      } finally {
+        setCarregandoCidades(false);
+      }
+    };
+    carregarCidades();
+  }, [selectedUf]);
+
+  // Cruzamento inteligente de cidade obtida com a lista do IBGE
+  useEffect(() => {
+    if (pendingCidade && cidades.length > 0) {
+      const normalizedPending = pendingCidade.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+      const matched = cidades.find(c => {
+        const normalizedC = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+        return normalizedC === normalizedPending;
+      });
+      
+      if (matched) {
+        setSelectedCidade(matched);
+        setForm(prev => ({
+          ...prev,
+          cidade: `${matched}/${selectedUf}`
+        }));
+      } else {
+        setSelectedCidade(pendingCidade);
+        setForm(prev => ({
+          ...prev,
+          cidade: `${pendingCidade}/${selectedUf}`
+        }));
+      }
+      setPendingCidade('');
+    }
+  }, [cidades, pendingCidade, selectedUf]);
+
+  const handleUfChange = (uf: string) => {
+    setSelectedUf(uf);
+    setSelectedCidade('');
+    setForm(prev => ({ ...prev, cidade: uf ? `/${uf}` : '' }));
+  };
+
+  const handleCidadeChange = (cidade: string) => {
+    setSelectedCidade(cidade);
+    setForm(prev => ({ ...prev, cidade: cidade && selectedUf ? `${cidade}/${selectedUf}` : cidade || '' }));
+  };
+
   const handleImportPdf = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1564,10 +1650,28 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
     try {
       const data = await parseIbamaPdf(file);
       const base64 = await fileToBase64(file);
+      
+      let novaCidade = data.cidade || form.cidade;
+      if (novaCidade) {
+        const separator = novaCidade.includes('/') ? '/' : (novaCidade.includes('-') ? '-' : null);
+        if (separator) {
+          const parts = novaCidade.split(separator);
+          if (parts.length === 2) {
+            const ufVal = parts[1].trim().toUpperCase();
+            const cidVal = parts[0].trim().toUpperCase();
+            setSelectedUf(ufVal);
+            setPendingCidade(cidVal);
+          }
+        } else {
+          setSelectedCidade(novaCidade.toUpperCase());
+          setSelectedUf('');
+        }
+      }
+
       setForm(prev => ({
         ...prev,
         numeroCar: data.numeroCar || prev.numeroCar,
-        cidade: data.cidade || prev.cidade,
+        cidade: novaCidade,
         vencimento: data.vencimento || prev.vencimento,
         arquivoUrl: base64,
         manejoEmRenovacao: false
@@ -1636,9 +1740,51 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
             <label className="label">Proprietário <span className="text-red-500">*</span></label>
             <input type="text" className="input uppercase" value={form.nomeProprietario} onChange={e => setForm({...form, nomeProprietario: e.target.value})} />
           </div>
-          <div>
-            <label className="label">Cidade / Estado</label>
-            <input type="text" className="input uppercase" value={form.cidade} onChange={e => setForm({...form, cidade: e.target.value})} />
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-1">
+              <label className="label">UF</label>
+              <select 
+                className="input uppercase" 
+                value={selectedUf} 
+                onChange={e => handleUfChange(e.target.value)}
+              >
+                <option value="">UF</option>
+                {ESTADOS_BRASIL.map(est => (
+                  <option key={est.sigla} value={est.sigla}>{est.sigla}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="label">Cidade / Município</label>
+              {!selectedUf ? (
+                <select className="input" disabled>
+                  <option>Selecione a UF...</option>
+                </select>
+              ) : carregandoCidades ? (
+                <select className="input" disabled>
+                  <option>Carregando...</option>
+                </select>
+              ) : cidades.length === 0 ? (
+                <input 
+                  type="text" 
+                  className="input uppercase" 
+                  value={selectedCidade} 
+                  onChange={e => handleCidadeChange(e.target.value.toUpperCase())}
+                  placeholder="Ex: JATAÍ"
+                />
+              ) : (
+                <select 
+                  className="input uppercase" 
+                  value={selectedCidade} 
+                  onChange={e => handleCidadeChange(e.target.value)}
+                >
+                  <option value="">Selecione...</option>
+                  {cidades.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
