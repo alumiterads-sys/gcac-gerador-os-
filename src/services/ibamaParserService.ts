@@ -46,11 +46,10 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
     data.vencimento = `${y}-${m}-${d}`;
   }
 
-  // 2. IDENTIFICAR O SOLICITANTE / INTERESSADO (Candidato primário a proprietário)
-  const solicitanteMatch = text.match(/(SOLICITANTE|INTERESSADO):?\s*([A-Z\s]{10,60})(?=\s+CTF|DATA|$)/);
-  const solicitanteNome = solicitanteMatch ? solicitanteMatch[2].trim() : '';
-  if (solicitanteNome && solicitanteNome.length > 5) {
-    data.nomeProprietario = solicitanteNome;
+  // 2. IDENTIFICAR O SOLICITANTE / INTERESSADO / PROPRIETÁRIO (Candidato primário a proprietário)
+  const solicitanteMatch = text.match(/(?:SOLICITANTE|INTERESSADO|REQUERENTE|AUTORIZADO|PROPRIETARIO):\s*([A-Z\s]{6,50})/);
+  if (solicitanteMatch) {
+    data.nomeProprietario = solicitanteMatch[1].trim();
   }
 
   // 3. EXTRAIR CAR
@@ -94,10 +93,17 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
     fazendaMatch = text.match(new RegExp(`(${propertyPrefixes})\\s+([A-Z\\s]{3,60})(?=\\s+[A-Z]{2}-\\d{7})`));
   }
 
-  // Fallback 2: Busca entre os nomes encontrados algum que comece com prefixo
-  if (fazendaMatch) {
+  // Fallback 2: Busca por "FAZENDA ..." em qualquer parte do texto
+  if (!fazendaMatch) {
+    const fallbackFazendaMatch = text.match(new RegExp(`(?:${propertyPrefixes})\\s+([A-Z\\s]{3,40})`, 'i'));
+    if (fallbackFazendaMatch) {
+      data.nomeFazenda = fallbackFazendaMatch[0].replace(/\s+/g, ' ').trim().toUpperCase();
+    }
+  }
+
+  if (fazendaMatch && !data.nomeFazenda) {
     data.nomeFazenda = `${fazendaMatch[1]} ${fazendaMatch[2].trim()}`.toUpperCase();
-  } else {
+  } else if (!data.nomeFazenda) {
     const propertyCandidate = allNames.find(n => propertyPrefixesList.some(p => n.trim().startsWith(p)));
     if (propertyCandidate) {
       data.nomeFazenda = propertyCandidate.trim();
@@ -106,15 +112,61 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
 
   // 6. EXTRAIR CIDADE
   const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
-  const cidadeRegex = /([A-Z\s]{3,30})\s*\/\s*([A-Z]{2})(?=\s|$|\n)/g;
+  // cidadeRegex agora aceita tanto "/" quanto "-" como separadores
+  const cidadeRegex = /([A-Z\s]{3,30})\s*[\/-]\s*([A-Z]{2})(?=\s|$|\n)/g;
   let matchC;
   while ((matchC = cidadeRegex.exec(text)) !== null) {
     let nome = matchC[1].trim();
     const uf = matchC[2];
     if (UFS.includes(uf)) {
       nome = nome.replace(/\d+/g, '').replace('MTS', '').replace('KM', '').trim();
-      if (!['RUA', 'AV', 'RODOVIA', 'ENDERECO', 'MATRICULA', 'EMENDAS', 'RASURAS', 'VALIDA', 'ESTRADA'].some(excl => nome.includes(excl))) {
+      const exclList = [
+        'RUA', 'AV', 'RODOVIA', 'ENDERECO', 'MATRICULA', 'EMENDAS', 'RASURAS', 'VALIDA', 'ESTRADA',
+        'IBAMA', 'SISBIO', 'CTF', 'APP', 'CPF', 'CNPJ', 'RG', 'TELEFONE', 'EMAIL', 'CONTATO',
+        'FIM', 'INICIO', 'DATA', 'AUTORIZACAO', 'MANEJO', 'PAGINA', 'FEDERAL', 'RECURSOS',
+        'AMBIENTE', 'MINISTERIO', 'INSTITUTO', 'PROPRIETARIO', 'POSSEIRO', 'SOLICITANTE', 'INTERESSADO'
+      ];
+      if (!exclList.some(excl => nome.includes(excl))) {
         data.cidade = `${nome}/${uf}`;
+      }
+    }
+  }
+
+  // Fallback Cidade 1: Buscar por padrões estruturados como "MUNICIPIO: JATAI" ou "MUNICIPIO DE JATAI"
+  if (!data.cidade) {
+    const municipioMatch = text.match(/MUNICIPIO:?\s*DE?\s*([A-Z\s]{3,30})/);
+    const ufMatch = text.match(/(?:UF|ESTADO):?\s*([A-Z]{2})(?=\s|$)/);
+    if (municipioMatch && ufMatch) {
+      const nome = municipioMatch[1].trim();
+      const uf = ufMatch[1].trim();
+      if (UFS.includes(uf)) {
+        data.cidade = `${nome}/${uf}`;
+      }
+    }
+  }
+
+  // Fallback Cidade 2: Se temos município mas não a UF, tenta usar a UF extraída do CAR
+  if (!data.cidade && data.numeroCar) {
+    const carUfMatch = data.numeroCar.match(/^([A-Z]{2})-\d/);
+    if (carUfMatch) {
+      const uf = carUfMatch[1];
+      if (UFS.includes(uf)) {
+        const municipioMatch = text.match(/MUNICIPIO:?\s*DE?\s*([A-Z\s]{3,30})/);
+        if (municipioMatch) {
+          const nome = municipioMatch[1].trim();
+          data.cidade = `${nome}/${uf}`;
+        }
+      }
+    }
+  }
+
+  // Fallback Cidade 3: Se não achou de forma alguma a cidade, mas temos a UF do CAR, preenche apenas a UF para seleção automática
+  if (!data.cidade && data.numeroCar) {
+    const carUfMatch = data.numeroCar.match(/^([A-Z]{2})-\d/);
+    if (carUfMatch) {
+      const uf = carUfMatch[1];
+      if (UFS.includes(uf)) {
+        data.cidade = `/${uf}`;
       }
     }
   }
@@ -154,9 +206,12 @@ export async function parseIbamaPdf(file: File): Promise<IbamaData> {
       data.nomeProprietario = selecionado.trim();
     }
   } else {
-    // Se já temos o proprietário via Solicitante, garantimos que ele não é um falso positivo (prefixo de fazenda)
-    if (propertyPrefixesList.some(p => data.nomeProprietario!.startsWith(p))) {
+    // Se já temos o proprietário via Solicitante, garantimos que ele não é um falso positivo (prefixo de fazenda ou palavra da blacklist)
+    const cleanProp = data.nomeProprietario.trim();
+    if (propertyPrefixesList.some(p => cleanProp.startsWith(p)) || blacklist.some(b => cleanProp.includes(b))) {
       data.nomeProprietario = undefined; // Força re-avaliação ou deixa vazio
+    } else {
+      data.nomeProprietario = cleanProp;
     }
   }
 
