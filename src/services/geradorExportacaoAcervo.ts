@@ -101,12 +101,7 @@ export async function exportarAcervoPdf(perfil: any, armas: any[], manejos: any[
   doc.setDrawColor('#333333');
   doc.line(48, 30, largura - 12, 30);
 
-  doc.setFontSize(10);
-  doc.setTextColor('#FFFFFF');
-  doc.setFont('helvetica', 'bold');
-  doc.text(`ATIRADOR: ${perfil.nome.toUpperCase()}`, largura - 12, 36, { align: 'right' });
-
-  y = 52;
+  y = 48;
 
   // ── Dados Pessoais e CR ──
   y = secaoTitulo(doc, 'DADOS DO ATIRADOR e CR', y, AZUL);
@@ -115,7 +110,16 @@ export async function exportarAcervoPdf(perfil: any, armas: any[], manejos: any[
   y = linhaInfo(doc, 'Nome Completo:', perfil.nome, y, largura);
   y = linhaInfo(doc, 'CPF:', perfil.cpf || 'NÃO INFORMADO', y, largura);
   y = linhaInfo(doc, 'Contato:', perfil.contato || 'NÃO INFORMADO', y, largura);
+  
+  // Obter Atividades do CR
+  const atividades: string[] = [];
+  if (perfil.crTiroDesportivo) atividades.push('TIRO DESPORTIVO');
+  if (perfil.crCaca) atividades.push('CAÇA');
+  if (perfil.crColecionamento) atividades.push('COLECIONAMENTO');
+  const atividadesStr = atividades.join(', ') || 'NÃO ESPECIFICADA';
+
   y = linhaInfo(doc, 'CR Exército / PF:', perfil.cr ? `${perfil.cr} (Validade: ${formatarData(perfil.vencimentoCr)})` : 'NÃO INFORMADO', y, largura);
+  y = linhaInfo(doc, 'Atividades do CR:', atividadesStr, y, largura);
   y = linhaInfo(doc, 'CR IBAMA:', perfil.crIbama ? `${perfil.crIbama} (Validade: ${formatarData(perfil.vencimentoCrIbama)})` : 'NÃO INFORMADO', y, largura);
   if (perfil.endereco) {
     y = linhaInfo(doc, 'Endereço:', perfil.endereco, y, largura);
@@ -205,36 +209,57 @@ export async function exportarAcervoPdf(perfil: any, armas: any[], manejos: any[
     y += 2;
 
     manejos.forEach((m, index) => {
-      if (y + 20 > 270) {
+      const fazendaNome = m.fazenda || m.nomeFazenda || '';
+      const carNum = m.car || m.numeroCar || '';
+      const propNome = m.proprietario || m.nomeProprietario || '';
+
+      const carText = `CAR: ${carNum}`;
+      const propText = `Proprietário: ${propNome}  |  Status: ${m.status}`;
+      const validadeText = `Validade da Autorização: ${formatarData(m.vencimento)}`;
+
+      const maxTextoLargura = largura - 32;
+      const carLines = doc.splitTextToSize(carText, maxTextoLargura);
+      const propLines = doc.splitTextToSize(propText, maxTextoLargura);
+
+      // Altura base calculada dinamicamente: 9 + (carLines * 3.5) + (propLines * 3.5) + 2 de padding inferior
+      const alturaBloco = 9 + (carLines.length * 3.5) + (propLines.length * 3.5) + 2;
+
+      if (y + alturaBloco > 270) {
         doc.addPage();
         y = 20;
       }
 
       doc.setFillColor('#F3FBF2');
       doc.setDrawColor('#D1E7DD');
-      doc.roundedRect(12, y, largura - 24, 18, 2, 2, 'F');
-      doc.roundedRect(12, y, largura - 24, 18, 2, 2, 'S');
+      doc.roundedRect(12, y, largura - 24, alturaBloco, 2, 2, 'F');
+      doc.roundedRect(12, y, largura - 24, alturaBloco, 2, 2, 'S');
 
       doc.setTextColor(ESCURO);
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
       
-      const fazendaNome = m.fazenda || m.nomeFazenda || '';
-      const carNum = m.car || m.numeroCar || '';
-      const propNome = m.proprietario || m.nomeProprietario || '';
+      // Linha 1: Fazenda
+      doc.text(`${index + 1}. Fazenda: ${fazendaNome} • ${m.cidade}`, 16, y + 5);
 
-      doc.text(`${index + 1}. Fazenda: ${fazendaNome} • ${m.cidade}`, 16, y + 6);
-
+      // Linha 2: CAR
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor('#444444');
-      doc.text(`CAR: ${carNum}  |  Proprietário: ${propNome}  |  Status: ${m.status}`, 16, y + 11);
+      
+      let currentY = y + 9;
+      doc.text(carLines, 16, currentY);
+      currentY += (carLines.length * 3.5);
 
+      // Linha 3: Proprietário & Status
+      doc.text(propLines, 16, currentY);
+      currentY += (propLines.length * 3.5);
+
+      // Linha 4: Validade
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(VERDE);
-      doc.text(`Validade da Autorização: ${formatarData(m.vencimento)}`, 16, y + 15);
+      doc.text(validadeText, 16, currentY);
 
-      y += 22;
+      y += alturaBloco + 4;
     });
   }
 

@@ -512,7 +512,10 @@ export function Configuracoes() {
         vencimentoCr: cliente.vencimentoCr,
         crIbama: cliente.numeroCrIbama,
         vencimentoCrIbama: cliente.vencimentoCrIbama,
-        endereco: cliente.endereco
+        endereco: cliente.endereco,
+        crTiroDesportivo: cliente.crTiroDesportivo,
+        crCaca: cliente.crCaca,
+        crColecionamento: cliente.crColecionamento
       };
 
       await exportarAcervoPdf(perfil, armasComGts, manejos);
@@ -550,7 +553,10 @@ export function Configuracoes() {
         vencimentoCr: cliente.vencimentoCr,
         crIbama: cliente.numeroCrIbama,
         vencimentoCrIbama: cliente.vencimentoCrIbama,
-        endereco: cliente.endereco
+        endereco: cliente.endereco,
+        crTiroDesportivo: cliente.crTiroDesportivo,
+        crCaca: cliente.crCaca,
+        crColecionamento: cliente.crColecionamento
       };
 
       await exportarAcervoExcel(perfil, armasComGts, manejos);

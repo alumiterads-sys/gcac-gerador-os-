@@ -125,7 +125,10 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
         vencimentoCr: cliente.vencimentoCr,
         crIbama: cliente.numeroCrIbama,
         vencimentoCrIbama: cliente.vencimentoCrIbama,
-        endereco: cliente.endereco
+        endereco: cliente.endereco,
+        crTiroDesportivo: cliente.crTiroDesportivo,
+        crCaca: cliente.crCaca,
+        crColecionamento: cliente.crColecionamento
       };
 
       await exportarAcervoPdf(perfil, armasComGts, manejos);
@@ -153,7 +156,10 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
         vencimentoCr: cliente.vencimentoCr,
         crIbama: cliente.numeroCrIbama,
         vencimentoCrIbama: cliente.vencimentoCrIbama,
-        endereco: cliente.endereco
+        endereco: cliente.endereco,
+        crTiroDesportivo: cliente.crTiroDesportivo,
+        crCaca: cliente.crCaca,
+        crColecionamento: cliente.crColecionamento
       };
 
       exportarAcervoExcel(perfil, armasComGts, manejos);
