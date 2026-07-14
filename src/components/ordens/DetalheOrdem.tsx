@@ -163,7 +163,11 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     (ordem.servicos || []).forEach(s => {
       const icon = s.statusExecucao === 'Concluído' ? '✅' : '🔹';
       msg += `${icon} *${s.nome}*\n`;
+      msg += `   Valor: _${formatarMoeda(s.valor || 0)}_\n`;
       msg += `   Status: _${s.statusExecucao || 'Não Iniciado'}_\n`;
+      if (s.detalhes && s.detalhes.trim()) {
+        msg += `   Obs: _${s.detalhes.trim()}_\n`;
+      }
       if (s.pagoGRU) msg += `   GRU: _Paga_\n`;
       if (s.protocolo) msg += `   📑 Prot: _${s.protocolo}_\n`;
       msg += `\n`;
