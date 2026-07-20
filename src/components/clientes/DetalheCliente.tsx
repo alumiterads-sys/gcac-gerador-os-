@@ -1089,7 +1089,10 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           onSalvar={async (atividades) => {
             try {
               await atualizarCliente(cliente.id, atividades);
-              window.location.reload();
+              // Marcar como salvo no sessionStorage para evitar reexibição enquanto
+              // o contexto ainda não refletiu os novos dados
+              sessionStorage.setItem(`prompt-cr-ignorado-${cliente.id}`, 'true');
+              setMostrarPromptCR(false);
             } catch (err: any) {
               console.error(err);
               alert('Erro ao salvar atividades do CR: ' + (err.message || err));
