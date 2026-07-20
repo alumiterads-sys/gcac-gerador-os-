@@ -58,8 +58,12 @@ export async function ativarNotificacoesPush(empresaId: string): Promise<{ suces
       return { sucesso: false, erro: 'Permissão negada pelo usuário.' };
     }
 
-    // Obter service worker registrado
-    const registration = await navigator.serviceWorker.ready;
+    // Obter service worker registrado (timeout de 15s para evitar travamento)
+    const swReadyPromise = navigator.serviceWorker.ready;
+    const swTimeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Service Worker não respondeu a tempo. Tente recarregar a página.')), 15000)
+    );
+    const registration = await Promise.race([swReadyPromise, swTimeoutPromise]);
 
     // Inscrever no Push Manager com a chave VAPID
     const subscription = await registration.pushManager.subscribe({

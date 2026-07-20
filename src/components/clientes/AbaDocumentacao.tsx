@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Target, MapPin, Calendar, Plus, Trash2, ShieldAlert, AlertTriangle,
-  ChevronDown, ChevronUp, FileText, Globe, Landmark, Upload, Loader2, Pencil
+  ChevronDown, ChevronUp, FileText, Globe, Landmark, Upload, Loader2, Pencil, RefreshCw
 } from 'lucide-react';
 import { parseIbamaPdf } from '../../services/ibamaParserService';
 import { parseGtPdf } from '../../services/gtParserService';
@@ -178,7 +178,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
   const [manejoParaEditar, setManejoParaEditar] = useState<AutorizacaoManejo | null>(null);
   const [modalEditarCr, setModalEditarCr] = useState<{ tipo: 'CR' | 'IBAMA_CR'; label: string } | null>(null);
 
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     setCarregando(true);
     try {
       if (cacEmpresaId && usuario?.empresaId) {
@@ -250,11 +250,11 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
     } finally {
       setCarregando(false);
     }
-  };
+  }, [buscarArmas, buscarGts, buscarManejos, cacEmpresaId, cliente.id, usuario?.empresaId]);
 
   useEffect(() => {
     carregarDados();
-  }, [cliente.id, cacEmpresaId]);
+  }, [carregarDados]);
 
   if (carregando) {
     return (
@@ -273,6 +273,14 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
           <p className="text-[10px] text-gray-400">Gere relatórios impressos ou planilhas dos dados consolidados de armas, guias e manejos.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={carregarDados}
+            disabled={exportando || carregando}
+            title="Atualizar acervo"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border border-brand-dark-5 bg-brand-dark-3 text-gray-400 hover:text-white hover:bg-brand-dark-4 disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={carregando ? 'animate-spin' : ''} /> Atualizar
+          </button>
           <button
             onClick={handleExportarPdf}
             disabled={exportando}
