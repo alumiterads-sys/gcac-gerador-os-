@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, X, Users, Receipt, Calendar, BarChart3, ListTodo, Bell, Shield, Link2
+  LayoutDashboard, FileText, Plus, Settings, LogOut, Cloud, CloudOff, Loader, X, Users, Receipt, Calendar, BarChart3, ListTodo, Bell, Shield, Link2, FileSpreadsheet
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../db/supabase';
@@ -22,6 +22,7 @@ const links = [
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar,      slug: 'agendamentos' },
   { to: '/clientes',   label: 'Meus Clientes',     icon: Users,         slug: 'clientes' },
   { to: '/clientes-cac', label: 'Clientes CAC',   icon: Link2,         slug: 'clientes' },
+  { to: '/relatorios', label: 'Relatórios',       icon: FileSpreadsheet, slug: 'relatorios' },
   { to: '/configuracoes', label: 'Configurações', icon: Settings,      slug: 'config' },
   { to: '/declaracoes', label: 'Declarações',     icon: FileText,      slug: 'declaracoes' },
 ].sort((a, b) => a.label.localeCompare(b.label));
@@ -38,6 +39,9 @@ const temAcessoLink = (link: typeof links[0], usuario: any, temAcessoRecurso: (r
   if (!temPermissaoUser) return false;
 
   // Verificar permissão no nível de empresa (tenant)
+  if (link.slug === 'relatorios') {
+    return temAcessoRecurso('modulo_ordens') || temAcessoRecurso('modulo_clientes') || temAcessoRecurso('fin_fluxo_caixa');
+  }
   if (link.slug === 'financeiro') {
     return temAcessoRecurso('fin_fluxo_caixa') || temAcessoRecurso('fin_relatorio_equipe') || temAcessoRecurso('fin_exportacao');
   }

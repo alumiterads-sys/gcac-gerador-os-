@@ -28,6 +28,7 @@ const MODULOS = [
   { slug: 'recibos', label: 'Recibos' },
   { slug: 'agendamentos', label: 'Agendamentos' },
   { slug: 'clientes', label: 'Meus Clientes' },
+  { slug: 'relatorios', label: 'Relatórios' },
   { slug: 'config', label: 'Configurações' },
 ];
 

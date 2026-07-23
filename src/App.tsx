@@ -37,6 +37,7 @@ import { ListaAgendamentos } from './components/agendamentos/ListaAgendamentos';
 import { NotificacoesSistemaProvider } from './context/NotificacoesSistemaContext';
 import { FinanceiroProvider } from './context/FinanceiroContext';
 import { Financeiro } from './components/financeiro/Financeiro';
+import { Relatorios } from './components/relatorios/Relatorios';
 import { RotinaDiaria } from './components/operacional/RotinaDiaria';
 import { LembretesProvider } from './context/LembretesContext';
 import { ListaLembretes } from './components/lembretes/ListaLembretes';
@@ -319,6 +320,7 @@ export default function App() {
                               <Route path="clientes/:id" element={<RotaProtegida modulo="clientes"><PaginaDetalheCliente /></RotaProtegida>} />
                               <Route path="agendamentos" element={<RotaProtegida modulo="agendamentos"><ListaAgendamentos /></RotaProtegida>} />
                               <Route path="financeiro" element={<RotaProtegida modulo="financeiro"><Financeiro /></RotaProtegida>} />
+                              <Route path="relatorios" element={<RotaProtegida modulo="relatorios"><Relatorios /></RotaProtegida>} />
                               <Route path="rotina" element={<RotaProtegida modulo="rotina"><RotinaDiaria /></RotaProtegida>} />
                               <Route path="agenda" element={<RotaProtegida modulo="agenda"><ListaLembretes /></RotaProtegida>} />
                               <Route path="configuracoes" element={<RotaProtegida modulo="config"><Configuracoes /></RotaProtegida>} />
