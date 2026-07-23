@@ -101,6 +101,7 @@ export function Relatorios() {
   const [filtroExecOS, setFiltroExecOS] = useState<string[]>([...STATUS_EXECUCAO_SERVICO]);
   const [filtroResponsavelOS, setFiltroResponsavelOS] = useState<string>('Todos');
   const [filtroCanalOS, setFiltroCanalOS] = useState<string[]>(['WhatsApp', 'Presencial', 'Ligação', 'E-mail', 'Outro']);
+  const [filtroNomesServicos, setFiltroNomesServicos] = useState<string[]>([]);
 
   // 2. Aba: Financeiro
   const [incluirEntradas, setIncluirEntradas] = useState(true);
@@ -142,6 +143,19 @@ export function Relatorios() {
       o.servicos?.forEach(s => {
         if (s.responsavelNome) {
           nomes.add(s.responsavelNome.trim());
+        }
+      });
+    });
+    return Array.from(nomes).sort();
+  }, [ordens]);
+
+  // Obter lista única de nomes de serviços registrados nas OSs
+  const listaNomesServicos = useMemo(() => {
+    const nomes = new Set<string>();
+    ordens.forEach(o => {
+      o.servicos?.forEach(s => {
+        if (s.nome) {
+          nomes.add(s.nome.trim());
         }
       });
     });
@@ -270,9 +284,15 @@ export function Relatorios() {
         }
       }
 
+      // 6. Filtro de Tipos de Serviço (Se vazio, ignora o filtro)
+      if (filtroNomesServicos.length > 0) {
+        const temServicoTipo = o.servicos?.some(s => filtroNomesServicos.includes(s.nome?.trim() || ''));
+        if (!temServicoTipo) return false;
+      }
+
       return true;
     });
-  }, [ordens, intervalFiltro, filtroStatusOS, filtroCanalOS, filtroResponsavelOS, filtroExecOS]);
+  }, [ordens, intervalFiltro, filtroStatusOS, filtroCanalOS, filtroResponsavelOS, filtroExecOS, filtroNomesServicos]);
 
   // Estatísticas calculadas sobre a lista de OS filtradas
   const statusOsCounts = useMemo(() => {
@@ -621,6 +641,10 @@ export function Relatorios() {
 
   const handleToggleFiltroCanalOS = (val: string) => {
     setFiltroCanalOS(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleFiltroNomesServicos = (val: string) => {
+    setFiltroNomesServicos(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
   };
 
   const handleToggleFormaPagamento = (val: string) => {
@@ -1053,7 +1077,7 @@ export function Relatorios() {
 
           {/* 1. FILTROS DA ABA: ORDENS DE SERVIÇO */}
           {activeTab === 'ordens' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               
               {/* Status Financeiro */}
               <div className="space-y-2">
@@ -1125,6 +1149,49 @@ export function Relatorios() {
                       Nenhum
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Tipos de Serviços */}
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Tipos de Serviços</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50 max-h-36 overflow-y-auto custom-scrollbar">
+                  {listaNomesServicos.length === 0 ? (
+                    <span className="text-[10px] text-gray-500 italic">Nenhum serviço registrado</span>
+                  ) : (
+                    listaNomesServicos.map(nome => (
+                      <label key={nome} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                        <input
+                          type="checkbox"
+                          checked={filtroNomesServicos.includes(nome)}
+                          onChange={() => handleToggleFiltroNomesServicos(nome)}
+                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span className="font-semibold uppercase tracking-tight truncate max-w-[140px]" title={nome}>
+                          {nome}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                  {listaNomesServicos.length > 0 && (
+                    <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1 mt-auto">
+                      <button
+                        type="button"
+                        onClick={() => setFiltroNomesServicos([...listaNomesServicos])}
+                        className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                      >
+                        Todos
+                      </button>
+                      <span className="text-gray-600 text-[9px] font-bold">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setFiltroNomesServicos([])}
+                        className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                      >
+                        Nenhum
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
