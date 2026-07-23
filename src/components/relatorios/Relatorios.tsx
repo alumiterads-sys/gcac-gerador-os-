@@ -811,7 +811,7 @@ export function Relatorios() {
       
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          .no-print, .print\\:hidden, button, input, select, aside, nav, header {
+          .no-print, .print\\:hidden, button, input, select, aside, nav, header, .dica-filtros {
             display: none !important;
           }
           
@@ -826,8 +826,8 @@ export function Relatorios() {
           }
 
           @page {
-            size: A4 portrait;
-            margin: 10mm;
+            size: A4 landscape;
+            margin: 8mm 10mm;
           }
 
           .print-header {
@@ -835,68 +835,100 @@ export function Relatorios() {
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #333 !important;
-            padding-bottom: 5px !important;
-            margin-bottom: 20px !important;
+            border-bottom: 2px solid #000 !important;
+            padding-bottom: 4px !important;
+            margin-bottom: 12px !important;
           }
           
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9px !important;
+            font-size: 8px !important;
             color: #000 !important;
+            background: #fff !important;
           }
           th {
             background-color: #f3f4f6 !important;
-            border-bottom: 1.5px solid #000 !important;
-            padding: 5px 3px !important;
+            border: 1px solid #d1d5db !important;
+            padding: 4px 6px !important;
             font-weight: bold !important;
             text-align: left !important;
+            white-space: nowrap !important;
           }
           td {
-            border-bottom: 1px solid #e5e7eb !important;
-            padding: 4px 3px !important;
-            word-break: break-word !important;
+            border: 1px solid #e5e7eb !important;
+            padding: 3px 5px !important;
+            color: #000 !important;
+          }
+
+          /* Evitar quebra de linha nas colunas comuns de dados nas tabelas */
+          table td:nth-child(1),
+          table td:nth-child(3),
+          table td:nth-child(4),
+          table td:nth-child(5),
+          table td:nth-child(6),
+          table td:nth-child(7) {
+            white-space: nowrap !important;
           }
 
           .print-cards-grid {
             display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
-            gap: 10px !important;
-            margin-bottom: 20px !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
           }
           .print-card {
-            border: 1px solid #d1d5db !important;
+            border: 1px solid #9ca3af !important;
             background-color: #f9fafb !important;
-            padding: 8px !important;
-            border-radius: 6px !important;
+            padding: 6px !important;
+            border-radius: 4px !important;
             text-align: center !important;
           }
           .print-card h4 {
-            font-size: 8px !important;
+            font-size: 7px !important;
             text-transform: uppercase !important;
-            color: #4b5563 !important;
+            color: #374151 !important;
             margin-bottom: 2px !important;
+            font-weight: bold !important;
           }
           .print-card p {
-            font-size: 14px !important;
-            font-weight: 800 !important;
+            font-size: 11px !important;
+            font-weight: 900 !important;
             color: #000 !important;
+            margin: 0 !important;
           }
           
           .print-section-title {
-            font-size: 12px !important;
+            font-size: 9px !important;
             font-weight: bold !important;
-            border-bottom: 1px solid #ccc !important;
-            padding-bottom: 3px !important;
-            margin-top: 15px !important;
-            margin-bottom: 8px !important;
+            border-bottom: 1.5px solid #000 !important;
+            padding-bottom: 2px !important;
+            margin-top: 10px !important;
+            margin-bottom: 5px !important;
             text-transform: uppercase !important;
+            color: #000 !important;
           }
           
           #print-area {
             display: block !important;
             visibility: visible !important;
+            width: 100% !important;
+          }
+
+          .text-white, .text-gray-300, .text-gray-400 {
+            color: #000 !important;
+          }
+          .text-brand-green, .text-brand-green-light {
+            color: #047857 !important;
+          }
+          .text-brand-blue, .text-brand-blue-light {
+            color: #1d4ed8 !important;
+          }
+          .text-yellow-400, .text-yellow-500 {
+            color: #b45309 !important;
+          }
+          .text-red-400, .text-red-500 {
+            color: #b91c1c !important;
           }
         }
       `}} />
@@ -1651,7 +1683,7 @@ export function Relatorios() {
                     ) : (
                       ordensFiltradas.map((o) => (
                         <tr key={o.id} className="hover:bg-white/[0.01]">
-                          <td className="px-4 py-2.5 text-xs font-bold text-white print:text-black">
+                          <td className="px-4 py-2.5 text-xs font-bold text-white print:text-black whitespace-nowrap">
                             #{String(o.numero).padStart(4, '0')}
                           </td>
                           <td className="px-4 py-2.5 text-xs text-gray-300 font-bold truncate max-w-[150px] print:text-black">
