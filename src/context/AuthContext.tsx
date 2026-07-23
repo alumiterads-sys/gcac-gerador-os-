@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const rawEmpresaId = data?.empresa_id || (ehMasterAdmin ? '00000000-0000-0000-0000-000000000001' : null);
       const role = ((ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador') as 'admin' | 'colaborador';
       const permissoes = (ehMasterAdmin 
-        ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
+        ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "relatorios", "config"]
         : (data?.permissoes || ["ordens"])) as string[];
 
       let rawEmpresaNome = u.empresaNome || 'GCAC Principal';
@@ -312,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const rawEmpresaId = whitelistData?.empresa_id || (ehMasterAdmin ? '00000000-0000-0000-0000-000000000001' : null);
       const role = ((ehMasterAdmin || rawRole === 'admin') ? 'admin' : 'colaborador') as 'admin' | 'colaborador';
       const permissoes = (ehMasterAdmin 
-        ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "config"]
+        ? ["painel", "rotina", "agenda", "financeiro", "orcamentos", "ordens", "recibos", "agendamentos", "clientes", "relatorios", "config"]
         : (whitelistData?.permissoes || ["ordens"])) as string[];
 
       let rawEmpresaNome = 'GCAC Principal';
