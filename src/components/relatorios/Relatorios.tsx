@@ -20,12 +20,15 @@ import {
   AlertCircle, 
   Clock, 
   Info,
-  ChevronDown
+  ChevronDown,
+  Filter,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
-import { useFinanceiro } from '../../context/FinanceiroContext';
+import { useFinanceiro, CATEGORIAS_DESPESA } from '../../context/FinanceiroContext';
 import { buscarAlertasGlobais, buscarAlertasCacsVinculados } from '../../services/vencimentosService';
 import { formatarMoeda, formatarData, formatarCPF, formatarTelefone } from '../../utils/formatters';
 import { 
@@ -42,12 +45,11 @@ import {
   endOfYear, 
   subDays,
   isBefore,
-  isAfter,
-  differenceInDays
+  isAfter
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { supabase } from '../../db/supabase';
+import { FORMAS_PAGAMENTO, STATUS_OS, STATUS_EXECUCAO_SERVICO } from '../../types';
 
 type TabType = 'ordens' | 'financeiro' | 'clientes' | 'alertas';
 type PeriodoPreset = 'hoje' | 'semana' | 'mes' | '30dias' | 'ano' | 'personalizado';
@@ -74,7 +76,7 @@ export function Relatorios() {
   const { clientes } = useClientes();
   const { despesas } = useFinanceiro();
 
-  // Abas e Filtros
+  // Abas e Filtro de Período Geral
   const [activeTab, setActiveTab] = useState<TabType>('ordens');
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>('mes');
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -87,7 +89,66 @@ export function Relatorios() {
   const [alertas, setAlertas] = useState<AlertaDocumento[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(false);
 
-  // Manipular alteração de presets
+  // Estado para visibilidade do painel de filtros interativos
+  const [mostrarFiltros, setMostrarFiltros] = useState(true);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // ESTADOS DOS FILTROS INTERATIVOS (Por aba)
+  // ───────────────────────────────────────────────────────────────────────────
+  
+  // 1. Aba: Ordens de Serviço
+  const [filtroStatusOS, setFiltroStatusOS] = useState<string[]>([...STATUS_OS]);
+  const [filtroExecOS, setFiltroExecOS] = useState<string[]>([...STATUS_EXECUCAO_SERVICO]);
+  const [filtroResponsavelOS, setFiltroResponsavelOS] = useState<string>('Todos');
+  const [filtroCanalOS, setFiltroCanalOS] = useState<string[]>(['WhatsApp', 'Presencial', 'Ligação', 'E-mail', 'Outro']);
+
+  // 2. Aba: Financeiro
+  const [incluirEntradas, setIncluirEntradas] = useState(true);
+  const [incluirSaidas, setIncluirSaidas] = useState(true);
+  const [filtroFormaPagamento, setFiltroFormaPagamento] = useState<string[]>([...FORMAS_PAGAMENTO]);
+  const [filtroCategoriaDespesa, setFiltroCategoriaDespesa] = useState<string[]>([...CATEGORIAS_DESPESA, 'Outros']);
+  const [secoesFinanceiro, setSecoesFinanceiro] = useState({
+    resumo: true,
+    meiosPagamento: true,
+    categoriasDespesa: true,
+    comissoes: true,
+    extrato: true
+  });
+
+  // 3. Aba: Clientes & Acervo
+  const [filtroFiliacao, setFiltroFiliacao] = useState<'Todos' | 'Filiados' | 'NaoFiliados'>('Todos');
+  const [filtroPossuiArmas, setFiltroPossuiArmas] = useState<'Todos' | 'ComArmas' | 'SemArmas'>('Todos');
+  const [colunasClientes, setColunasClientes] = useState({
+    cpf: true,
+    contato: true,
+    filiado: true,
+    cr: true,
+    vencimentoCr: true,
+    crIbama: false, // Ocultado por padrão para economizar espaço
+    vencimentoIbama: false, // Ocultado por padrão
+    armasCount: true,
+    gtsCount: true,
+    manejosCount: true
+  });
+
+  // 4. Aba: Painel de Alertas
+  const [filtroTipoAlerta, setFiltroTipoAlerta] = useState<string[]>(['CR', 'IBAMA_CR', 'CRAF', 'GT', 'MANEJO']);
+  const [filtroNivelAlerta, setFiltroNivelAlerta] = useState<string[]>(['VENCIDO', 'CRITICO', 'AVISO', 'EM_RENOVACAO']);
+
+  // Obter lista única de colaboradores/responsáveis pelas OSs
+  const listaColaboradoresOS = useMemo(() => {
+    const nomes = new Set<string>();
+    ordens.forEach(o => {
+      o.servicos?.forEach(s => {
+        if (s.responsavelNome) {
+          nomes.add(s.responsavelNome.trim());
+        }
+      });
+    });
+    return Array.from(nomes).sort();
+  }, [ordens]);
+
+  // Manipular alteração de presets de data
   const handlePresetChange = (preset: PeriodoPreset) => {
     setPresetPeriodo(preset);
     const hoje = new Date();
@@ -100,8 +161,8 @@ export function Relatorios() {
         fim = endOfDay(hoje);
         break;
       case 'semana':
-        inicio = startOfWeek(hoje, { weekStartsOn: 1 }); // Segunda
-        fim = endOfWeek(hoje, { weekStartsOn: 1 }); // Domingo
+        inicio = startOfWeek(hoje, { weekStartsOn: 1 });
+        fim = endOfWeek(hoje, { weekStartsOn: 1 });
         break;
       case 'mes':
         inicio = startOfMonth(hoje);
@@ -116,38 +177,34 @@ export function Relatorios() {
         fim = endOfYear(hoje);
         break;
       default:
-        return; // não altera se for personalizado
+        return;
     }
 
     setDataInicio(format(inicio, 'yyyy-MM-dd'));
     setDataFim(format(fim, 'yyyy-MM-dd'));
   };
 
-  // Carregar dados de Armas, GTs, Manejos e Alertas no mount
+  // Carregar dados complementares (Armas, GTs, Manejos, Alertas)
   useEffect(() => {
     async function carregarDadosRelatorios() {
       if (!usuario?.empresaId) return;
       setCarregandoDados(true);
       try {
-        // 1. Armas
         const { data: armasData } = await supabase
           .from('armas')
           .select('*, clientes:cliente_id(nome)')
           .eq('empresa_id', usuario.empresaId);
         
-        // 2. GTs
         const { data: gtsData } = await supabase
           .from('guias_trafego')
           .select('*, armas:arma_id(modelo, cliente_id, clientes:cliente_id(nome))')
           .eq('empresa_id', usuario.empresaId);
 
-        // 3. Manejos
         const { data: manejosData } = await supabase
           .from('autorizacoes_manejo')
           .select('*, clientes:cliente_id(nome)')
           .eq('empresa_id', usuario.empresaId);
 
-        // 4. Alertas
         const [alertasDiretos, alertasVinculados] = await Promise.all([
           buscarAlertasGlobais(usuario.empresaId),
           buscarAlertasCacsVinculados(usuario.empresaId)
@@ -161,7 +218,7 @@ export function Relatorios() {
         setAlertas(todosAlertas as AlertaDocumento[]);
 
       } catch (err) {
-        console.error('Erro ao carregar dados complementares para relatórios:', err);
+        console.error('Erro ao carregar dados complementares:', err);
       } finally {
         setCarregandoDados(false);
       }
@@ -170,7 +227,7 @@ export function Relatorios() {
     carregarDadosRelatorios();
   }, [usuario?.empresaId]);
 
-  // Intervalo de Datas para Filtro
+  // Intervalo de Datas Geral
   const intervalFiltro = useMemo(() => {
     return {
       start: startOfDay(parseISO(dataInicio)),
@@ -178,42 +235,46 @@ export function Relatorios() {
     };
   }, [dataInicio, dataFim]);
 
-  // Filtragem de OS pelo período
+  // ───────────────────────────────────────────────────────────────────────────
+  // FILTRAGEM REATIVA: ABA ORDENS DE SERVIÇO
+  // ───────────────────────────────────────────────────────────────────────────
   const ordensFiltradas = useMemo(() => {
     return ordens.filter(o => {
+      // 1. Filtro de Data
       if (!o.criadoEm) return false;
       const dataCriacao = parseISO(o.criadoEm);
-      return isWithinInterval(dataCriacao, intervalFiltro);
-    });
-  }, [ordens, intervalFiltro]);
+      if (!isWithinInterval(dataCriacao, intervalFiltro)) return false;
 
-  // Filtragem de Despesas pelo período
-  const despesasFiltradas = useMemo(() => {
-    return despesas.filter(d => {
-      if (!d.data) return false;
-      const dataDespesa = parseISO(d.data);
-      return isWithinInterval(dataDespesa, intervalFiltro);
-    });
-  }, [despesas, intervalFiltro]);
+      // 2. Filtro de Status Financeiro
+      if (!filtroStatusOS.includes(o.status)) return false;
 
-  // Filtragem de Alertas pelo período de vencimento (opcional ou exibir todos os ativos)
-  const alertasFiltrados = useMemo(() => {
-    return alertas.filter(alerta => {
-      if (!alerta.dataVencimento) return true;
-      const dataVenc = parseISO(alerta.dataVencimento);
-      return isWithinInterval(dataVenc, intervalFiltro);
-    });
-  }, [alertas, intervalFiltro]);
+      // 3. Filtro de Canal de Atendimento
+      if (o.canalAtendimento && !filtroCanalOS.includes(o.canalAtendimento)) return false;
+      if (!o.canalAtendimento && !filtroCanalOS.includes('Outro')) return false;
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // CÁLCULOS: ORDENS DE SERVIÇO
-  // ───────────────────────────────────────────────────────────────────────────
+      // 4. Filtro de Responsável pelo Serviço
+      if (filtroResponsavelOS !== 'Todos') {
+        const temResponsavel = o.servicos?.some(s => s.responsavelNome?.trim() === filtroResponsavelOS);
+        if (!temResponsavel) return false;
+      }
+
+      // 5. Filtro de Status de Execução (pelo menos um serviço correspondente)
+      if (o.servicos && o.servicos.length > 0) {
+        const temExecStatus = o.servicos.some(s => filtroExecOS.includes(s.statusExecucao || 'Não Iniciado'));
+        if (!temExecStatus) return false;
+      } else {
+        if (!filtroExecOS.includes('Não Iniciado')) return false;
+      }
+
+      return true;
+    });
+  }, [ordens, intervalFiltro, filtroStatusOS, filtroCanalOS, filtroResponsavelOS, filtroExecOS]);
+
+  // Estatísticas calculadas sobre a lista de OS filtradas
   const statusOsCounts = useMemo(() => {
     const counts = { Pago: 0, 'Aguardando Pagamento': 0, 'Parcialmente Pago': 0, Gratuidade: 0 };
     ordensFiltradas.forEach(o => {
-      if (o.status in counts) {
-        counts[o.status as keyof typeof counts]++;
-      }
+      if (o.status in counts) counts[o.status as keyof typeof counts]++;
     });
     return counts;
   }, [ordensFiltradas]);
@@ -223,14 +284,13 @@ export function Relatorios() {
     ordensFiltradas.forEach(o => {
       o.servicos?.forEach(s => {
         const stat = s.statusExecucao || 'Não Iniciado';
-        if (stat in counts) {
-          counts[stat as keyof typeof counts]++;
-        }
+        if (stat in counts) counts[stat as keyof typeof counts]++;
       });
     });
     return counts;
   }, [ordensFiltradas]);
 
+  // OS abertas na semana/mês/ano para estatísticas rápidas
   const ordensPorPeriodoSemanaMesAno = useMemo(() => {
     const agora = new Date();
     const startWeek = startOfWeek(agora, { weekStartsOn: 1 });
@@ -240,9 +300,7 @@ export function Relatorios() {
     const startYear = startOfYear(agora);
     const endYear = endOfYear(agora);
 
-    let semana = 0;
-    let mes = 0;
-    let ano = 0;
+    let semana = 0, mes = 0, ano = 0;
 
     ordens.forEach(o => {
       if (!o.criadoEm) return;
@@ -256,33 +314,84 @@ export function Relatorios() {
   }, [ordens]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // CÁLCULOS: FINANCEIRO
+  // FILTRAGEM REATIVA: ABA FINANCEIRO
   // ───────────────────────────────────────────────────────────────────────────
+  
+  // Extrato unificado de lançamentos (recebimentos das OS e despesas da empresa)
+  const extratoTransacoes = useMemo(() => {
+    const transacoes: any[] = [];
+
+    // Recebimentos (Entradas)
+    if (incluirEntradas) {
+      ordens.forEach(o => {
+        o.historicoPagamentos?.forEach(p => {
+          if (!p.data) return;
+          const dataPag = parseISO(p.data);
+          if (isWithinInterval(dataPag, intervalFiltro)) {
+            // Filtro por Forma de Pagamento
+            if (filtroFormaPagamento.includes(p.metodo)) {
+              transacoes.push({
+                id: `rec-${p.id}`,
+                data: p.data,
+                tipo: 'entrada',
+                categoria: p.metodo,
+                descricao: `Recebimento OS-${String(o.numero).padStart(4, '0')}`,
+                entidade: o.nomeCliente,
+                valor: p.valor
+              });
+            }
+          }
+        });
+      });
+    }
+
+    // Despesas (Saídas)
+    if (incluirSaidas) {
+      despesas.forEach(d => {
+        if (!d.data) return;
+        const dataDespesa = parseISO(d.data);
+        if (isWithinInterval(dataDespesa, intervalFiltro)) {
+          const cat = d.categoria || 'Outros';
+          // Filtro por Categoria de Despesa
+          if (filtroCategoriaDespesa.includes(cat)) {
+            transacoes.push({
+              id: `desp-${d.id}`,
+              data: d.data,
+              tipo: 'saida',
+              categoria: cat,
+              descricao: d.descricao,
+              entidade: 'Despesa PJ',
+              valor: d.valor
+            });
+          }
+        }
+      });
+    }
+
+    return transacoes.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [ordens, despesas, intervalFiltro, incluirEntradas, incluirSaidas, filtroFormaPagamento, filtroCategoriaDespesa]);
+
+  // Estatísticas consolidadas com base nas transações ativas no extrato filtrado
   const faturamentoStats = useMemo(() => {
     let faturamentoBruto = 0;
     let totalDespesasVal = 0;
     let aReceberVal = 0;
 
-    ordens.forEach(o => {
-      o.historicoPagamentos?.forEach(p => {
-        if (!p.data) return;
-        const dataPag = parseISO(p.data);
-        if (isWithinInterval(dataPag, intervalFiltro)) {
-          faturamentoBruto += p.valor;
-        }
-      });
+    extratoTransacoes.forEach(t => {
+      if (t.tipo === 'entrada') faturamentoBruto += t.valor;
+      else totalDespesasVal += t.valor;
+    });
 
+    // Calcular "A Receber" apenas das OSs do período filtrado
+    ordens.forEach(o => {
+      if (!o.criadoEm) return;
       const dataCriacao = parseISO(o.criadoEm);
       if (isWithinInterval(dataCriacao, intervalFiltro)) {
-        const restante = Math.max(0, (o.valor || 0) - (o.desconto || 0) - (o.valorPago || 0));
-        if (o.status !== 'Pago' && o.status !== 'Gratuidade') {
+        if (filtroStatusOS.includes(o.status) && o.status !== 'Pago' && o.status !== 'Gratuidade') {
+          const restante = Math.max(0, (o.valor || 0) - (o.desconto || 0) - (o.valorPago || 0));
           aReceberVal += restante;
         }
       }
-    });
-
-    despesasFiltradas.forEach(d => {
-      totalDespesasVal += d.valor || 0;
     });
 
     const saldoLiquido = faturamentoBruto - totalDespesasVal;
@@ -295,46 +404,37 @@ export function Relatorios() {
       margemLucro,
       aReceber: aReceberVal
     };
-  }, [ordens, despesasFiltradas, intervalFiltro]);
+  }, [extratoTransacoes, ordens, intervalFiltro, filtroStatusOS]);
 
+  // Agrupamento de receitas por meio de pagamento (dos filtros ativos)
   const receitasPorMetodo = useMemo(() => {
     const metodos: Record<string, { count: number; total: number }> = {};
-    ordens.forEach(o => {
-      o.historicoPagamentos?.forEach(p => {
-        if (!p.data) return;
-        const dataPag = parseISO(p.data);
-        if (isWithinInterval(dataPag, intervalFiltro)) {
-          const met = p.metodo || 'Outro';
-          if (!metodos[met]) {
-            metodos[met] = { count: 0, total: 0 };
-          }
-          metodos[met].count++;
-          metodos[met].total += p.valor;
-        }
-      });
+    extratoTransacoes.filter(t => t.tipo === 'entrada').forEach(t => {
+      const met = t.categoria;
+      if (!metodos[met]) metodos[met] = { count: 0, total: 0 };
+      metodos[met].count++;
+      metodos[met].total += t.valor;
     });
     return Object.entries(metodos).map(([metodo, dados]) => ({
-      metodo,
-      ...dados
+      metodo, ...dados
     })).sort((a, b) => b.total - a.total);
-  }, [ordens, intervalFiltro]);
+  }, [extratoTransacoes]);
 
+  // Agrupamento de despesas por categoria (dos filtros ativos)
   const despesasPorCategoria = useMemo(() => {
     const categorias: Record<string, { count: number; total: number }> = {};
-    despesasFiltradas.forEach(d => {
-      const cat = d.categoria || 'Outros';
-      if (!categorias[cat]) {
-        categorias[cat] = { count: 0, total: 0 };
-      }
+    extratoTransacoes.filter(t => t.tipo === 'saida').forEach(t => {
+      const cat = t.categoria;
+      if (!categorias[cat]) categorias[cat] = { count: 0, total: 0 };
       categorias[cat].count++;
-      categorias[cat].total += d.valor || 0;
+      categorias[cat].total += t.valor;
     });
     return Object.entries(categorias).map(([categoria, dados]) => ({
-      categoria,
-      ...dados
+      categoria, ...dados
     })).sort((a, b) => b.total - a.total);
-  }, [despesasFiltradas]);
+  }, [extratoTransacoes]);
 
+  // Fechamento de Comissões e Repasses por Colaborador no período filtrado
   const comissoesEquipe = useMemo(() => {
     const repasses: Record<string, { count: number; total: number }> = {};
     ordensFiltradas.forEach(o => {
@@ -343,116 +443,39 @@ export function Relatorios() {
         const valorRep = s.valorRepasse || 0;
         if (resp && valorRep > 0) {
           const respTrim = resp.trim();
-          if (!repasses[respTrim]) {
-            repasses[respTrim] = { count: 0, total: 0 };
-          }
+          if (!repasses[respTrim]) repasses[respTrim] = { count: 0, total: 0 };
           repasses[respTrim].count++;
           repasses[respTrim].total += valorRep;
         }
       });
     });
     return Object.entries(repasses).map(([colaborador, dados]) => ({
-      colaborador,
-      ...dados
+      colaborador, ...dados
     })).sort((a, b) => b.total - a.total);
   }, [ordensFiltradas]);
 
-  const extratoTransacoes = useMemo(() => {
-    const transacoes: any[] = [];
-
-    ordens.forEach(o => {
-      o.historicoPagamentos?.forEach(p => {
-        if (!p.data) return;
-        const dataPag = parseISO(p.data);
-        if (isWithinInterval(dataPag, intervalFiltro)) {
-          transacoes.push({
-            id: `rec-${p.id}`,
-            data: p.data,
-            tipo: 'entrada',
-            categoria: p.metodo,
-            descricao: `Recebimento OS-${String(o.numero).padStart(4, '0')}`,
-            entidade: o.nomeCliente,
-            valor: p.valor
-          });
-        }
-      });
-    });
-
-    despesasFiltradas.forEach(d => {
-      transacoes.push({
-        id: `desp-${d.id}`,
-        data: d.data,
-        tipo: 'saida',
-        categoria: d.categoria,
-        descricao: d.descricao,
-        entidade: 'Despesa PJ',
-        valor: d.valor
-      });
-    });
-
-    return transacoes.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
-  }, [ordens, despesasFiltradas, intervalFiltro]);
-
   // ───────────────────────────────────────────────────────────────────────────
-  // CÁLCULOS: CLIENTES E ACERVO
+  // FILTRAGEM REATIVA: ABA CLIENTES & ACERVO
   // ───────────────────────────────────────────────────────────────────────────
-  const clientesStats = useMemo(() => {
-    const total = clientes.length;
-    const filiados = clientes.filter(c => c.filiadoProTiro).length;
-    const naoFiliados = total - filiados;
-
-    const totalArmas = armas.length;
-    const totalGts = gts.length;
-    const totalManejos = manejos.filter(m => m.status === 'Ativo').length;
-
-    return { total, filiados, naoFiliados, totalArmas, totalGts, totalManejos };
-  }, [clientes, armas, gts, manejos]);
-
-  const armasPorAcervo = useMemo(() => {
-    const acervos: Record<string, number> = { 'Tiro Desportivo': 0, 'Caça': 0, 'Coleção': 0 };
-    armas.forEach(a => {
-      const ac = a.acervo || 'Tiro Desportivo';
-      if (ac in acervos) {
-        acervos[ac]++;
-      } else {
-        acervos[ac] = (acervos[ac] || 0) + 1;
-      }
-    });
-    return Object.entries(acervos).map(([acervo, count]) => ({ acervo, count }));
-  }, [armas]);
-
-  const armasPorFabricante = useMemo(() => {
-    const fabricantes: Record<string, number> = {};
-    armas.forEach(a => {
-      if (a.fabricante) {
-        const fab = a.fabricante.toUpperCase().trim();
-        fabricantes[fab] = (fabricantes[fab] || 0) + 1;
-      }
-    });
-    return Object.entries(fabricantes)
-      .map(([fabricante, count]) => ({ fabricante, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [armas]);
-
-  const armasPorCalibre = useMemo(() => {
-    const calibres: Record<string, number> = {};
-    armas.forEach(a => {
-      if (a.calibre) {
-        const cal = a.calibre.toUpperCase().trim();
-        calibres[cal] = (calibres[cal] || 0) + 1;
-      }
-    });
-    return Object.entries(calibres)
-      .map(([calibre, count]) => ({ calibre, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [armas]);
-
   const tabelaClientesRelatorio = useMemo(() => {
-    return clientes.map(c => {
+    // 1. Filtrar a lista bruta de clientes
+    const clientesFiltrados = clientes.filter(c => {
+      // Filtro de Filiação ProTiro
+      if (filtroFiliacao === 'Filiados' && !c.filiadoProTiro) return false;
+      if (filtroFiliacao === 'NaoFiliados' && c.filiadoProTiro) return false;
+
+      // Filtro de Possuir Armas no Acervo
+      const armasCliCount = armas.filter(a => a.cliente_id === c.id).length;
+      if (filtroPossuiArmas === 'ComArmas' && armasCliCount === 0) return false;
+      if (filtroPossuiArmas === 'SemArmas' && armasCliCount > 0) return false;
+
+      return true;
+    });
+
+    // 2. Mapear e enriquecer os dados para exibição na tabela
+    return clientesFiltrados.map(c => {
       const armasCliente = armas.filter(a => a.cliente_id === c.id);
-      const gtsCliente = gts.filter(g => g.armas?.cliente_id === c.id || g.arma_id && armasCliente.some(a => a.id === g.arma_id));
+      const gtsCliente = gts.filter(g => g.armas?.cliente_id === c.id || (g.arma_id && armasCliente.some(a => a.id === g.arma_id)));
       const manejosCliente = manejos.filter(m => m.cliente_id === c.id && m.status === 'Ativo');
 
       return {
@@ -472,40 +495,146 @@ export function Relatorios() {
         manejosCount: manejosCliente.length
       };
     }).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [clientes, armas, gts, manejos]);
+  }, [clientes, armas, gts, manejos, filtroFiliacao, filtroPossuiArmas]);
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // CÁLCULOS: PAINEL DE ALERTAS
-  // ───────────────────────────────────────────────────────────────────────────
-  const alertasStats = useMemo(() => {
-    let vencidos = 0;
-    let criticos = 0;
-    let avisos = 0;
-    let emRenovacao = 0;
+  // Estatísticas reativas baseadas na listagem filtrada de clientes
+  const clientesStats = useMemo(() => {
+    const total = tabelaClientesRelatorio.length;
+    const filiados = tabelaClientesRelatorio.filter(c => c.filiado === 'Sim').length;
+    const naoFiliados = total - filiados;
 
-    alertasFiltrados.forEach(a => {
-      if (a.emRenovacao) {
-        emRenovacao++;
-      } else if (a.nivel === 'VENCIDO' || a.diasRestantes < 0) {
-        vencidos++;
-      } else if (a.nivel === 'CRITICO' || a.diasRestantes <= 30) {
-        criticos++;
-      } else {
-        avisos++;
-      }
+    // Calcular totais de armas, gts e manejos vinculados aos clientes da lista atual
+    let totalArmas = 0, totalGts = 0, totalManejos = 0;
+    tabelaClientesRelatorio.forEach(c => {
+      totalArmas += c.armasCount;
+      totalGts += c.gtsCount;
+      totalManejos += c.manejosCount;
     });
 
-    return {
-      total: alertasFiltrados.length,
-      vencidos,
-      criticos,
-      avisos,
-      emRenovacao
-    };
+    return { total, filiados, naoFiliados, totalArmas, totalGts, totalManejos };
+  }, [tabelaClientesRelatorio]);
+
+  // Distribuição de armas baseada apenas nas armas dos clientes exibidos na tabela atual
+  const armasFiltradasClientes = useMemo(() => {
+    const clientIds = new Set(tabelaClientesRelatorio.map(c => c.id));
+    return armas.filter(a => clientIds.has(a.cliente_id));
+  }, [armas, tabelaClientesRelatorio]);
+
+  const armasPorAcervo = useMemo(() => {
+    const acervos = { 'Tiro Desportivo': 0, 'Caça': 0, 'Coleção': 0 };
+    armasFiltradasClientes.forEach(a => {
+      const ac = a.acervo || 'Tiro Desportivo';
+      if (ac in acervos) acervos[ac as keyof typeof acervos]++;
+    });
+    return Object.entries(acervos).map(([acervo, count]) => ({ acervo, count }));
+  }, [armasFiltradasClientes]);
+
+  const armasPorFabricante = useMemo(() => {
+    const fabricantes: Record<string, number> = {};
+    armasFiltradasClientes.forEach(a => {
+      if (a.fabricante) {
+        const fab = a.fabricante.toUpperCase().trim();
+        fabricantes[fab] = (fabricantes[fab] || 0) + 1;
+      }
+    });
+    return Object.entries(fabricantes)
+      .map(([fabricante, count]) => ({ fabricante, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [armasFiltradasClientes]);
+
+  const armasPorCalibre = useMemo(() => {
+    const calibres: Record<string, number> = {};
+    armasFiltradasClientes.forEach(a => {
+      if (a.calibre) {
+        const cal = a.calibre.toUpperCase().trim();
+        calibres[cal] = (calibres[cal] || 0) + 1;
+      }
+    });
+    return Object.entries(calibres)
+      .map(([calibre, count]) => ({ calibre, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [armasFiltradasClientes]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // FILTRAGEM REATIVA: ABA PAINEL DE ALERTAS
+  // ───────────────────────────────────────────────────────────────────────────
+  const alertasFiltrados = useMemo(() => {
+    return alertas.filter(a => {
+      // 1. Filtro por tipo de documento/alerta
+      if (!filtroTipoAlerta.includes(a.tipo)) return false;
+
+      // 2. Filtro por nível de gravidade/status
+      let nivel = a.nivel;
+      if (a.emRenovacao) {
+        nivel = 'EM_RENOVACAO';
+      } else if (a.nivel === 'VENCIDO' || a.diasRestantes < 0) {
+        nivel = 'VENCIDO';
+      } else if (a.nivel === 'CRITICO' || a.diasRestantes <= 30) {
+        nivel = 'CRITICO';
+      } else {
+        nivel = 'AVISO';
+      }
+
+      if (!filtroNivelAlerta.includes(nivel)) return false;
+
+      // 3. Filtro geral de datas (se houver vencimento no intervalo selecionado)
+      if (a.dataVencimento) {
+        const dateV = parseISO(a.dataVencimento);
+        if (!isWithinInterval(dateV, intervalFiltro)) return false;
+      }
+
+      return true;
+    });
+  }, [alertas, filtroTipoAlerta, filtroNivelAlerta, intervalFiltro]);
+
+  const alertasStats = useMemo(() => {
+    let vencidos = 0, criticos = 0, avisos = 0, emRenovacao = 0;
+
+    alertasFiltrados.forEach(a => {
+      if (a.emRenovacao) emRenovacao++;
+      else if (a.nivel === 'VENCIDO' || a.diasRestantes < 0) vencidos++;
+      else if (a.nivel === 'CRITICO' || a.diasRestantes <= 30) criticos++;
+      else avisos++;
+    });
+
+    return { total: alertasFiltrados.length, vencidos, criticos, avisos, emRenovacao };
   }, [alertasFiltrados]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // EXPORTAÇÃO EXCEL (.xlsx)
+  // MANIPULADORES DE SELEÇÃO MULTIPLA
+  // ───────────────────────────────────────────────────────────────────────────
+  const handleToggleFiltroStatusOS = (val: string) => {
+    setFiltroStatusOS(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleFiltroExecOS = (val: string) => {
+    setFiltroExecOS(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleFiltroCanalOS = (val: string) => {
+    setFiltroCanalOS(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleFormaPagamento = (val: string) => {
+    setFiltroFormaPagamento(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleCategoriaDespesa = (val: string) => {
+    setFiltroCategoriaDespesa(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleTipoAlerta = (val: string) => {
+    setFiltroTipoAlerta(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  const handleToggleNivelAlerta = (val: string) => {
+    setFiltroNivelAlerta(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO EXCEL (.xlsx) respeitando filtros ativos
   // ───────────────────────────────────────────────────────────────────────────
   const exportarParaExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -514,7 +643,7 @@ export function Relatorios() {
     if (activeTab === 'ordens') {
       const resumoOS = [
         ['Métrica', 'Quantidade'],
-        ['Total de O.S. no Período', ordensFiltradas.length],
+        ['Total de O.S. Filtradas', ordensFiltradas.length],
         ['Status: Pago', statusOsCounts.Pago],
         ['Status: Aguardando Pagamento', statusOsCounts['Aguardando Pagamento']],
         ['Status: Parcialmente Pago', statusOsCounts['Parcialmente Pago']],
@@ -544,7 +673,7 @@ export function Relatorios() {
       const wsDet = XLSX.utils.json_to_sheet(detalheOS);
       XLSX.utils.book_append_sheet(wb, wsDet, 'Listagem OS');
 
-      XLSX.writeFile(wb, `Relatorio_OrdensServico_${dataRefStr}.xlsx`);
+      XLSX.writeFile(wb, `Relatorio_OrdensServico_Filtrado_${dataRefStr}.xlsx`);
 
     } else if (activeTab === 'financeiro') {
       const resumoFin = [
@@ -577,38 +706,40 @@ export function Relatorios() {
       const wsCom = XLSX.utils.json_to_sheet(comissoesDet);
       XLSX.utils.book_append_sheet(wb, wsCom, 'Comissões');
 
-      XLSX.writeFile(wb, `Relatorio_Financeiro_${dataRefStr}.xlsx`);
+      XLSX.writeFile(wb, `Relatorio_Financeiro_Filtrado_${dataRefStr}.xlsx`);
 
     } else if (activeTab === 'clientes') {
       const resumoCli = [
         ['Indicador', 'Valor'],
-        ['Clientes Cadastrados', clientesStats.total],
+        ['Clientes Filtrados', clientesStats.total],
         ['Filiados ProTiro', clientesStats.filiados],
         ['Não Filiados', clientesStats.naoFiliados],
-        ['Total de Armas', clientesStats.totalArmas],
-        ['Total de GTs', clientesStats.totalGts],
-        ['Total de Manejos Ativos', clientesStats.totalManejos],
+        ['Total de Armas dos Clientes', clientesStats.totalArmas],
+        ['Total de GTs dos Clientes', clientesStats.totalGts],
+        ['Manejos Ativos', clientesStats.totalManejos],
       ];
       const wsRes = XLSX.utils.aoa_to_sheet(resumoCli);
       XLSX.utils.book_append_sheet(wb, wsRes, 'Estatísticas');
 
-      const listagemCli = tabelaClientesRelatorio.map(c => ({
-        'Nome': c.nome,
-        'CPF': c.cpf,
-        'Contato': c.contato,
-        'Filiado': c.filiado,
-        'Nº CR Exército': c.numeroCr,
-        'Vencimento CR': c.vencimentoCr,
-        'Nº CR IBAMA': c.numeroCrIbama,
-        'Vencimento IBAMA': c.vencimentoCrIbama,
-        'Total Armas': c.armasCount,
-        'Total GTs': c.gtsCount,
-        'Manejos Ativos': c.manejosCount
-      }));
+      // Exportar apenas colunas visíveis
+      const listagemCli = tabelaClientesRelatorio.map(c => {
+        const row: Record<string, any> = { 'Nome': c.nome };
+        if (colunasClientes.cpf) row['CPF'] = c.cpf;
+        if (colunasClientes.contato) row['Contato'] = c.contato;
+        if (colunasClientes.filiado) row['Filiado'] = c.filiado;
+        if (colunasClientes.cr) row['Nº CR'] = c.numeroCr;
+        if (colunasClientes.vencimentoCr) row['Vencimento CR'] = c.vencimentoCr;
+        if (colunasClientes.crIbama) row['Nº CR IBAMA'] = c.numeroCrIbama;
+        if (colunasClientes.vencimentoIbama) row['Vencimento IBAMA'] = c.vencimentoCrIbama;
+        if (colunasClientes.armasCount) row['Armas'] = c.armasCount;
+        if (colunasClientes.gtsCount) row['GTs'] = c.gtsCount;
+        if (colunasClientes.manejosCount) row['Manejos'] = c.manejosCount;
+        return row;
+      });
       const wsList = XLSX.utils.json_to_sheet(listagemCli);
       XLSX.utils.book_append_sheet(wb, wsList, 'Clientes');
 
-      const armasDet = armas.map(a => ({
+      const armasDet = armasFiltradasClientes.map(a => ({
         'Proprietário': a.clientes?.nome || 'N/I',
         'Tipo': a.tipo,
         'Modelo': a.modelo,
@@ -622,7 +753,7 @@ export function Relatorios() {
       const wsArm = XLSX.utils.json_to_sheet(armasDet);
       XLSX.utils.book_append_sheet(wb, wsArm, 'Armas Cadastradas');
 
-      XLSX.writeFile(wb, `Relatorio_Clientes_Acervo_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      XLSX.writeFile(wb, `Relatorio_Clientes_Acervo_Filtrado_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 
     } else if (activeTab === 'alertas') {
       const resumoAlert = [
@@ -647,7 +778,7 @@ export function Relatorios() {
       const wsDet = XLSX.utils.json_to_sheet(detalheAlert);
       XLSX.utils.book_append_sheet(wb, wsDet, 'Alertas Documentos');
 
-      XLSX.writeFile(wb, `Relatorio_Vencimentos_${dataRefStr}.xlsx`);
+      XLSX.writeFile(wb, `Relatorio_Vencimentos_Filtrado_${dataRefStr}.xlsx`);
     }
   };
 
@@ -706,19 +837,19 @@ export function Relatorios() {
           table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 10px !important;
+            font-size: 9px !important;
             color: #000 !important;
           }
           th {
             background-color: #f3f4f6 !important;
             border-bottom: 1.5px solid #000 !important;
-            padding: 6px 4px !important;
+            padding: 5px 3px !important;
             font-weight: bold !important;
             text-align: left !important;
           }
           td {
             border-bottom: 1px solid #e5e7eb !important;
-            padding: 5px 4px !important;
+            padding: 4px 3px !important;
             word-break: break-word !important;
           }
 
@@ -764,7 +895,7 @@ export function Relatorios() {
         }
       `}} />
 
-      {/* CABEÇALHO DA TELA */}
+      {/* CABEÇALHO */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-brand-dark-5 pb-6 print:hidden">
         <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
@@ -777,6 +908,16 @@ export function Relatorios() {
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button
+            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className={`btn-ghost btn-sm text-xs flex items-center gap-1.5 ${
+              mostrarFiltros ? 'bg-brand-blue/10 border-brand-blue/30 text-brand-blue-light' : 'text-gray-400'
+            }`}
+            title="Mostrar ou Ocultar Painel de Filtros"
+          >
+            <Filter size={14} />
+            <span>Filtros {mostrarFiltros ? 'Abertos' : 'Fechados'}</span>
+          </button>
           <button 
             onClick={handleImprimir}
             className="btn-ghost btn-sm text-xs flex items-center gap-1.5"
@@ -857,7 +998,294 @@ export function Relatorios() {
         </div>
       </div>
 
-      {/* ABAS */}
+      {/* PAINÉIS DE FILTROS INTERATIVOS (Por aba) */}
+      {mostrarFiltros && (
+        <div className="card bg-brand-dark-3/30 border-brand-dark-5/80 p-4 sm:p-5 space-y-4 print:hidden animate-fade-in">
+          
+          <div className="flex items-center justify-between border-b border-brand-dark-5 pb-3">
+            <h3 className="text-xs font-black uppercase text-brand-blue-light flex items-center gap-1.5">
+              <Filter size={12} />
+              Configurar Filtros do Relatório
+            </h3>
+            <span className="text-[10px] text-gray-500 font-bold">Os filtros abaixo atualizam os dados da tela e as exportações</span>
+          </div>
+
+          {/* 1. FILTROS DA ABA: ORDENS DE SERVIÇO */}
+          {activeTab === 'ordens' && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              
+              {/* Status Financeiro */}
+              <div className="space-y-1.5">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Status Financeiro</label>
+                <div className="flex flex-wrap gap-1">
+                  {STATUS_OS.map(status => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => handleToggleFiltroStatusOS(status)}
+                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
+                        filtroStatusOS.includes(status)
+                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Status de Execução */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Status de Execução dos Serviços</label>
+                <div className="flex flex-wrap gap-1">
+                  {STATUS_EXECUCAO_SERVICO.map(status => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => handleToggleFiltroExecOS(status)}
+                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
+                        filtroExecOS.includes(status)
+                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                      }`}
+                    >
+                      {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
+                       status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Responsável e Canais */}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-gray-500 font-bold uppercase block text-[10px]">Responsável / Colaborador</label>
+                  <select
+                    value={filtroResponsavelOS}
+                    onChange={(e) => setFiltroResponsavelOS(e.target.value)}
+                    className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
+                  >
+                    <option value="Todos">Todos os Responsáveis</option>
+                    {listaColaboradoresOS.map(nome => (
+                      <option key={nome} value={nome}>{nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 2. FILTROS DA ABA: FINANCEIRO */}
+          {activeTab === 'financeiro' && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              
+              {/* Tipo de Transação */}
+              <div className="space-y-1.5">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Tipo de Lançamento</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIncluirEntradas(!incluirEntradas)}
+                    className={`flex-1 py-1.5 rounded-lg border text-[10px] font-black uppercase transition-all ${
+                      incluirEntradas
+                        ? 'bg-brand-green/20 border-brand-green/40 text-brand-green'
+                        : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                    }`}
+                  >
+                    Entradas (+)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIncluirSaidas(!incluirSaidas)}
+                    className={`flex-1 py-1.5 rounded-lg border text-[10px] font-black uppercase transition-all ${
+                      incluirSaidas
+                        ? 'bg-red-500/20 border-red-500/40 text-red-400'
+                        : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                    }`}
+                  >
+                    Saídas (-)
+                  </button>
+                </div>
+              </div>
+
+              {/* Meios de Pagamento */}
+              <div className="space-y-1.5 md:col-span-3">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Filtrar por Formas de Pagamento / Categorias</label>
+                <div className="flex flex-wrap gap-1">
+                  {FORMAS_PAGAMENTO.map(forma => (
+                    <button
+                      key={forma}
+                      type="button"
+                      onClick={() => handleToggleFormaPagamento(forma)}
+                      className={`px-2 py-1 rounded-md border text-[10px] font-bold transition-all ${
+                        filtroFormaPagamento.includes(forma)
+                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                      }`}
+                    >
+                      {forma}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Seções Ativas do Relatório */}
+              <div className="space-y-1.5 md:col-span-4 border-t border-brand-dark-5 pt-3">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Seções Visíveis na Impressão e PDF</label>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(secoesFinanceiro).map(([chave, ativo]) => (
+                    <label key={chave} className="flex items-center gap-2 cursor-pointer text-[11px] font-semibold text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={ativo}
+                        onChange={() => setSecoesFinanceiro({
+                          ...secoesFinanceiro,
+                          [chave]: !ativo
+                        })}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0"
+                      />
+                      <span>
+                        {chave === 'resumo' ? 'Painel de Resumos' :
+                         chave === 'meiosPagamento' ? 'Receitas por Forma de Pagamento' :
+                         chave === 'categoriasDespesa' ? 'Despesas por Categoria' :
+                         chave === 'comissoes' ? 'Repasses e Comissões' : 'Tabela de Extrato de Caixa'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 3. FILTROS DA ABA: CLIENTES & ACERVO */}
+          {activeTab === 'clientes' && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              
+              {/* Filtro Filiação */}
+              <div className="space-y-1">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Filiação do Cliente</label>
+                <select
+                  value={filtroFiliacao}
+                  onChange={(e) => setFiltroFiliacao(e.target.value as any)}
+                  className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
+                >
+                  <option value="Todos">Todos os Clientes</option>
+                  <option value="Filiados">Apenas Filiados (ProTiro)</option>
+                  <option value="NaoFiliados">Apenas Não Filiados</option>
+                </select>
+              </div>
+
+              {/* Filtro Armas */}
+              <div className="space-y-1">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Possui Armas Cadastradas</label>
+                <select
+                  value={filtroPossuiArmas}
+                  onChange={(e) => setFiltroPossuiArmas(e.target.value as any)}
+                  className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
+                >
+                  <option value="Todos">Indiferente</option>
+                  <option value="ComArmas">Com Armas no Acervo</option>
+                  <option value="SemArmas">Sem Armas no Acervo</option>
+                </select>
+              </div>
+
+              {/* Seletor de Colunas Visíveis */}
+              <div className="space-y-1.5 md:col-span-4 border-t border-brand-dark-5 pt-3">
+                <label className="text-gray-500 font-bold uppercase block text-[10px] mb-1">
+                  Selecionar Colunas da Tabela (Customize o layout de Impressão)
+                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  {Object.entries(colunasClientes).map(([col, ativo]) => (
+                    <label key={col} className="flex items-center gap-1.5 cursor-pointer text-[10px] font-semibold text-gray-300">
+                      <input
+                        type="checkbox"
+                        checked={ativo}
+                        onChange={() => setColunasClientes({
+                          ...colunasClientes,
+                          [col]: !ativo
+                        })}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0"
+                      />
+                      <span>
+                        {col === 'cpf' ? 'CPF' :
+                         col === 'contato' ? 'Contato' :
+                         col === 'filiado' ? 'Filiado' :
+                         col === 'cr' ? 'Nº CR' :
+                         col === 'vencimentoCr' ? 'Vencimento CR' :
+                         col === 'crIbama' ? 'Nº CR IBAMA' :
+                         col === 'vencimentoIbama' ? 'Vencimento IBAMA' :
+                         col === 'armasCount' ? 'Armas' :
+                         col === 'gtsCount' ? 'GTs' : 'Manejos'}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* 4. FILTROS DA ABA: PAINEL DE ALERTAS */}
+          {activeTab === 'alertas' && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              
+              {/* Tipo de Documento */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Tipo do Documento / Alerta</label>
+                <div className="flex flex-wrap gap-1">
+                  {['CR', 'IBAMA_CR', 'CRAF', 'GT', 'MANEJO'].map(tipo => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => handleToggleTipoAlerta(tipo)}
+                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
+                        filtroTipoAlerta.includes(tipo)
+                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nível de Gravidade */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-gray-500 font-bold uppercase block text-[10px]">Gravidade do Alerta</label>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { key: 'VENCIDO', label: 'Vencidos' },
+                    { key: 'CRITICO', label: 'Críticos (<30d)' },
+                    { key: 'AVISO', label: 'Avisos (<90d)' },
+                    { key: 'EM_RENOVACAO', label: 'Em Renovação' }
+                  ].map(nivel => (
+                    <button
+                      key={nivel.key}
+                      type="button"
+                      onClick={() => handleToggleNivelAlerta(nivel.key)}
+                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
+                        filtroNivelAlerta.includes(nivel.key)
+                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
+                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
+                      }`}
+                    >
+                      {nivel.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* MENU DE ABAS */}
       <div className="border-b border-brand-dark-5 flex overflow-x-auto print:hidden no-scrollbar">
         <button
           onClick={() => setActiveTab('ordens')}
@@ -931,7 +1359,7 @@ export function Relatorios() {
           </div>
         )}
 
-        {/* 1. ORDENS DE SERVIÇO */}
+        {/* 1. ABA: ORDENS DE SERVIÇO */}
         {!carregandoDados && activeTab === 'ordens' && (
           <div className="space-y-6">
             
@@ -943,7 +1371,7 @@ export function Relatorios() {
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-brand-blue-light font-bold mt-3 print:hidden">
                   <TrendingUp size={12} />
-                  <span>Na semana: {ordensPorPeriodoSemanaMesAno.semana}</span>
+                  <span>Geral da Semana: {ordensPorPeriodoSemanaMesAno.semana}</span>
                 </div>
               </div>
               
@@ -954,7 +1382,7 @@ export function Relatorios() {
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-3 print:hidden">
                   <Clock size={12} />
-                  <span>No mês: {ordensPorPeriodoSemanaMesAno.mes}</span>
+                  <span>Geral do Mês: {ordensPorPeriodoSemanaMesAno.mes}</span>
                 </div>
               </div>
 
@@ -967,7 +1395,7 @@ export function Relatorios() {
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-3 print:hidden">
                   <CheckCircle2 size={12} />
-                  <span>No ano: {ordensPorPeriodoSemanaMesAno.ano}</span>
+                  <span>Geral do Ano: {ordensPorPeriodoSemanaMesAno.ano}</span>
                 </div>
               </div>
 
@@ -978,7 +1406,7 @@ export function Relatorios() {
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold mt-3 print:hidden">
                   <Info size={12} />
-                  <span>OS sem custo</span>
+                  <span>Sem custo</span>
                 </div>
               </div>
             </div>
@@ -1018,7 +1446,7 @@ export function Relatorios() {
                     {ordensFiltradas.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-8 text-center text-xs text-gray-500">
-                          Nenhuma OS encontrada para o período selecionado.
+                          Nenhuma OS encontrada com os filtros selecionados.
                         </td>
                       </tr>
                     ) : (
@@ -1066,189 +1494,205 @@ export function Relatorios() {
           </div>
         )}
 
-        {/* 2. FINANCEIRO */}
+        {/* 2. ABA: FINANCEIRO */}
         {!carregandoDados && activeTab === 'financeiro' && (
           <div className="space-y-6">
             
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 print-cards-grid">
-              <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Faturamento Bruto</p>
-                <h3 className="text-xl font-black text-brand-green mt-1">{formatarMoeda(faturamentoStats.faturamentoBruto)}</h3>
-                <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
-                  <ArrowUpCircle size={10} className="text-brand-green" />
-                  <span>Entradas em caixa</span>
+            {/* Resumo */}
+            {secoesFinanceiro.resumo && (
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 print-cards-grid">
+                <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Faturamento Bruto</p>
+                  <h3 className="text-xl font-black text-brand-green mt-1">{formatarMoeda(faturamentoStats.faturamentoBruto)}</h3>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
+                    <ArrowUpCircle size={10} className="text-brand-green" />
+                    <span>Entradas filtradas</span>
+                  </div>
+                </div>
+
+                <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Total de Despesas</p>
+                  <h3 className="text-xl font-black text-red-400 mt-1">{formatarMoeda(faturamentoStats.totalDespesas)}</h3>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
+                    <ArrowDownCircle size={10} className="text-red-400" />
+                    <span>Saídas filtradas</span>
+                  </div>
+                </div>
+
+                <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Saldo Líquido</p>
+                  <h3 className={`text-xl font-black mt-1 ${faturamentoStats.saldoLiquido >= 0 ? 'text-brand-blue-light' : 'text-red-400'}`}>
+                    {formatarMoeda(faturamentoStats.saldoLiquido)}
+                  </h3>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
+                    <DollarSign size={10} className="text-brand-blue-light" />
+                    <span>Líquido filtrado</span>
+                  </div>
+                </div>
+
+                <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Margem de Lucro</p>
+                  <h3 className="text-xl font-black text-purple-400 mt-1">{faturamentoStats.margemLucro.toFixed(1)}%</h3>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
+                    <Percent size={10} className="text-purple-400" />
+                    <span>Rentabilidade</span>
+                  </div>
+                </div>
+
+                <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">A Receber (Período)</p>
+                  <h3 className="text-xl font-black text-yellow-500 mt-1">{formatarMoeda(faturamentoStats.aReceber)}</h3>
+                  <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
+                    <Clock size={10} className="text-yellow-500" />
+                    <span>OS do período</span>
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Total de Despesas</p>
-                <h3 className="text-xl font-black text-red-400 mt-1">{formatarMoeda(faturamentoStats.totalDespesas)}</h3>
-                <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
-                  <ArrowDownCircle size={10} className="text-red-400" />
-                  <span>Saídas pagas</span>
-                </div>
-              </div>
-
-              <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Saldo Líquido</p>
-                <h3 className={`text-xl font-black mt-1 ${faturamentoStats.saldoLiquido >= 0 ? 'text-brand-blue-light' : 'text-red-400'}`}>
-                  {formatarMoeda(faturamentoStats.saldoLiquido)}
-                </h3>
-                <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
-                  <DollarSign size={10} className="text-brand-blue-light" />
-                  <span>Líquido em caixa</span>
-                </div>
-              </div>
-
-              <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Margem de Lucro</p>
-                <h3 className="text-xl font-black text-purple-400 mt-1">{faturamentoStats.margemLucro.toFixed(1)}%</h3>
-                <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
-                  <Percent size={10} className="text-purple-400" />
-                  <span>Rentabilidade</span>
-                </div>
-              </div>
-
-              <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Previsão a Receber</p>
-                <h3 className="text-xl font-black text-yellow-500 mt-1">{formatarMoeda(faturamentoStats.aReceber)}</h3>
-                <div className="flex items-center gap-1 mt-2 text-[9px] text-gray-500 print:hidden">
-                  <Clock size={10} className="text-yellow-500" />
-                  <span>Restante das OS</span>
-                </div>
-              </div>
-            </div>
-
+            {/* Listas agrupadas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2">
               
-              <div className="card bg-brand-dark-3/50 border-brand-dark-5 p-4 sm:p-5">
-                <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider print-section-title">Receitas por Forma de Pagamento</h3>
-                <div className="space-y-2">
-                  {receitasPorMetodo.length === 0 ? (
-                    <p className="text-xs text-gray-500 py-4 text-center">Sem recebimentos.</p>
-                  ) : (
-                    receitasPorMetodo.map((r) => (
-                      <div key={r.metodo} className="flex justify-between items-center bg-brand-dark-4/30 px-3 py-2 rounded-lg border border-brand-dark-5/30 print:border-gray-200">
-                        <span className="text-xs font-semibold text-gray-300 print:text-black">{r.metodo}</span>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-brand-green print:text-black">{formatarMoeda(r.total)}</p>
-                          <p className="text-[9px] text-gray-500 print:hidden">{r.count} lanc.</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="card bg-brand-dark-3/50 border-brand-dark-5 p-4 sm:p-5">
-                <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider print-section-title">Despesas por Categoria</h3>
-                <div className="space-y-2">
-                  {despesasPorCategoria.length === 0 ? (
-                    <p className="text-xs text-gray-500 py-4 text-center">Sem despesas.</p>
-                  ) : (
-                    despesasPorCategoria.map((d) => (
-                      <div key={d.categoria} className="flex justify-between items-center bg-brand-dark-4/30 px-3 py-2 rounded-lg border border-brand-dark-5/30 print:border-gray-200">
-                        <span className="text-xs font-semibold text-gray-300 print:text-black">{d.categoria}</span>
-                        <div className="text-right">
-                          <p className="text-xs font-black text-red-400 print:text-black">{formatarMoeda(d.total)}</p>
-                          <p className="text-[9px] text-gray-500 print:hidden">{d.count} lanc.</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider print-section-title">Repasses e Comissões devidas no Período</h3>
-              <div className="overflow-x-auto rounded-xl border border-brand-dark-5 bg-brand-dark-3 print:border-gray-300 print:bg-white">
-                <table className="min-w-full divide-y divide-brand-dark-5 print:divide-gray-300">
-                  <thead className="bg-brand-dark-4 print:bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Responsável / Colaborador</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Serviços Executados</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-right">Total a Repassar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-dark-5 bg-transparent print:divide-gray-200">
-                    {comissoesEquipe.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="px-4 py-6 text-center text-xs text-gray-500">
-                          Nenhum repasse de comissão detectado para o período.
-                        </td>
-                      </tr>
+              {/* Meios de Pagamento */}
+              {secoesFinanceiro.meiosPagamento && (
+                <div className="card bg-brand-dark-3/50 border-brand-dark-5 p-4 sm:p-5">
+                  <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider print-section-title">Receitas por Meio de Pagamento</h3>
+                  <div className="space-y-2">
+                    {receitasPorMetodo.length === 0 ? (
+                      <p className="text-xs text-gray-500 py-4 text-center">Nenhum recebimento.</p>
                     ) : (
-                      comissoesEquipe.map((c) => (
-                        <tr key={c.colaborador}>
-                          <td className="px-4 py-2.5 text-xs font-bold text-white print:text-black">{c.colaborador}</td>
-                          <td className="px-4 py-2.5 text-xs text-gray-300 text-center print:text-black">{c.count}</td>
-                          <td className="px-4 py-2.5 text-xs font-black text-brand-green text-right print:text-black">{formatarMoeda(c.total)}</td>
-                        </tr>
+                      receitasPorMetodo.map((r) => (
+                        <div key={r.metodo} className="flex justify-between items-center bg-brand-dark-4/30 px-3 py-2 rounded-lg border border-brand-dark-5/30 print:border-gray-200">
+                          <span className="text-xs font-semibold text-gray-300 print:text-black">{r.metodo}</span>
+                          <div className="text-right">
+                            <p className="text-xs font-black text-brand-green print:text-black">{formatarMoeda(r.total)}</p>
+                            <p className="text-[9px] text-gray-500 print:hidden">{r.count} lanc.</p>
+                          </div>
+                        </div>
                       ))
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  </div>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider print-section-title">Extrato de Transações do Caixa</h3>
-              <div className="overflow-x-auto rounded-xl border border-brand-dark-5 bg-brand-dark-3 print:border-gray-300 print:bg-white">
-                <table className="min-w-full divide-y divide-brand-dark-5 print:divide-gray-300">
-                  <thead className="bg-brand-dark-4 print:bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Data</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Tipo</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Método / Categoria</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Descrição</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Cliente / Destino</th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-right">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-dark-5 bg-transparent print:divide-gray-200">
-                    {extratoTransacoes.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
-                          Nenhuma transação financeira encontrada.
-                        </td>
-                      </tr>
+              {/* Despesas por Categoria */}
+              {secoesFinanceiro.categoriasDespesa && (
+                <div className="card bg-brand-dark-3/50 border-brand-dark-5 p-4 sm:p-5">
+                  <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider print-section-title">Despesas por Categoria</h3>
+                  <div className="space-y-2">
+                    {despesasPorCategoria.length === 0 ? (
+                      <p className="text-xs text-gray-500 py-4 text-center">Nenhuma despesa.</p>
                     ) : (
-                      extratoTransacoes.map((t) => (
-                        <tr key={t.id} className="hover:bg-white/[0.01]">
-                          <td className="px-4 py-2 text-xs text-gray-400 whitespace-nowrap print:text-black">
-                            {format(parseISO(t.data), 'dd/MM/yyyy')}
-                          </td>
-                          <td className="px-4 py-2 text-xs font-black uppercase">
-                            <span className={t.tipo === 'entrada' ? 'text-brand-green' : 'text-red-400'}>
-                              {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2 text-xs text-gray-300 print:text-black">{t.categoria}</td>
-                          <td className="px-4 py-2 text-xs text-gray-300 print:text-black">{t.descricao}</td>
-                          <td className="px-4 py-2 text-xs text-gray-400 truncate max-w-[150px] print:text-black">{t.entidade}</td>
-                          <td className={`px-4 py-2 text-xs font-black text-right print:text-black ${t.tipo === 'entrada' ? 'text-brand-green' : 'text-red-400'}`}>
-                            {t.tipo === 'entrada' ? '+' : '-'}{formatarMoeda(t.valor)}
-                          </td>
-                        </tr>
+                      despesasPorCategoria.map((d) => (
+                        <div key={d.categoria} className="flex justify-between items-center bg-brand-dark-4/30 px-3 py-2 rounded-lg border border-brand-dark-5/30 print:border-gray-200">
+                          <span className="text-xs font-semibold text-gray-300 print:text-black">{d.categoria}</span>
+                          <div className="text-right">
+                            <p className="text-xs font-black text-red-400 print:text-black">{formatarMoeda(d.total)}</p>
+                            <p className="text-[9px] text-gray-500 print:hidden">{d.count} lanc.</p>
+                          </div>
+                        </div>
                       ))
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                </div>
+              )}
+
             </div>
+
+            {/* Repasses e Comissões */}
+            {secoesFinanceiro.comissoes && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider print-section-title">Repasses e Comissões devidas no Período</h3>
+                <div className="overflow-x-auto rounded-xl border border-brand-dark-5 bg-brand-dark-3 print:border-gray-300 print:bg-white">
+                  <table className="min-w-full divide-y divide-brand-dark-5 print:divide-gray-300">
+                    <thead className="bg-brand-dark-4 print:bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Responsável / Colaborador</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Serviços Executados</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-right">Total a Repassar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-dark-5 bg-transparent print:divide-gray-200">
+                      {comissoesEquipe.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-6 text-center text-xs text-gray-500">
+                            Nenhum repasse de comissão detectado para o período.
+                          </td>
+                        </tr>
+                      ) : (
+                        comissoesEquipe.map((c) => (
+                          <tr key={c.colaborador}>
+                            <td className="px-4 py-2.5 text-xs font-bold text-white print:text-black">{c.colaborador}</td>
+                            <td className="px-4 py-2.5 text-xs text-gray-300 text-center print:text-black">{c.count}</td>
+                            <td className="px-4 py-2.5 text-xs font-black text-brand-green text-right print:text-black">{formatarMoeda(c.total)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Extrato unificado */}
+            {secoesFinanceiro.extrato && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider print-section-title">Extrato de Transações do Caixa</h3>
+                <div className="overflow-x-auto rounded-xl border border-brand-dark-5 bg-brand-dark-3 print:border-gray-300 print:bg-white">
+                  <table className="min-w-full divide-y divide-brand-dark-5 print:divide-gray-300">
+                    <thead className="bg-brand-dark-4 print:bg-gray-100">
+                      <tr>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Data</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Tipo</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Método / Categoria</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Descrição</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400">Cliente / Destino</th>
+                        <th className="px-4 py-3 text-[10px] font-bold uppercase text-gray-400 text-right">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-dark-5 bg-transparent print:divide-gray-200">
+                      {extratoTransacoes.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
+                            Nenhuma transação financeira encontrada com os filtros atuais.
+                          </td>
+                        </tr>
+                      ) : (
+                        extratoTransacoes.map((t) => (
+                          <tr key={t.id} className="hover:bg-white/[0.01]">
+                            <td className="px-4 py-2 text-xs text-gray-400 whitespace-nowrap print:text-black">
+                              {format(parseISO(t.data), 'dd/MM/yyyy')}
+                            </td>
+                            <td className="px-4 py-2 text-xs font-black uppercase">
+                              <span className={t.tipo === 'entrada' ? 'text-brand-green' : 'text-red-400'}>
+                                {t.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-xs text-gray-300 print:text-black">{t.categoria}</td>
+                            <td className="px-4 py-2 text-xs text-gray-300 print:text-black">{t.descricao}</td>
+                            <td className="px-4 py-2 text-xs text-gray-400 truncate max-w-[150px] print:text-black">{t.entidade}</td>
+                            <td className={`px-4 py-2 text-xs font-black text-right print:text-black ${t.tipo === 'entrada' ? 'text-brand-green' : 'text-red-400'}`}>
+                              {t.tipo === 'entrada' ? '+' : '-'}{formatarMoeda(t.valor)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
           </div>
         )}
 
-        {/* 3. CLIENTES & ACERVO */}
+        {/* 3. ABA: CLIENTES & ACERVO */}
         {!carregandoDados && activeTab === 'clientes' && (
           <div className="space-y-6">
             
             <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 print-cards-grid">
               <div className="card bg-brand-dark-3 border-brand-dark-5 print-card">
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Clientes Cadastrados</p>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-wider">Clientes Filtrados</p>
                 <h3 className="text-2xl font-black text-white mt-1">{clientesStats.total}</h3>
               </div>
 
@@ -1333,21 +1777,23 @@ export function Relatorios() {
                   <thead className="bg-brand-dark-4 print:bg-gray-100">
                     <tr>
                       <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Cliente</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">CPF</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Contato</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Filiado</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Nº CR</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Vencimento CR</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Armas</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">GTs</th>
-                      <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Manejos</th>
+                      {colunasClientes.cpf && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">CPF</th>}
+                      {colunasClientes.contato && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Contato</th>}
+                      {colunasClientes.filiado && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Filiado</th>}
+                      {colunasClientes.cr && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Nº CR</th>}
+                      {colunasClientes.vencimentoCr && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Vencimento CR</th>}
+                      {colunasClientes.crIbama && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Nº CR IBAMA</th>}
+                      {colunasClientes.vencimentoIbama && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400">Vencimento IBAMA</th>}
+                      {colunasClientes.armasCount && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Armas</th>}
+                      {colunasClientes.gtsCount && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">GTs</th>}
+                      {colunasClientes.manejosCount && <th className="px-3 py-3 text-[10px] font-bold uppercase text-gray-400 text-center">Manejos</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-brand-dark-5 bg-transparent print:divide-gray-200">
                     {tabelaClientesRelatorio.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="px-3 py-8 text-center text-xs text-gray-500">
-                          Nenhum cliente cadastrado.
+                        <td colSpan={10} className="px-3 py-8 text-center text-xs text-gray-500">
+                          Nenhum cliente cadastrado com os filtros ativos.
                         </td>
                       </tr>
                     ) : (
@@ -1356,24 +1802,38 @@ export function Relatorios() {
                           <td className="px-3 py-2 text-xs font-bold text-white print:text-black truncate max-w-[140px]" title={c.nome}>
                             {c.nome}
                           </td>
-                          <td className="px-3 py-2 text-xs text-gray-400 print:text-black whitespace-nowrap">
-                            {formatarCPF(c.cpf)}
-                          </td>
-                          <td className="px-3 py-2 text-xs text-gray-400 print:text-black whitespace-nowrap">
-                            {formatarTelefone(c.contato)}
-                          </td>
-                          <td className="px-3 py-2 text-xs text-center font-bold text-gray-300 print:text-black">
-                            <span className={c.filiado === 'Sim' ? 'text-brand-green' : 'text-gray-500'}>
-                              {c.filiado}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-xs text-gray-300 print:text-black whitespace-nowrap">{c.numeroCr}</td>
-                          <td className={`px-3 py-2 text-xs whitespace-nowrap print:text-black ${
-                            c.vencimentoCrRaw && isBefore(parseISO(c.vencimentoCrRaw), new Date()) ? 'text-red-400 font-bold' : 'text-gray-400'
-                          }`}>{c.vencimentoCr}</td>
-                          <td className="px-3 py-2 text-xs text-center text-brand-blue-light font-bold print:text-black">{c.armasCount}</td>
-                          <td className="px-3 py-2 text-xs text-center text-purple-300 font-bold print:text-black">{c.gtsCount}</td>
-                          <td className="px-3 py-2 text-xs text-center text-orange-300 font-bold print:text-black">{c.manejosCount}</td>
+                          {colunasClientes.cpf && (
+                            <td className="px-3 py-2 text-xs text-gray-400 print:text-black whitespace-nowrap">
+                              {formatarCPF(c.cpf)}
+                            </td>
+                          )}
+                          {colunasClientes.contato && (
+                            <td className="px-3 py-2 text-xs text-gray-400 print:text-black whitespace-nowrap">
+                              {formatarTelefone(c.contato)}
+                            </td>
+                          )}
+                          {colunasClientes.filiado && (
+                            <td className="px-3 py-2 text-xs text-center font-bold text-gray-300 print:text-black">
+                              <span className={c.filiado === 'Sim' ? 'text-brand-green' : 'text-gray-500'}>
+                                {c.filiado}
+                              </span>
+                            </td>
+                          )}
+                          {colunasClientes.cr && <td className="px-3 py-2 text-xs text-gray-300 print:text-black whitespace-nowrap">{c.numeroCr}</td>}
+                          {colunasClientes.vencimentoCr && (
+                            <td className={`px-3 py-2 text-xs whitespace-nowrap print:text-black ${
+                              c.vencimentoCrRaw && isBefore(parseISO(c.vencimentoCrRaw), new Date()) ? 'text-red-400 font-bold' : 'text-gray-400'
+                            }`}>{c.vencimentoCr}</td>
+                          )}
+                          {colunasClientes.crIbama && <td className="px-3 py-2 text-xs text-gray-300 print:text-black whitespace-nowrap">{c.numeroCrIbama}</td>}
+                          {colunasClientes.vencimentoIbama && (
+                            <td className={`px-3 py-2 text-xs whitespace-nowrap print:text-black ${
+                              c.vencimentoCrIbamaRaw && isBefore(parseISO(c.vencimentoCrIbamaRaw), new Date()) ? 'text-red-400 font-bold' : 'text-gray-400'
+                            }`}>{c.vencimentoCrIbama}</td>
+                          )}
+                          {colunasClientes.armasCount && <td className="px-3 py-2 text-xs text-center text-brand-blue-light font-bold print:text-black">{c.armasCount}</td>}
+                          {colunasClientes.gtsCount && <td className="px-3 py-2 text-xs text-center text-purple-300 font-bold print:text-black">{c.gtsCount}</td>}
+                          {colunasClientes.manejosCount && <td className="px-3 py-2 text-xs text-center text-orange-300 font-bold print:text-black">{c.manejosCount}</td>}
                         </tr>
                       ))
                     )}
@@ -1385,7 +1845,7 @@ export function Relatorios() {
           </div>
         )}
 
-        {/* 4. PAINEL DE ALERTAS */}
+        {/* 4. ABA: PAINEL DE ALERTAS */}
         {!carregandoDados && activeTab === 'alertas' && (
           <div className="space-y-6">
             
@@ -1434,7 +1894,7 @@ export function Relatorios() {
                     {alertasFiltrados.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-4 py-8 text-center text-xs text-gray-500">
-                          Nenhum alerta de vencimento encontrado.
+                          Nenhum alerta de vencimento encontrado com os filtros atuais.
                         </td>
                       </tr>
                     ) : (
