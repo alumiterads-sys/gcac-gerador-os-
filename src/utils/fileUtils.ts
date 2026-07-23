@@ -119,12 +119,37 @@ export function compressImage(
  * Abre uma imagem/PDF em base64 em uma nova aba do navegador,
  * ou realiza o download se for outro tipo de arquivo.
  */
-export function visualizarDocumentoBase64(base64Data: string, nomeArquivo: string) {
+export async function visualizarDocumentoBase64(base64Data: string, nomeArquivo: string) {
   try {
     if (!base64Data) {
       alert('Nenhum documento anexado.');
       return;
     }
+
+    // Interceptar URLs públicas do Supabase Storage para converter em URLs assinadas temporárias
+    if (base64Data.startsWith('http') && base64Data.includes('/documentos-clientes/')) {
+      const match = base64Data.match(/\/storage\/v1\/object\/public\/documentos-clientes\/(.+)$/);
+      if (match) {
+        const path = decodeURIComponent(match[1]);
+        try {
+          const { data, error } = await supabase.storage
+            .from('documentos-clientes')
+            .createSignedUrl(path, 300); // URL assinada válida por 5 minutos (300 segundos)
+
+          if (error) throw error;
+          if (data?.signedUrl) {
+            window.open(data.signedUrl, '_blank');
+            return;
+          }
+        } catch (err) {
+          console.error('Erro ao gerar URL assinada:', err);
+          // Fallback: tenta abrir a URL original se houver erro
+          window.open(base64Data, '_blank');
+          return;
+        }
+      }
+    }
+
     const partes = base64Data.split(';base64,');
     if (partes.length < 2) {
       // Se não for data URL, pode ser um link normal do Supabase Storage
