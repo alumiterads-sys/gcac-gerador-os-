@@ -245,12 +245,14 @@ export function Relatorios() {
       const dataCriacao = parseISO(o.criadoEm);
       if (!isWithinInterval(dataCriacao, intervalFiltro)) return false;
 
-      // 2. Filtro de Status Financeiro
-      if (!filtroStatusOS.includes(o.status)) return false;
+      // 2. Filtro de Status Financeiro (Se vazio, ignora o filtro)
+      if (filtroStatusOS.length > 0 && !filtroStatusOS.includes(o.status)) return false;
 
-      // 3. Filtro de Canal de Atendimento
-      if (o.canalAtendimento && !filtroCanalOS.includes(o.canalAtendimento)) return false;
-      if (!o.canalAtendimento && !filtroCanalOS.includes('Outro')) return false;
+      // 3. Filtro de Canal de Atendimento (Se vazio, ignora o filtro)
+      if (filtroCanalOS.length > 0) {
+        if (o.canalAtendimento && !filtroCanalOS.includes(o.canalAtendimento)) return false;
+        if (!o.canalAtendimento && !filtroCanalOS.includes('Outro')) return false;
+      }
 
       // 4. Filtro de Responsável pelo Serviço
       if (filtroResponsavelOS !== 'Todos') {
@@ -258,12 +260,14 @@ export function Relatorios() {
         if (!temResponsavel) return false;
       }
 
-      // 5. Filtro de Status de Execução (pelo menos um serviço correspondente)
-      if (o.servicos && o.servicos.length > 0) {
-        const temExecStatus = o.servicos.some(s => filtroExecOS.includes(s.statusExecucao || 'Não Iniciado'));
-        if (!temExecStatus) return false;
-      } else {
-        if (!filtroExecOS.includes('Não Iniciado')) return false;
+      // 5. Filtro de Status de Execução (Se vazio, ignora o filtro)
+      if (filtroExecOS.length > 0) {
+        if (o.servicos && o.servicos.length > 0) {
+          const temExecStatus = o.servicos.some(s => filtroExecOS.includes(s.statusExecucao || 'Não Iniciado'));
+          if (!temExecStatus) return false;
+        } else {
+          if (!filtroExecOS.includes('Não Iniciado')) return false;
+        }
       }
 
       return true;
@@ -328,8 +332,8 @@ export function Relatorios() {
           if (!p.data) return;
           const dataPag = parseISO(p.data);
           if (isWithinInterval(dataPag, intervalFiltro)) {
-            // Filtro por Forma de Pagamento
-            if (filtroFormaPagamento.includes(p.metodo)) {
+            // Filtro por Forma de Pagamento (Se vazio, ignora o filtro)
+            if (filtroFormaPagamento.length === 0 || filtroFormaPagamento.includes(p.metodo)) {
               transacoes.push({
                 id: `rec-${p.id}`,
                 data: p.data,
@@ -352,8 +356,8 @@ export function Relatorios() {
         const dataDespesa = parseISO(d.data);
         if (isWithinInterval(dataDespesa, intervalFiltro)) {
           const cat = d.categoria || 'Outros';
-          // Filtro por Categoria de Despesa
-          if (filtroCategoriaDespesa.includes(cat)) {
+          // Filtro por Categoria de Despesa (Se vazio, ignora o filtro)
+          if (filtroCategoriaDespesa.length === 0 || filtroCategoriaDespesa.includes(cat)) {
             transacoes.push({
               id: `desp-${d.id}`,
               data: d.data,
@@ -562,22 +566,24 @@ export function Relatorios() {
   // ───────────────────────────────────────────────────────────────────────────
   const alertasFiltrados = useMemo(() => {
     return alertas.filter(a => {
-      // 1. Filtro por tipo de documento/alerta
-      if (!filtroTipoAlerta.includes(a.tipo)) return false;
+      // 1. Filtro por tipo de documento/alerta (Se vazio, ignora o filtro)
+      if (filtroTipoAlerta.length > 0 && !filtroTipoAlerta.includes(a.tipo)) return false;
 
-      // 2. Filtro por nível de gravidade/status
-      let nivel = a.nivel;
-      if (a.emRenovacao) {
-        nivel = 'EM_RENOVACAO';
-      } else if (a.nivel === 'VENCIDO' || a.diasRestantes < 0) {
-        nivel = 'VENCIDO';
-      } else if (a.nivel === 'CRITICO' || a.diasRestantes <= 30) {
-        nivel = 'CRITICO';
-      } else {
-        nivel = 'AVISO';
+      // 2. Filtro por nível de gravidade/status (Se vazio, ignora o filtro)
+      if (filtroNivelAlerta.length > 0) {
+        let nivel = a.nivel;
+        if (a.emRenovacao) {
+          nivel = 'EM_RENOVACAO';
+        } else if (a.nivel === 'VENCIDO' || a.diasRestantes < 0) {
+          nivel = 'VENCIDO';
+        } else if (a.nivel === 'CRITICO' || a.diasRestantes <= 30) {
+          nivel = 'CRITICO';
+        } else {
+          nivel = 'AVISO';
+        }
+
+        if (!filtroNivelAlerta.includes(nivel)) return false;
       }
-
-      if (!filtroNivelAlerta.includes(nivel)) return false;
 
       // 3. Filtro geral de datas (se houver vencimento no intervalo selecionado)
       if (a.dataVencimento) {
