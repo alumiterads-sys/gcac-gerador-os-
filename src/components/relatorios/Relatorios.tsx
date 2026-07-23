@@ -1012,65 +1012,137 @@ export function Relatorios() {
 
           {/* 1. FILTROS DA ABA: ORDENS DE SERVIÇO */}
           {activeTab === 'ordens' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
               
               {/* Status Financeiro */}
-              <div className="space-y-1.5">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Status Financeiro</label>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Status Financeiro</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
                   {STATUS_OS.map(status => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => handleToggleFiltroStatusOS(status)}
-                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
-                        filtroStatusOS.includes(status)
-                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
-                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                      }`}
-                    >
-                      {status}
-                    </button>
+                    <label key={status} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={filtroStatusOS.includes(status)}
+                        onChange={() => handleToggleFiltroStatusOS(status)}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span className="font-semibold uppercase tracking-tight">{status}</span>
+                    </label>
                   ))}
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroStatusOS([...STATUS_OS])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroStatusOS([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Status de Execução */}
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Status de Execução dos Serviços</label>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Status de Execução</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
                   {STATUS_EXECUCAO_SERVICO.map(status => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => handleToggleFiltroExecOS(status)}
-                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
-                        filtroExecOS.includes(status)
-                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
-                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                      }`}
-                    >
-                      {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
-                       status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
-                    </button>
+                    <label key={status} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={filtroExecOS.includes(status)}
+                        onChange={() => handleToggleFiltroExecOS(status)}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span className="font-semibold uppercase tracking-tight text-left">
+                        {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
+                         status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                      </span>
+                    </label>
                   ))}
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroExecOS([...STATUS_EXECUCAO_SERVICO])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroExecOS([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Responsável e Canais */}
+              {/* Canal Atendimento */}
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Canal Atendimento</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  {['WhatsApp', 'Presencial', 'Ligação', 'E-mail', 'Outro'].map(canal => (
+                    <label key={canal} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={filtroCanalOS.includes(canal)}
+                        onChange={() => handleToggleFiltroCanalOS(canal)}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span className="font-semibold uppercase tracking-tight">{canal}</span>
+                    </label>
+                  ))}
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroCanalOS(['WhatsApp', 'Presencial', 'Ligação', 'E-mail', 'Outro'])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroCanalOS([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Responsável e Informação */}
               <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-gray-500 font-bold uppercase block text-[10px]">Responsável / Colaborador</label>
+                <div className="space-y-2">
+                  <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Responsável pelo Serviço</label>
                   <select
                     value={filtroResponsavelOS}
                     onChange={(e) => setFiltroResponsavelOS(e.target.value)}
-                    className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
+                    className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-blue"
                   >
                     <option value="Todos">Todos os Responsáveis</option>
                     {listaColaboradoresOS.map(nome => (
                       <option key={nome} value={nome}>{nome}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="bg-brand-blue/5 border border-brand-blue/20 rounded-xl p-3 text-[10px] text-gray-400 space-y-1">
+                  <span className="font-bold text-brand-blue-light uppercase block">💡 Dica de Filtros</span>
+                  <p>
+                    Se o resultado sair em branco, confirme se o status de execução ou financeiro correspondente está marcado ao lado. Por padrão, deixe <strong>"Todos"</strong> selecionados para listar tudo.
+                  </p>
                 </div>
               </div>
 
@@ -1079,64 +1151,109 @@ export function Relatorios() {
 
           {/* 2. FILTROS DA ABA: FINANCEIRO */}
           {activeTab === 'financeiro' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 text-xs">
               
               {/* Tipo de Transação */}
-              <div className="space-y-1.5">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Tipo de Lançamento</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIncluirEntradas(!incluirEntradas)}
-                    className={`flex-1 py-1.5 rounded-lg border text-[10px] font-black uppercase transition-all ${
-                      incluirEntradas
-                        ? 'bg-brand-green/20 border-brand-green/40 text-brand-green'
-                        : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                    }`}
-                  >
-                    Entradas (+)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIncluirSaidas(!incluirSaidas)}
-                    className={`flex-1 py-1.5 rounded-lg border text-[10px] font-black uppercase transition-all ${
-                      incluirSaidas
-                        ? 'bg-red-500/20 border-red-500/40 text-red-400'
-                        : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                    }`}
-                  >
-                    Saídas (-)
-                  </button>
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Tipo de Lançamento</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="checkbox"
+                      checked={incluirEntradas}
+                      onChange={() => setIncluirEntradas(!incluirEntradas)}
+                      className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-green focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-brand-green-light">Entradas (Faturamento)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="checkbox"
+                      checked={incluirSaidas}
+                      onChange={() => setIncluirSaidas(!incluirSaidas)}
+                      className="rounded border-brand-dark-5 bg-brand-dark-4 text-red-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-red-400">Saídas (Despesas)</span>
+                  </label>
                 </div>
               </div>
 
               {/* Meios de Pagamento */}
-              <div className="space-y-1.5 md:col-span-3">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Filtrar por Formas de Pagamento / Categorias</label>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Formas de Pagamento</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50 max-h-36 overflow-y-auto custom-scrollbar">
                   {FORMAS_PAGAMENTO.map(forma => (
-                    <button
-                      key={forma}
-                      type="button"
-                      onClick={() => handleToggleFormaPagamento(forma)}
-                      className={`px-2 py-1 rounded-md border text-[10px] font-bold transition-all ${
-                        filtroFormaPagamento.includes(forma)
-                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
-                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                      }`}
-                    >
-                      {forma}
-                    </button>
+                    <label key={forma} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={filtroFormaPagamento.includes(forma)}
+                        onChange={() => handleToggleFormaPagamento(forma)}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span className="font-semibold uppercase tracking-tight">{forma}</span>
+                    </label>
                   ))}
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroFormaPagamento([...FORMAS_PAGAMENTO])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroFormaPagamento([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Categorias Despesa */}
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Categorias de Despesa</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50 max-h-36 overflow-y-auto custom-scrollbar">
+                  {[...CATEGORIAS_DESPESA, 'Outros'].map(cat => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                      <input
+                        type="checkbox"
+                        checked={filtroCategoriaDespesa.includes(cat)}
+                        onChange={() => handleToggleCategoriaDespesa(cat)}
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span className="font-semibold uppercase tracking-tight truncate max-w-[150px]" title={cat}>{cat}</span>
+                    </label>
+                  ))}
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroCategoriaDespesa([...CATEGORIAS_DESPESA, 'Outros'])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
+                    >
+                      Todos
+                    </button>
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroCategoriaDespesa([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Seções Ativas do Relatório */}
-              <div className="space-y-1.5 md:col-span-4 border-t border-brand-dark-5 pt-3">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Seções Visíveis na Impressão e PDF</label>
-                <div className="flex flex-wrap gap-3">
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Seções Visíveis (PDF / Print)</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
                   {Object.entries(secoesFinanceiro).map(([chave, ativo]) => (
-                    <label key={chave} className="flex items-center gap-2 cursor-pointer text-[11px] font-semibold text-gray-300">
+                    <label key={chave} className="flex items-center gap-2 cursor-pointer text-[11px] font-semibold text-gray-300 hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={ativo}
@@ -1144,13 +1261,13 @@ export function Relatorios() {
                           ...secoesFinanceiro,
                           [chave]: !ativo
                         })}
-                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0"
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
                       />
                       <span>
-                        {chave === 'resumo' ? 'Painel de Resumos' :
-                         chave === 'meiosPagamento' ? 'Receitas por Forma de Pagamento' :
-                         chave === 'categoriasDespesa' ? 'Despesas por Categoria' :
-                         chave === 'comissoes' ? 'Repasses e Comissões' : 'Tabela de Extrato de Caixa'}
+                        {chave === 'resumo' ? 'Resumos rápidos' :
+                         chave === 'meiosPagamento' ? 'Meios de Recebimento' :
+                         chave === 'categoriasDespesa' ? 'Categorias de Despesa' :
+                         chave === 'comissoes' ? 'Comissões de Equipe' : 'Extrato de Caixa'}
                       </span>
                     </label>
                   ))}
@@ -1162,44 +1279,88 @@ export function Relatorios() {
 
           {/* 3. FILTROS DA ABA: CLIENTES & ACERVO */}
           {activeTab === 'clientes' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs">
               
               {/* Filtro Filiação */}
-              <div className="space-y-1">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Filiação do Cliente</label>
-                <select
-                  value={filtroFiliacao}
-                  onChange={(e) => setFiltroFiliacao(e.target.value as any)}
-                  className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
-                >
-                  <option value="Todos">Todos os Clientes</option>
-                  <option value="Filiados">Apenas Filiados (ProTiro)</option>
-                  <option value="NaoFiliados">Apenas Não Filiados</option>
-                </select>
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Filiação do Cliente</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroFiliacao"
+                      checked={filtroFiliacao === 'Todos'}
+                      onChange={() => setFiltroFiliacao('Todos')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight">Todos os Clientes</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroFiliacao"
+                      checked={filtroFiliacao === 'Filiados'}
+                      onChange={() => setFiltroFiliacao('Filiados')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-brand-green-light">Filiados (ProTiro)</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroFiliacao"
+                      checked={filtroFiliacao === 'NaoFiliados'}
+                      onChange={() => setFiltroFiliacao('NaoFiliados')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-yellow-400">Clientes Avulsos</span>
+                  </label>
+                </div>
               </div>
 
               {/* Filtro Armas */}
-              <div className="space-y-1">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Possui Armas Cadastradas</label>
-                <select
-                  value={filtroPossuiArmas}
-                  onChange={(e) => setFiltroPossuiArmas(e.target.value as any)}
-                  className="w-full bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none"
-                >
-                  <option value="Todos">Indiferente</option>
-                  <option value="ComArmas">Com Armas no Acervo</option>
-                  <option value="SemArmas">Sem Armas no Acervo</option>
-                </select>
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Armas no Acervo</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroPossuiArmas"
+                      checked={filtroPossuiArmas === 'Todos'}
+                      onChange={() => setFiltroPossuiArmas('Todos')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight">Indiferente</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroPossuiArmas"
+                      checked={filtroPossuiArmas === 'ComArmas'}
+                      onChange={() => setFiltroPossuiArmas('ComArmas')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-brand-blue-light">Com Armas Cadastradas</span>
+                  </label>
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                    <input
+                      type="radio"
+                      name="filtroPossuiArmas"
+                      checked={filtroPossuiArmas === 'SemArmas'}
+                      onChange={() => setFiltroPossuiArmas('SemArmas')}
+                      className="rounded-full border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                    />
+                    <span className="font-semibold uppercase tracking-tight text-gray-400">Sem Armas Cadastradas</span>
+                  </label>
+                </div>
               </div>
 
               {/* Seletor de Colunas Visíveis */}
-              <div className="space-y-1.5 md:col-span-4 border-t border-brand-dark-5 pt-3">
-                <label className="text-gray-500 font-bold uppercase block text-[10px] mb-1">
-                  Selecionar Colunas da Tabela (Customize o layout de Impressão)
-                </label>
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Colunas Visíveis na Tabela</label>
+                <div className="grid grid-cols-2 gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50 max-h-36 overflow-y-auto custom-scrollbar">
                   {Object.entries(colunasClientes).map(([col, ativo]) => (
-                    <label key={col} className="flex items-center gap-1.5 cursor-pointer text-[10px] font-semibold text-gray-300">
+                    <label key={col} className="flex items-center gap-2 cursor-pointer text-[10px] font-semibold text-gray-300 hover:text-white select-none">
                       <input
                         type="checkbox"
                         checked={ativo}
@@ -1207,16 +1368,16 @@ export function Relatorios() {
                           ...colunasClientes,
                           [col]: !ativo
                         })}
-                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0"
+                        className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
                       />
-                      <span>
+                      <span className="truncate max-w-[90px]">
                         {col === 'cpf' ? 'CPF' :
                          col === 'contato' ? 'Contato' :
                          col === 'filiado' ? 'Filiado' :
                          col === 'cr' ? 'Nº CR' :
-                         col === 'vencimentoCr' ? 'Vencimento CR' :
-                         col === 'crIbama' ? 'Nº CR IBAMA' :
-                         col === 'vencimentoIbama' ? 'Vencimento IBAMA' :
+                         col === 'vencimentoCr' ? 'Venc. CR' :
+                         col === 'crIbama' ? 'Nº IBAMA' :
+                         col === 'vencimentoIbama' ? 'Venc. IBAMA' :
                          col === 'armasCount' ? 'Armas' :
                          col === 'gtsCount' ? 'GTs' : 'Manejos'}
                       </span>
@@ -1230,52 +1391,84 @@ export function Relatorios() {
 
           {/* 4. FILTROS DA ABA: PAINEL DE ALERTAS */}
           {activeTab === 'alertas' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs">
               
               {/* Tipo de Documento */}
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Tipo do Documento / Alerta</label>
-                <div className="flex flex-wrap gap-1">
-                  {['CR', 'IBAMA_CR', 'CRAF', 'GT', 'MANEJO'].map(tipo => (
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Tipo do Documento / Alerta</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  <div className="grid grid-cols-2 gap-2">
+                    {['CR', 'IBAMA_CR', 'CRAF', 'GT', 'MANEJO'].map(tipo => (
+                      <label key={tipo} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                        <input
+                          type="checkbox"
+                          checked={filtroTipoAlerta.includes(tipo)}
+                          onChange={() => handleToggleTipoAlerta(tipo)}
+                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span className="font-semibold uppercase tracking-tight">{tipo}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
                     <button
-                      key={tipo}
                       type="button"
-                      onClick={() => handleToggleTipoAlerta(tipo)}
-                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
-                        filtroTipoAlerta.includes(tipo)
-                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
-                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                      }`}
+                      onClick={() => setFiltroTipoAlerta(['CR', 'IBAMA_CR', 'CRAF', 'GT', 'MANEJO'])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
                     >
-                      {tipo}
+                      Todos
                     </button>
-                  ))}
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroTipoAlerta([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Nível de Gravidade */}
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-gray-500 font-bold uppercase block text-[10px]">Gravidade do Alerta</label>
-                <div className="flex flex-wrap gap-1">
-                  {[
-                    { key: 'VENCIDO', label: 'Vencidos' },
-                    { key: 'CRITICO', label: 'Críticos (<30d)' },
-                    { key: 'AVISO', label: 'Avisos (<90d)' },
-                    { key: 'EM_RENOVACAO', label: 'Em Renovação' }
-                  ].map(nivel => (
+              <div className="space-y-2">
+                <label className="text-gray-400 font-bold uppercase block text-[10px] tracking-wider">Gravidade do Alerta</label>
+                <div className="flex flex-col gap-2 bg-brand-dark-4/40 p-3 rounded-xl border border-brand-dark-5/50">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: 'VENCIDO', label: 'Vencidos' },
+                      { key: 'CRITICO', label: 'Críticos (<30d)' },
+                      { key: 'AVISO', label: 'Avisos (<90d)' },
+                      { key: 'EM_RENOVACAO', label: 'Em Renovação' }
+                    ].map(nivel => (
+                      <label key={nivel.key} className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 hover:text-white select-none">
+                        <input
+                          type="checkbox"
+                          checked={filtroNivelAlerta.includes(nivel.key)}
+                          onChange={() => handleToggleNivelAlerta(nivel.key)}
+                          className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span className="font-semibold uppercase tracking-tight truncate max-w-[120px]" title={nivel.label}>{nivel.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 pt-1.5 border-t border-brand-dark-5/40 mt-1">
                     <button
-                      key={nivel.key}
                       type="button"
-                      onClick={() => handleToggleNivelAlerta(nivel.key)}
-                      className={`px-2 py-1 rounded-md border text-[10px] font-bold uppercase transition-all ${
-                        filtroNivelAlerta.includes(nivel.key)
-                          ? 'bg-brand-blue/20 border-brand-blue/40 text-brand-blue-light'
-                          : 'bg-brand-dark-4 border-brand-dark-5 text-gray-500'
-                      }`}
+                      onClick={() => setFiltroNivelAlerta(['VENCIDO', 'CRITICO', 'AVISO', 'EM_RENOVACAO'])}
+                      className="text-[9px] font-black uppercase text-brand-blue-light hover:underline"
                     >
-                      {nivel.label}
+                      Todos
                     </button>
-                  ))}
+                    <span className="text-gray-600 text-[9px] font-bold">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFiltroNivelAlerta([])}
+                      className="text-[9px] font-black uppercase text-red-400 hover:underline"
+                    >
+                      Nenhum
+                    </button>
+                  </div>
                 </div>
               </div>
 
