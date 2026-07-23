@@ -815,14 +815,17 @@ export function Relatorios() {
             display: none !important;
           }
           
-          body, html, #scroll-main, main, .flex-grow {
+          html, body, #root, #root > div, #scroll-main, main, .flex-grow, .flex-1 {
             background: #fff !important;
             color: #000 !important;
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
             overflow: visible !important;
+            position: static !important;
           }
 
           @page {

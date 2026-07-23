@@ -233,6 +233,14 @@
 
 /* Print styles */
 @media print {
+  html, body, #root, #root > div, #scroll-main, main, .flex-1 {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
   @page {
     margin: 5mm;
     size: auto;
@@ -241,7 +249,6 @@
   body {
     background: white !important;
     color: black !important;
-    overflow: visible !important;
   }
 
   /* Esconde TUDO por padrão */
