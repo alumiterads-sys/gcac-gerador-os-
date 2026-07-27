@@ -366,29 +366,29 @@ export function ListaOrdens() {
             <div
               key={ordem.id}
               onClick={() => navigate(`/ordens/${ordem.id}`)}
-              className="card-hover flex items-center gap-4"
+              className="card-hover !py-2.5 !px-4 flex items-center gap-4"
             >
               {/* Número */}
               <div className="flex-shrink-0 w-14 text-center">
-                <p className="text-xs text-gray-500">OS</p>
-                <p className="text-base font-bold text-white">#{String(ordem.numero).padStart(4, '0')}</p>
+                <p className="text-[10px] text-gray-500 uppercase font-semibold">OS</p>
+                <p className="text-sm font-bold text-white">#{String(ordem.numero).padStart(4, '0')}</p>
                 {ordem.migrado && (
-                  <span className="text-[8px] font-black text-brand-blue-light border border-brand-blue/30 px-1 rounded-sm mt-1 inline-block uppercase tracking-tighter shadow-[0_0_5px_rgba(45,141,224,0.1)]">Histórico</span>
+                  <span className="text-[8px] font-black text-brand-blue-light border border-brand-blue/30 px-1 rounded-sm mt-0.5 inline-block uppercase tracking-tighter shadow-[0_0_5px_rgba(45,141,224,0.1)]">Histórico</span>
                 )}
               </div>
 
               {/* Divider */}
-              <div className="w-px h-10 bg-brand-dark-5 flex-shrink-0" />
+              <div className="w-px h-8 bg-brand-dark-5 flex-shrink-0" />
 
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white leading-tight">{ordem.nomeCliente}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">{ordem.servicos ? ordem.servicos.map((s: any) => s.nome).join(', ') : (ordem as any).servico}</p>
+                <p className="text-sm font-semibold text-white leading-tight">{ordem.nomeCliente}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5 truncate">{ordem.servicos ? ordem.servicos.map((s: any) => s.nome).join(', ') : (ordem as any).servico}</p>
                 {ordem.criadoPorNome && (
-                  <p className="text-[9px] text-brand-blue-light/70 font-bold uppercase mt-1 tracking-tighter">Emitido por: {ordem.criadoPorNome}</p>
+                  <p className="text-[8px] text-brand-blue-light/70 font-bold uppercase mt-0.5 tracking-tighter">Emitido por: {ordem.criadoPorNome}</p>
                 )}
                 
-                {/* Status de Execução Compacto */}
-                <div className="mt-2 flex flex-col gap-1.5">
+                {/* Status de Execução e GRU */}
+                <div className="mt-1 flex flex-wrap items-center gap-2">
                   {ordem.servicos && ordem.servicos.length > 0 ? (
                     (() => {
                       const resumo = obterResumoExecucao(ordem.servicos);
@@ -396,7 +396,7 @@ export function ListaOrdens() {
 
                       if (resumo.tipo === 'unificado') {
                         return (
-                          <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider w-fit shadow-sm ${resumo.classe}`}>
+                          <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider shadow-sm ${resumo.classe}`}>
                             <span>{resumo.icone}</span>
                             <span>{resumo.texto}</span>
                           </div>
@@ -404,38 +404,53 @@ export function ListaOrdens() {
                       }
 
                       return (
-                        <div className="flex flex-col gap-1 w-full max-w-[140px]">
-                          <div className="flex items-center justify-between gap-2">
-                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">
-                              {resumo.texto}
-                            </span>
-                            <span className="text-[9px] font-bold text-brand-blue-light">{resumo.progresso}%</span>
-                          </div>
-                          <div className="w-full h-1 bg-brand-dark-5 rounded-full overflow-hidden border border-white/5">
+                        <div className="flex items-center gap-1.5 w-fit">
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter whitespace-nowrap">
+                            {resumo.texto}
+                          </span>
+                          <div className="w-16 h-1 bg-brand-dark-5 rounded-full overflow-hidden border border-white/5">
                             <div 
                               className="h-full bg-brand-blue transition-all duration-500 shadow-[0_0_8px_rgba(45,141,224,0.4)]"
                               style={{ width: `${resumo.progresso}%` }}
                             />
                           </div>
+                          <span className="text-[9px] font-bold text-brand-blue-light">{resumo.progresso}%</span>
                         </div>
                       );
                     })()
                   ) : (
                     <span className="text-[9px] text-gray-600 font-bold uppercase tracking-tighter italic">Sem serviços</span>
                   )}
+
+                  {/* Status de GRU */}
+                  {(() => {
+                    const servicosExigemGru = ordem.servicos?.filter((s: any) => s.exigeGRU === true || (s.exigeGRU === undefined && (s.taxaPF || 0) > 0)) || [];
+                    if (servicosExigemGru.length === 0) return null;
+                    const todasPagas = servicosExigemGru.every((s: any) => s.pagoGRU === true);
+                    return (
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black border uppercase tracking-wider shadow-sm ${
+                        todasPagas 
+                          ? 'bg-brand-green/10 text-brand-green border-brand-green/20' 
+                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}>
+                        <span>{todasPagas ? '✅' : '❌'}</span>
+                        <span>GRU {todasPagas ? 'Paga' : 'Pendente'}</span>
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
-              <div className="flex-shrink-0 text-right flex flex-col items-end gap-1">
+              <div className="flex-shrink-0 text-right flex flex-col items-end gap-0.5">
                 {ordem.desconto && ordem.desconto > 0 ? (
                   <div className="flex flex-col items-end leading-tight">
-                    <span className="text-[10px] text-gray-500 line-through">{formatarMoeda(ordem.valor)}</span>
-                    <span className={`text-sm font-black ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor - ordem.desconto)}</span>
+                    <span className="text-[9px] text-gray-500 line-through">{formatarMoeda(ordem.valor)}</span>
+                    <span className={`text-xs font-black ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor - ordem.desconto)}</span>
                   </div>
                 ) : (
-                  <p className={`text-sm font-bold ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor)}</p>
+                  <p className={`text-xs font-bold ${ordem.status === 'Pago' ? 'text-brand-green' : 'text-white'}`}>{formatarMoeda(ordem.valor)}</p>
                 )}
-                <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shadow-sm border ${classeStatus(ordem.status)}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter shadow-sm border ${classeStatus(ordem.status)}`}>
                   {ordem.status}
                 </span>
                 {ordem.status === 'Parcialmente Pago' && (
@@ -444,20 +459,20 @@ export function ListaOrdens() {
               </div>
 
               {/* Ações */}
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-1">
                 {podeExcluir && (
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       setConfirmandoDelete(ordem.id);
                     }}
-                    className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    className="p-1 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
                     title="Excluir O.S."
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 )}
-                <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+                <ChevronRight size={14} className="text-gray-600 flex-shrink-0" />
               </div>
             </div>
           ))}
