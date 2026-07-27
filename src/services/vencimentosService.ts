@@ -30,7 +30,9 @@ export async function buscarAlertasCacsVinculados(despachanteEmpresaId: string):
 
   return alertas.map(a => {
     if (a.cacEmpresaId && silenciadosMap.get(a.cacEmpresaId)) {
-      return { ...a, ignorarMensagensAlertas: true };
+      if (a.tipo === 'IBAMA_CR' || a.tipo === 'MANEJO') {
+        return { ...a, ignorarMensagensAlertas: true };
+      }
     }
     return a;
   });
@@ -68,7 +70,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             emRenovacao: !!c.cr_em_renovacao,
             responsavelId: c.responsavel_id || undefined,
             responsavelNome: respNome,
-            ignorarMensagensAlertas: !!c.ignorar_mensagens_alertas
+            ignorarMensagensAlertas: false
           });
         }
       }
@@ -135,7 +137,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             emRenovacao: !!a.craf_em_renovacao,
             responsavelId: cliente?.responsavel_id || undefined,
             responsavelNome: respNome,
-            ignorarMensagensAlertas: !!cliente?.ignorar_mensagens_alertas
+            ignorarMensagensAlertas: false
           });
         }
       }
@@ -184,7 +186,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             emRenovacao: !!g.gt_em_renovacao,
             responsavelId: cliente?.responsavel_id || undefined,
             responsavelNome: respNome,
-            ignorarMensagensAlertas: !!cliente?.ignorar_mensagens_alertas
+            ignorarMensagensAlertas: false
           });
         }
       }
