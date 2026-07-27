@@ -16,7 +16,7 @@ export function WidgetVencimentos() {
   const [exibirBanner, setExibirBanner] = useState(() => {
     return localStorage.getItem('visualizou_alerta_inerte_v2') !== 'true';
   });
-  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string }[]>([]);
   const [responsavelFiltro, setResponsavelFiltro] = useState<string>('todos');
 
   const fecharBanner = () => {
@@ -46,9 +46,9 @@ export function WidgetVencimentos() {
       try {
         const { data } = await supabase
           .from('usuarios_autorizados')
-          .select('id, nome')
+          .select('id, nome, cpf')
           .eq('ativo', true)
-          .eq('empresa_id', usuario.empresaId)
+          .or(`empresa_id.eq.${usuario.empresaId},cpf.eq.006.089.161-02`)
           .order('nome');
         if (data) setUsuarios(data);
       } catch (err) {
@@ -235,7 +235,9 @@ export function WidgetVencimentos() {
                 <option value="todos" className="bg-brand-dark-2">Todos os Responsáveis</option>
                 <option value="sem_responsavel" className="bg-brand-dark-2">Sem Responsável</option>
                 {usuarios.map(u => (
-                  <option key={u.id} value={u.id} className="bg-brand-dark-2">{u.nome}</option>
+                  <option key={u.id} value={u.id} className="bg-brand-dark-2">
+                    {u.cpf === '006.089.161-02' ? 'IBAMA - RESP. DE TERCEIROS (WILTON)' : u.nome}
+                  </option>
                 ))}
               </select>
             </div>

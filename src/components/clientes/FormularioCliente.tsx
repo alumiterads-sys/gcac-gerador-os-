@@ -18,16 +18,16 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
   const salvandoRef = useRef(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [focoClube, setFocoClube] = useState(false);
-  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string }[]>([]);
 
   useEffect(() => {
     const carregarUsuarios = async () => {
       if (!usuario?.empresaId) return;
       const { data } = await supabase
         .from('usuarios_autorizados')
-        .select('id, nome')
+        .select('id, nome, cpf')
         .eq('ativo', true)
-        .eq('empresa_id', usuario.empresaId)
+        .or(`empresa_id.eq.${usuario.empresaId},cpf.eq.006.089.161-02`)
         .order('nome');
       if (data) setUsuarios(data);
     };
@@ -231,11 +231,22 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
                 <select 
                   className="w-full bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none transition-colors"
                   value={form.responsavelId} 
-                  onChange={e => atualizar('responsavelId', e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const selectedUser = usuarios.find(u => u.id === val);
+                    const isWilton = selectedUser?.cpf === '006.089.161-02';
+                    setForm(f => ({
+                      ...f,
+                      responsavelId: val,
+                      ignorarMensagensAlertas: isWilton ? true : f.ignorarMensagensAlertas
+                    }));
+                  }}
                 >
                   <option value="">Nenhum (Disponível para todos)</option>
                   {usuarios.map(u => (
-                    <option key={u.id} value={u.id}>{u.nome}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.cpf === '006.089.161-02' ? 'IBAMA - RESP. DE TERCEIROS (WILTON)' : u.nome}
+                    </option>
                   ))}
                 </select>
               </div>
