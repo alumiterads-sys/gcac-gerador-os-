@@ -12,7 +12,7 @@ export async function buscarAlertasCacsVinculados(despachanteEmpresaId: string):
   // Buscar os vínculos ativos
   const { data: vinculos, error } = await supabase
     .from('vinculos_despachante_cac')
-    .select('cac_empresa_id')
+    .select('cac_empresa_id, ignorar_mensagens_alertas')
     .eq('despachante_empresa_id', despachanteEmpresaId)
     .eq('status', 'ativo');
 
@@ -20,8 +20,20 @@ export async function buscarAlertasCacsVinculados(despachanteEmpresaId: string):
     return [];
   }
 
+  const silenciadosMap = new Map<string, boolean>();
+  vinculos.forEach(v => {
+    silenciadosMap.set(v.cac_empresa_id, !!v.ignorar_mensagens_alertas);
+  });
+
   const cacEmpresaIds = vinculos.map(v => v.cac_empresa_id);
-  return buscarAlertasParaEmpresas(cacEmpresaIds, { isVinculado: true });
+  const alertas = await buscarAlertasParaEmpresas(cacEmpresaIds, { isVinculado: true });
+
+  return alertas.map(a => {
+    if (a.cacEmpresaId && silenciadosMap.get(a.cacEmpresaId)) {
+      return { ...a, ignorarMensagensAlertas: true };
+    }
+    return a;
+  });
 }
 
 export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: { isVinculado?: boolean }): Promise<AlertaDocumento[]> {
@@ -32,11 +44,12 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
   // 1. Buscar Clientes (CR e IBAMA CR)
   const { data: clientes } = await supabase
     .from('clientes')
-    .select('id, nome, numero_cr, vencimento_cr, vencimento_cr_ibama, empresa_id, cr_em_renovacao, cr_ibama_em_renovacao')
+    .select('id, nome, numero_cr, vencimento_cr, vencimento_cr_ibama, empresa_id, cr_em_renovacao, cr_ibama_em_renovacao, responsavel_id, ignorar_mensagens_alertas, usuarios_autorizados:responsavel_id(nome)')
     .in('empresa_id', empresaIds);
 
   if (clientes) {
-    clientes.forEach(c => {
+    clientes.forEach((c: any) => {
+      const respNome = c.usuarios_autorizados?.nome || undefined;
       if (c.vencimento_cr) {
         const result = calcularAlerta('CR', c.vencimento_cr);
         if (result.nivel !== 'OK') {
@@ -52,7 +65,10 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             documentoId: c.id,
             isVinculado: options?.isVinculado,
             cacEmpresaId: options?.isVinculado ? c.empresa_id : undefined,
-            emRenovacao: !!c.cr_em_renovacao
+            emRenovacao: !!c.cr_em_renovacao,
+            responsavelId: c.responsavel_id || undefined,
+            responsavelNome: respNome,
+            ignorarMensagensAlertas: !!c.ignorar_mensagens_alertas
           });
         }
       }
@@ -71,7 +87,10 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             documentoId: c.id,
             isVinculado: options?.isVinculado,
             cacEmpresaId: options?.isVinculado ? c.empresa_id : undefined,
-            emRenovacao: !!c.cr_ibama_em_renovacao
+            emRenovacao: !!c.cr_ibama_em_renovacao,
+            responsavelId: c.responsavel_id || undefined,
+            responsavelNome: respNome,
+            ignorarMensagensAlertas: !!c.ignorar_mensagens_alertas
           });
         }
       }
@@ -88,7 +107,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
       cliente_id,
       empresa_id,
       craf_em_renovacao,
-      clientes:cliente_id (nome)
+      clientes:cliente_id (nome, responsavel_id, ignorar_mensagens_alertas, usuarios_autorizados:responsavel_id(nome))
     `)
     .in('empresa_id', empresaIds);
 
@@ -98,6 +117,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
         const result = calcularAlerta('CRAF', a.vencimento_craf);
         if (result.nivel !== 'OK') {
           const cliente = Array.isArray(a.clientes) ? a.clientes[0] : a.clientes;
+          const respNome = cliente?.usuarios_autorizados?.nome || undefined;
           alertas.push({
             id: `${a.id}-craf`,
             tipo: 'CRAF',
@@ -112,7 +132,10 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             documentoId: a.id,
             isVinculado: options?.isVinculado,
             cacEmpresaId: options?.isVinculado ? a.empresa_id : undefined,
-            emRenovacao: !!a.craf_em_renovacao
+            emRenovacao: !!a.craf_em_renovacao,
+            responsavelId: cliente?.responsavel_id || undefined,
+            responsavelNome: respNome,
+            ignorarMensagensAlertas: !!cliente?.ignorar_mensagens_alertas
           });
         }
       }
@@ -131,7 +154,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
       armas:arma_id (
         modelo, 
         cliente_id,
-        clientes:cliente_id (nome)
+        clientes:cliente_id (nome, responsavel_id, ignorar_mensagens_alertas, usuarios_autorizados:responsavel_id(nome))
       )
     `)
     .in('empresa_id', empresaIds);
@@ -143,6 +166,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
         if (result.nivel !== 'OK') {
           const arma = Array.isArray(g.armas) ? g.armas[0] : g.armas;
           const cliente = Array.isArray(arma?.clientes) ? arma.clientes[0] : arma?.clientes;
+          const respNome = cliente?.usuarios_autorizados?.nome || undefined;
           alertas.push({
             id: `${g.id}-gt`,
             tipo: 'GT',
@@ -157,7 +181,10 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
             documentoId: g.id,
             isVinculado: options?.isVinculado,
             cacEmpresaId: options?.isVinculado ? g.empresa_id : undefined,
-            emRenovacao: !!g.gt_em_renovacao
+            emRenovacao: !!g.gt_em_renovacao,
+            responsavelId: cliente?.responsavel_id || undefined,
+            responsavelNome: respNome,
+            ignorarMensagensAlertas: !!cliente?.ignorar_mensagens_alertas
           });
         }
       }
@@ -176,7 +203,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
         status,
         empresa_id,
         manejo_em_renovacao,
-        clientes:cliente_id (nome)
+        clientes:cliente_id (nome, responsavel_id, ignorar_mensagens_alertas, usuarios_autorizados:responsavel_id(nome))
       `)
       .in('empresa_id', empresaIds);
 
@@ -189,6 +216,7 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
           const result = calcularAlerta('MANEJO', m.vencimento);
           if (result.nivel !== 'OK') {
             const cliente = Array.isArray(m.clientes) ? m.clientes[0] : m.clientes;
+            const respNome = cliente?.usuarios_autorizados?.nome || undefined;
             alertas.push({
               id: `${m.id}-manejo`,
               tipo: 'MANEJO',
@@ -201,7 +229,10 @@ export async function buscarAlertasParaEmpresas(empresaIds: string[], options?: 
               documentoId: m.id,
               isVinculado: options?.isVinculado,
               cacEmpresaId: options?.isVinculado ? m.empresa_id : undefined,
-              emRenovacao: !!m.manejo_em_renovacao
+              emRenovacao: !!m.manejo_em_renovacao,
+              responsavelId: cliente?.responsavel_id || undefined,
+              responsavelNome: respNome,
+              ignorarMensagensAlertas: !!cliente?.ignorar_mensagens_alertas
             });
           }
         }

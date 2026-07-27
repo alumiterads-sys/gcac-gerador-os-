@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, Shield, ChevronRight, Calendar, User, Target, MapPin, ExternalLink, Info, X, Link2, FileClock, RotateCcw } from 'lucide-react';
+import { ShieldAlert, Shield, ChevronRight, Calendar, User, Target, MapPin, ExternalLink, Info, X, Link2, FileClock, RotateCcw, Users } from 'lucide-react';
 import { buscarAlertasGlobais, buscarAlertasCacsVinculados, atualizarStatusRenovacao } from '../../services/vencimentosService';
 import { AlertaDocumento, obterClasseAlerta } from '../../utils/vencimentos';
 import { formatarData } from '../../utils/formatters';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../db/supabase';
 
 export function WidgetVencimentos() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export function WidgetVencimentos() {
   const [exibirBanner, setExibirBanner] = useState(() => {
     return localStorage.getItem('visualizou_alerta_inerte_v2') !== 'true';
   });
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+  const [responsavelFiltro, setResponsavelFiltro] = useState<string>('todos');
 
   const fecharBanner = () => {
     localStorage.setItem('visualizou_alerta_inerte_v2', 'true');
@@ -37,13 +40,42 @@ export function WidgetVencimentos() {
         setCarregando(false);
       }
     }
+
+    async function carregarUsuarios() {
+      if (!usuario?.empresaId || usuario?.tipoConta !== 'empresa') return;
+      try {
+        const { data } = await supabase
+          .from('usuarios_autorizados')
+          .select('id, nome')
+          .eq('ativo', true)
+          .eq('empresa_id', usuario.empresaId)
+          .order('nome');
+        if (data) setUsuarios(data);
+      } catch (err) {
+        console.error('Erro ao carregar colaboradores:', err);
+      }
+    }
+
     carregar();
-  }, [usuario?.empresaId]);
+    carregarUsuarios();
+  }, [usuario?.empresaId, usuario?.tipoConta]);
 
   if (carregando) return null;
 
-  const totalAlertas = alertasDiretos.length + alertasVinculados.length;
-  if (totalAlertas === 0) return null;
+  const alertasDiretosFiltrados = alertasDiretos.filter(a => {
+    if (responsavelFiltro === 'todos') return true;
+    if (responsavelFiltro === 'sem_responsavel') return !a.responsavelId;
+    return a.responsavelId === responsavelFiltro;
+  });
+
+  const alertasVinculadosFiltrados = alertasVinculados.filter(a => {
+    if (responsavelFiltro === 'todos') return true;
+    if (responsavelFiltro === 'sem_responsavel') return !a.responsavelId;
+    return a.responsavelId === responsavelFiltro;
+  });
+
+  const totalAlertas = alertasDiretosFiltrados.length + alertasVinculadosFiltrados.length;
+  if (alertasDiretos.length + alertasVinculados.length === 0) return null;
 
   const renderCardAlerta = (alerta: AlertaDocumento) => {
     const isIbamaCrVencido = alerta.tipo === 'IBAMA_CR' && alerta.diasRestantes < 0;
@@ -91,9 +123,19 @@ export function WidgetVencimentos() {
                  {textoBadge}
                </span>
             </div>
-            <p className="text-[10px] opacity-70 font-bold uppercase truncate flex items-center gap-1 mt-0.5">
+            <p className="text-[10px] opacity-70 font-bold uppercase truncate flex items-center gap-1 mt-0.5 flex-wrap">
               {alerta.isVinculado && <Link2 size={10} className="text-green-400 shrink-0" />}
-              {alerta.clienteNome}
+              <span>{alerta.clienteNome}</span>
+              {alerta.responsavelNome && (
+                <span className="text-[8px] bg-brand-blue/20 text-brand-blue-light font-bold px-1 py-0.5 rounded border border-brand-blue/30 ml-1.5">
+                  Resp: {alerta.responsavelNome}
+                </span>
+              )}
+              {alerta.ignorarMensagensAlertas && (
+                <span className="text-[8px] bg-orange-500/20 text-orange-400 font-bold px-1 py-0.5 rounded border border-orange-500/30 ml-1.5 flex items-center gap-0.5" title="Envios de alertas (WhatsApp) silenciados">
+                  Silenciado 🔇
+                </span>
+              )}
             </p>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
                <div className="flex items-center gap-1">
@@ -176,12 +218,30 @@ export function WidgetVencimentos() {
 
   return (
     <div className="card border-brand-dark-5 bg-brand-dark-3/30 overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <ShieldAlert size={18} className="text-orange-500" />
           <h2 className="text-sm font-bold text-white uppercase tracking-wider">Alertas de Documentação e Vencimentos</h2>
         </div>
-        <span className="badge badge-erro">{totalAlertas} pendência{totalAlertas > 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {usuario?.tipoConta === 'empresa' && (
+            <div className="flex items-center gap-1.5 bg-brand-dark-4 border border-brand-dark-5 rounded-lg px-2.5 py-1 text-xs">
+              <Users size={12} className="text-gray-400" />
+              <select
+                className="bg-transparent border-none text-gray-300 outline-none text-xs font-semibold cursor-pointer"
+                value={responsavelFiltro}
+                onChange={e => setResponsavelFiltro(e.target.value)}
+              >
+                <option value="todos" className="bg-brand-dark-2">Todos os Responsáveis</option>
+                <option value="sem_responsavel" className="bg-brand-dark-2">Sem Responsável</option>
+                {usuarios.map(u => (
+                  <option key={u.id} value={u.id} className="bg-brand-dark-2">{u.nome}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <span className="badge badge-erro">{totalAlertas} pendência{totalAlertas > 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       {exibirBanner && (
@@ -215,16 +275,16 @@ export function WidgetVencimentos() {
               Clientes da Carteira
             </h3>
             <span className="text-[10px] font-bold text-gray-500 bg-brand-dark-4 px-2 py-0.5 rounded-md border border-brand-dark-5">
-              {alertasDiretos.length}
+              {alertasDiretosFiltrados.length}
             </span>
           </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent">
-            {alertasDiretos.length === 0 ? (
+            {alertasDiretosFiltrados.length === 0 ? (
               <div className="text-xs text-gray-500 italic py-8 text-center bg-brand-dark-2/20 rounded-2xl border border-dashed border-brand-dark-5">
                 Nenhum vencimento pendente na carteira.
               </div>
             ) : (
-              alertasDiretos.map((alerta) => renderCardAlerta(alerta))
+              alertasDiretosFiltrados.map((alerta) => renderCardAlerta(alerta))
             )}
           </div>
         </div>
@@ -237,16 +297,16 @@ export function WidgetVencimentos() {
               Clientes CAC Vinculados
             </h3>
             <span className="text-[10px] font-bold text-gray-500 bg-brand-dark-4 px-2 py-0.5 rounded-md border border-brand-dark-5">
-              {alertasVinculados.length}
+              {alertasVinculadosFiltrados.length}
             </span>
           </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-brand-dark-5 scrollbar-track-transparent">
-            {alertasVinculados.length === 0 ? (
+            {alertasVinculadosFiltrados.length === 0 ? (
               <div className="text-xs text-gray-500 italic py-8 text-center bg-brand-dark-2/20 rounded-2xl border border-dashed border-brand-dark-5">
                 Nenhum vencimento pendente em CACs vinculados.
               </div>
             ) : (
-              alertasVinculados.map((alerta) => renderCardAlerta(alerta))
+              alertasVinculadosFiltrados.map((alerta) => renderCardAlerta(alerta))
             )}
           </div>
         </div>

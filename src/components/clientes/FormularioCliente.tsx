@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Cliente } from '../../types';
 import { useClientes } from '../../context/ClientesContext';
 import { useAuth } from '../../context/AuthContext';
 import { X, Save, Eye, EyeOff, CheckCircle, Upload } from 'lucide-react';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
+import { supabase } from '../../db/supabase';
 
 interface Props {
   clienteEditando: Cliente | null;
@@ -17,6 +18,21 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
   const salvandoRef = useRef(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [focoClube, setFocoClube] = useState(false);
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+
+  useEffect(() => {
+    const carregarUsuarios = async () => {
+      if (!usuario?.empresaId) return;
+      const { data } = await supabase
+        .from('usuarios_autorizados')
+        .select('id, nome')
+        .eq('ativo', true)
+        .eq('empresa_id', usuario.empresaId)
+        .order('nome');
+      if (data) setUsuarios(data);
+    };
+    carregarUsuarios();
+  }, [usuario?.empresaId]);
 
   const clubeParceiroNome = usuario?.dadosEmpresa?.clubeParceiroPadrao || '';
   const temClubeParceiro = !!clubeParceiroNome;
@@ -53,6 +69,8 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     crCaca: clienteEditando?.crCaca ?? false,
     crColecionamento: clienteEditando?.crColecionamento ?? false,
     atiradorNivel: clienteEditando?.atiradorNivel ?? '',
+    responsavelId: clienteEditando?.responsavelId ?? '',
+    ignorarMensagensAlertas: clienteEditando?.ignorarMensagensAlertas ?? false,
   });
 
   const atualizar = (campo: string, valor: any) => {
@@ -135,6 +153,8 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         crCaca: form.crCaca,
         crColecionamento: form.crColecionamento,
         atiradorNivel: form.crTiroDesportivo && form.atiradorNivel !== '' ? Number(form.atiradorNivel) : null,
+        responsavelId: form.responsavelId || null,
+        ignorarMensagensAlertas: form.ignorarMensagensAlertas,
       };
 
       if (clienteEditando) {
@@ -203,6 +223,35 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
               </button>
             </div>
           </div>
+
+          {usuario?.tipoConta === 'empresa' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-brand-dark-3/30 p-3.5 rounded-xl border border-brand-dark-5">
+              <div>
+                <label className="label">Despachante Responsável</label>
+                <select 
+                  className="w-full bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none transition-colors"
+                  value={form.responsavelId} 
+                  onChange={e => atualizar('responsavelId', e.target.value)}
+                >
+                  <option value="">Nenhum (Disponível para todos)</option>
+                  {usuarios.map(u => (
+                    <option key={u.id} value={u.id}>{u.nome}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col justify-end">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-gray-300 font-medium py-2.5">
+                  <input 
+                    type="checkbox"
+                    checked={form.ignorarMensagensAlertas} 
+                    onChange={e => atualizar('ignorarMensagensAlertas', e.target.checked)}
+                    className="rounded border-brand-dark-5 bg-brand-dark-4 text-brand-blue focus:ring-0 w-4 h-4" 
+                  />
+                  <span>Silenciar Alertas (WhatsApp)</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>

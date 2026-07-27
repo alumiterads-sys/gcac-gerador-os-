@@ -80,6 +80,8 @@ export interface Cliente {
   crCaca?: boolean;
   crColecionamento?: boolean;
   atiradorNivel?: number | null;
+  responsavelId?: string;
+  ignorarMensagensAlertas?: boolean;
   criadoEm: string;
   atualizadoEm: string;
 }

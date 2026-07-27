@@ -115,6 +115,8 @@ const mapFromDB = (row: any): Cliente => ({
   crCaca: !!row.cr_caca,
   crColecionamento: !!row.cr_colecionamento,
   atiradorNivel: row.atirador_nivel,
+  responsavelId: row.responsavel_id || '',
+  ignorarMensagensAlertas: !!row.ignorar_mensagens_alertas,
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
 });
@@ -148,6 +150,8 @@ const mapToDB = (dados: any) => {
   if (dados.crCaca !== undefined) payload.cr_caca = dados.crCaca;
   if (dados.crColecionamento !== undefined) payload.cr_colecionamento = dados.crColecionamento;
   if (dados.atiradorNivel !== undefined) payload.atirador_nivel = dados.atiradorNivel;
+  if (dados.responsavelId !== undefined) payload.responsavel_id = dados.responsavelId || null;
+  if (dados.ignorarMensagensAlertas !== undefined) payload.ignorar_mensagens_alertas = dados.ignorarMensagensAlertas;
   return payload;
 };
 

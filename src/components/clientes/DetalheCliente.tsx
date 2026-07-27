@@ -582,7 +582,14 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
       label: 'Iniciar Conversa', 
       icon: <MessageCircle size={20} />, 
       color: 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20',
-      onClick: () => setModalWhatsAppAberto(true),
+      onClick: () => {
+        if (cliente.ignorarMensagensAlertas) {
+          if (!window.confirm('Atenção: Este cliente está marcado para SILENCIAR alertas (atendido por parceiro/Wilton). Deseja realmente iniciar a conversa por WhatsApp mesmo assim?')) {
+            return;
+          }
+        }
+        setModalWhatsAppAberto(true);
+      },
       slug: null
     },
     { 
@@ -743,6 +750,13 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           )}
         </div>
       </div>
+
+      {cliente.ignorarMensagensAlertas && (
+        <div className="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-400 flex items-center gap-2 animate-fade-in">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span><strong>Silenciado:</strong> Este cliente é atendido pelo parceiro Wilton (IBAMA). Evite enviar alertas e mensagens de cobrança via WhatsApp.</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Coluna Esquerda: Cadastro ── */}

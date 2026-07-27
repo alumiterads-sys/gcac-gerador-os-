@@ -22,6 +22,9 @@ export interface AlertaDocumento {
   cacEmpresaId?: string;
   emRenovacao?: boolean;
   documentoId?: string;
+  responsavelId?: string;
+  responsavelNome?: string;
+  ignorarMensagensAlertas?: boolean;
 }
 
 /**
