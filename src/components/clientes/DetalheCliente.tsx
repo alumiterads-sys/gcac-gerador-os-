@@ -99,6 +99,42 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     carregarNomeResponsavel();
   }, [cliente.responsavelId, usuario?.empresaId]);
 
+  const renderBannerResponsabilidade = () => {
+    if (!cliente.responsavelId) return null;
+    
+    const isMainCompany = usuario?.empresaId === '00000000-0000-0000-0000-000000000001';
+    const isWiltonResponsavel = cliente.ignorarMensagensAlertas;
+    
+    if (isMainCompany) {
+      if (isWiltonResponsavel) {
+        return (
+          <div className="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-400 flex items-center gap-2 animate-fade-in mb-4">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span><strong>Silenciado (IBAMA):</strong> Este cliente é atendido por Wilton para documentos do IBAMA. Alertas de CR IBAMA e Autorizações de Manejo estão silenciados. Guias de tráfego e outros documentos continuam ativos.</span>
+          </div>
+        );
+      }
+    } else {
+      // Wilton logado
+      if (isWiltonResponsavel) {
+        return (
+          <div className="p-3.5 rounded-2xl bg-green-500/10 border border-green-500/20 text-xs text-green-400 flex items-center gap-2 animate-fade-in mb-4">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span><strong>Responsabilidade (IBAMA):</strong> Este cliente está sob sua responsabilidade para os documentos do IBAMA. Os alertas de CR IBAMA e Manejo serão controlados por você.</span>
+          </div>
+        );
+      } else {
+        return (
+          <div className="p-3.5 rounded-2xl bg-brand-blue/10 border border-brand-blue/20 text-xs text-brand-blue-light flex items-center gap-2 animate-fade-in mb-4">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span><strong>Responsabilidade:</strong> Os documentos do IBAMA deste cliente são de responsabilidade da G CAC DESPACHANTE BÉLICO.</span>
+          </div>
+        );
+      }
+    }
+    return null;
+  };
+
   // Filtros de histórico
   const todasOrdensCliente = ordens.filter(o => o.cpf === cliente.cpf);
   const ordensClienteAbertas = todasOrdensCliente.filter(o => !isOrdemConcluida(o));
@@ -614,7 +650,8 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
       icon: <MessageCircle size={20} />, 
       color: 'bg-[#25D366]/10 text-[#25D366] border-[#25D366]/20 hover:bg-[#25D366]/20',
       onClick: () => {
-        if (cliente.ignorarMensagensAlertas) {
+        const isMainCompany = usuario?.empresaId === '00000000-0000-0000-0000-000000000001';
+        if (isMainCompany && cliente.ignorarMensagensAlertas) {
           if (!window.confirm('Atenção: Os documentos de IBAMA deste cliente são de responsabilidade do Wilton. Deseja iniciar a conversa por WhatsApp mesmo assim?')) {
             return;
           }
@@ -782,12 +819,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
         </div>
       </div>
 
-      {cliente.ignorarMensagensAlertas && (
-        <div className="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs text-orange-400 flex items-center gap-2 animate-fade-in">
-          <AlertTriangle size={16} className="shrink-0" />
-          <span><strong>Silenciado (IBAMA):</strong> Este cliente é atendido por Wilton para documentos do IBAMA. Alertas de CR IBAMA e Autorizações de Manejo estão silenciados. Guias de tráfego e outros documentos continuam ativos.</span>
-        </div>
-      )}
+      {renderBannerResponsabilidade()}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Coluna Esquerda: Cadastro ── */}
