@@ -16,7 +16,7 @@ export function WidgetVencimentos() {
   const [exibirBanner, setExibirBanner] = useState(() => {
     return localStorage.getItem('visualizou_alerta_inerte_v2') !== 'true';
   });
-  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string; empresa_id?: string }[]>([]);
   const [responsavelFiltro, setResponsavelFiltro] = useState<string>('todos');
 
   const fecharBanner = () => {
@@ -46,11 +46,21 @@ export function WidgetVencimentos() {
       try {
         const { data } = await supabase
           .from('usuarios_autorizados')
-          .select('id, nome, cpf')
+          .select('id, nome, cpf, empresa_id')
           .eq('ativo', true)
-          .or(`empresa_id.eq.${usuario.empresaId},cpf.eq.006.089.161-02`)
+          .or(`empresa_id.eq.${usuario.empresaId},empresa_id.eq.00000000-0000-0000-0000-000000000001,cpf.eq.006.089.161-02`)
           .order('nome');
-        if (data) setUsuarios(data);
+        if (data) {
+          let lista = data;
+          if (usuario.empresaId !== '00000000-0000-0000-0000-000000000001') {
+            const gcacUsers = data.filter(u => u.empresa_id === '00000000-0000-0000-0000-000000000001');
+            const otherUsers = data.filter(u => u.empresa_id !== '00000000-0000-0000-0000-000000000001');
+            if (gcacUsers.length > 0) {
+              lista = [gcacUsers[0], ...otherUsers];
+            }
+          }
+          setUsuarios(lista);
+        }
       } catch (err) {
         console.error('Erro ao carregar colaboradores:', err);
       }
@@ -59,6 +69,17 @@ export function WidgetVencimentos() {
     carregar();
     carregarUsuarios();
   }, [usuario?.empresaId, usuario?.tipoConta]);
+
+  const obterNomeExibicaoResponsavel = (id?: string, nomePadrao?: string) => {
+    if (!id || !nomePadrao) return '';
+    if (usuario?.empresaId !== '00000000-0000-0000-0000-000000000001') {
+      const userObj = usuarios.find(u => u.id === id);
+      if (userObj?.empresa_id === '00000000-0000-0000-0000-000000000001') {
+        return 'G CAC DESPACHANTE BÉLICO';
+      }
+    }
+    return nomePadrao;
+  };
 
   if (carregando) return null;
 
@@ -128,7 +149,7 @@ export function WidgetVencimentos() {
               <span>{alerta.clienteNome}</span>
               {alerta.responsavelNome && (
                 <span className="text-[8px] bg-brand-blue/20 text-brand-blue-light font-bold px-1 py-0.5 rounded border border-brand-blue/30 ml-1.5">
-                  Resp: {alerta.responsavelNome}
+                  Resp: {obterNomeExibicaoResponsavel(alerta.responsavelId, alerta.responsavelNome)}
                 </span>
               )}
               {alerta.ignorarMensagensAlertas && (

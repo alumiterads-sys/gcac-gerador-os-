@@ -68,6 +68,37 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     }
   }, [cliente.id, cliente.numeroCr, cliente.crTiroDesportivo, cliente.crCaca, cliente.crColecionamento, usuario?.tipoConta]);
 
+  const [nomeResponsavel, setNomeResponsavel] = useState<string>('');
+
+  useEffect(() => {
+    const carregarNomeResponsavel = async () => {
+      if (!cliente.responsavelId) {
+        setNomeResponsavel('');
+        return;
+      }
+      try {
+        const { data } = await supabase
+          .from('usuarios_autorizados')
+          .select('nome, cpf, empresa_id')
+          .eq('id', cliente.responsavelId)
+          .single();
+        if (data) {
+          const isMainCompanyUser = data.empresa_id === '00000000-0000-0000-0000-000000000001';
+          const isWilton = data.cpf === '006.089.161-02';
+          
+          if (usuario?.empresaId === '00000000-0000-0000-0000-000000000001') {
+            setNomeResponsavel(isWilton ? 'IBAMA - RESP. DE TERCEIROS (WILTON)' : data.nome);
+          } else {
+            setNomeResponsavel(isMainCompanyUser ? 'G CAC DESPACHANTE BÉLICO' : data.nome);
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao carregar nome do responsável:', err);
+      }
+    };
+    carregarNomeResponsavel();
+  }, [cliente.responsavelId, usuario?.empresaId]);
+
   // Filtros de histórico
   const todasOrdensCliente = ordens.filter(o => o.cpf === cliente.cpf);
   const ordensClienteAbertas = todasOrdensCliente.filter(o => !isOrdemConcluida(o));
@@ -801,6 +832,12 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                 <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Nome Completo</p>
                 <p className="text-white font-semibold text-lg">{cliente.nome}</p>
               </div>
+              {nomeResponsavel && (
+                <div>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Despachante Responsável (IBAMA)</p>
+                  <p className="text-white font-medium text-sm uppercase">{nomeResponsavel}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">CPF</p>

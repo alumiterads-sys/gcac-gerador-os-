@@ -18,18 +18,28 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
   const salvandoRef = useRef(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [focoClube, setFocoClube] = useState(false);
-  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string; cpf?: string; empresa_id?: string }[]>([]);
 
   useEffect(() => {
     const carregarUsuarios = async () => {
       if (!usuario?.empresaId) return;
       const { data } = await supabase
         .from('usuarios_autorizados')
-        .select('id, nome, cpf')
+        .select('id, nome, cpf, empresa_id')
         .eq('ativo', true)
-        .or(`empresa_id.eq.${usuario.empresaId},cpf.eq.006.089.161-02`)
+        .or(`empresa_id.eq.${usuario.empresaId},empresa_id.eq.00000000-0000-0000-0000-000000000001,cpf.eq.006.089.161-02`)
         .order('nome');
-      if (data) setUsuarios(data);
+      if (data) {
+        let lista = data;
+        if (usuario.empresaId !== '00000000-0000-0000-0000-000000000001') {
+          const gcacUsers = data.filter(u => u.empresa_id === '00000000-0000-0000-0000-000000000001');
+          const otherUsers = data.filter(u => u.empresa_id !== '00000000-0000-0000-0000-000000000001');
+          if (gcacUsers.length > 0) {
+            lista = [gcacUsers[0], ...otherUsers];
+          }
+        }
+        setUsuarios(lista);
+      }
     };
     carregarUsuarios();
   }, [usuario?.empresaId]);
@@ -235,17 +245,20 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
                     const val = e.target.value;
                     const selectedUser = usuarios.find(u => u.id === val);
                     const isWilton = selectedUser?.cpf === '006.089.161-02';
+                    const isGcac = selectedUser?.empresa_id === '00000000-0000-0000-0000-000000000001';
                     setForm(f => ({
                       ...f,
                       responsavelId: val,
-                      ignorarMensagensAlertas: isWilton ? true : f.ignorarMensagensAlertas
+                      ignorarMensagensAlertas: isWilton ? true : isGcac ? false : f.ignorarMensagensAlertas
                     }));
                   }}
                 >
                   <option value="">Nenhum (Disponível para todos)</option>
                   {usuarios.map(u => (
                     <option key={u.id} value={u.id}>
-                      {u.cpf === '006.089.161-02' ? 'IBAMA - RESP. DE TERCEIROS (WILTON)' : u.nome}
+                      {usuario?.empresaId === '00000000-0000-0000-0000-000000000001'
+                        ? (u.cpf === '006.089.161-02' ? 'IBAMA - RESP. DE TERCEIROS (WILTON)' : u.nome)
+                        : (u.empresa_id === '00000000-0000-0000-0000-000000000001' ? 'G CAC DESPACHANTE BÉLICO' : u.nome)}
                     </option>
                   ))}
                 </select>
