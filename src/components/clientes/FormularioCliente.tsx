@@ -153,7 +153,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
         crCaca: form.crCaca,
         crColecionamento: form.crColecionamento,
         atiradorNivel: form.crTiroDesportivo && form.atiradorNivel !== '' ? Number(form.atiradorNivel) : null,
-        responsavelId: form.responsavelId || null,
+        responsavelId: form.responsavelId || undefined,
         ignorarMensagensAlertas: form.ignorarMensagensAlertas,
       };
 
