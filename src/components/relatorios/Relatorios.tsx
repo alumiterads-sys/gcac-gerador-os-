@@ -70,6 +70,14 @@ interface AlertaDocumento {
   emRenovacao?: boolean;
 }
 
+// Helper para evitar travamentos ao digitar datas inválidas ou incompletas
+function safeIsWithinInterval(date: Date, start: Date | null, end: Date | null): boolean {
+  if (!date || isNaN(date.getTime())) return false;
+  if (!start || isNaN(start.getTime())) return true;
+  if (!end || isNaN(end.getTime())) return true;
+  return isWithinInterval(date, { start, end });
+}
+
 export function Relatorios() {
   const { usuario } = useAuth();
   const { ordens } = useOrdens();
@@ -243,9 +251,11 @@ export function Relatorios() {
 
   // Intervalo de Datas Geral
   const intervalFiltro = useMemo(() => {
+    const parsedStart = parseISO(dataInicio);
+    const parsedEnd = parseISO(dataFim);
     return {
-      start: startOfDay(parseISO(dataInicio)),
-      end: endOfDay(parseISO(dataFim))
+      start: parsedStart instanceof Date && !isNaN(parsedStart.getTime()) ? startOfDay(parsedStart) : null,
+      end: parsedEnd instanceof Date && !isNaN(parsedEnd.getTime()) ? endOfDay(parsedEnd) : null
     };
   }, [dataInicio, dataFim]);
 
@@ -257,7 +267,7 @@ export function Relatorios() {
       // 1. Filtro de Data
       if (!o.criadoEm) return false;
       const dataCriacao = parseISO(o.criadoEm);
-      if (!isWithinInterval(dataCriacao, intervalFiltro)) return false;
+      if (!safeIsWithinInterval(dataCriacao, intervalFiltro.start, intervalFiltro.end)) return false;
 
       // 2. Filtro de Status Financeiro (Se vazio, ignora o filtro)
       if (filtroStatusOS.length > 0 && !filtroStatusOS.includes(o.status)) return false;
@@ -351,7 +361,7 @@ export function Relatorios() {
         o.historicoPagamentos?.forEach(p => {
           if (!p.data) return;
           const dataPag = parseISO(p.data);
-          if (isWithinInterval(dataPag, intervalFiltro)) {
+          if (safeIsWithinInterval(dataPag, intervalFiltro.start, intervalFiltro.end)) {
             // Filtro por Forma de Pagamento (Se vazio, ignora o filtro)
             if (filtroFormaPagamento.length === 0 || filtroFormaPagamento.includes(p.metodo)) {
               transacoes.push({
@@ -374,7 +384,7 @@ export function Relatorios() {
       despesas.forEach(d => {
         if (!d.data) return;
         const dataDespesa = parseISO(d.data);
-        if (isWithinInterval(dataDespesa, intervalFiltro)) {
+        if (safeIsWithinInterval(dataDespesa, intervalFiltro.start, intervalFiltro.end)) {
           const cat = d.categoria || 'Outros';
           // Filtro por Categoria de Despesa (Se vazio, ignora o filtro)
           if (filtroCategoriaDespesa.length === 0 || filtroCategoriaDespesa.includes(cat)) {
@@ -410,7 +420,7 @@ export function Relatorios() {
     ordens.forEach(o => {
       if (!o.criadoEm) return;
       const dataCriacao = parseISO(o.criadoEm);
-      if (isWithinInterval(dataCriacao, intervalFiltro)) {
+      if (safeIsWithinInterval(dataCriacao, intervalFiltro.start, intervalFiltro.end)) {
         if (filtroStatusOS.includes(o.status) && o.status !== 'Pago' && o.status !== 'Gratuidade') {
           const restante = Math.max(0, (o.valor || 0) - (o.desconto || 0) - (o.valorPago || 0));
           aReceberVal += restante;
@@ -608,7 +618,7 @@ export function Relatorios() {
       // 3. Filtro geral de datas (se houver vencimento no intervalo selecionado)
       if (a.dataVencimento) {
         const dateV = parseISO(a.dataVencimento);
-        if (!isWithinInterval(dateV, intervalFiltro)) return false;
+        if (!safeIsWithinInterval(dateV, intervalFiltro.start, intervalFiltro.end)) return false;
       }
 
       return true;
@@ -817,8 +827,16 @@ export function Relatorios() {
   };
 
   const periodoExibicaoText = useMemo(() => {
+    const parsedStart = parseISO(dataInicio);
+    const parsedEnd = parseISO(dataFim);
+    const startValido = parsedStart instanceof Date && !isNaN(parsedStart.getTime());
+    const endValido = parsedEnd instanceof Date && !isNaN(parsedEnd.getTime());
+
+    const txtStart = startValido ? format(parsedStart, 'dd/MM/yyyy') : '—';
+    const txtEnd = endValido ? format(parsedEnd, 'dd/MM/yyyy') : '—';
+
     if (presetPeriodo === 'personalizado') {
-      return `Período: ${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')}`;
+      return `Período: ${txtStart} a ${txtEnd}`;
     }
     const presetsNomes = {
       hoje: 'Hoje',
@@ -827,7 +845,7 @@ export function Relatorios() {
       '30dias': 'Últimos 30 Dias',
       ano: 'Ano Atual'
     };
-    return `Período: ${presetsNomes[presetPeriodo as keyof typeof presetsNomes]} (${format(parseISO(dataInicio), 'dd/MM/yyyy')} a ${format(parseISO(dataFim), 'dd/MM/yyyy')})`;
+    return `Período: ${presetsNomes[presetPeriodo as keyof typeof presetsNomes]} (${txtStart} a ${txtEnd})`;
   }, [presetPeriodo, dataInicio, dataFim]);
 
   return (
