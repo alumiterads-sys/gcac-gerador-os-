@@ -103,25 +103,27 @@ export async function validarConvite(token: string): Promise<{
     .rpc('get_convite_by_token', { p_token: token })
     .maybeSingle();
 
-  if (error || !data) {
+  const conviteData = data as ConviteCac | null;
+
+  if (error || !conviteData) {
     return { valido: false, erro: 'Convite não encontrado.' };
   }
 
-  if (data.status === 'aceito') {
-    return { valido: false, convite: data as ConviteCac, erro: 'Este convite já foi aceito.' };
+  if (conviteData.status === 'aceito') {
+    return { valido: false, convite: conviteData, erro: 'Este convite já foi aceito.' };
   }
 
-  if (data.status === 'cancelado') {
-    return { valido: false, convite: data as ConviteCac, erro: 'Este convite foi cancelado.' };
+  if (conviteData.status === 'cancelado') {
+    return { valido: false, convite: conviteData, erro: 'Este convite foi cancelado.' };
   }
 
-  if (new Date(data.expira_em) < new Date()) {
+  if (new Date(conviteData.expira_em) < new Date()) {
     // Marca como expirado no banco de forma não-bloqueante
-    supabase.from('convites_cac').update({ status: 'expirado' }).eq('id', data.id).then(() => {});
-    return { valido: false, convite: data as ConviteCac, erro: 'Este convite expirou. Solicite ao despachante um novo link.' };
+    supabase.from('convites_cac').update({ status: 'expirado' }).eq('id', conviteData.id).then(() => {});
+    return { valido: false, convite: conviteData, erro: 'Este convite expirou. Solicite ao despachante um novo link.' };
   }
 
-  return { valido: true, convite: data as ConviteCac };
+  return { valido: true, convite: conviteData };
 }
 
 /**
