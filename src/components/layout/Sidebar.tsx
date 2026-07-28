@@ -21,7 +21,6 @@ const links = [
   { to: '/recibos',    label: 'Recibos',           icon: Receipt,      slug: 'recibos' },
   { to: '/agendamentos', label: 'Agendamentos',   icon: Calendar,      slug: 'agendamentos' },
   { to: '/clientes',   label: 'Meus Clientes',     icon: Users,         slug: 'clientes' },
-  { to: '/clientes-cac', label: 'Clientes CAC',   icon: Link2,         slug: 'clientes' },
   { to: '/relatorios', label: 'Relatórios',       icon: FileSpreadsheet, slug: 'relatorios' },
   { to: '/configuracoes', label: 'Configurações', icon: Settings,      slug: 'config' },
   { to: '/declaracoes', label: 'Declarações',     icon: FileText,      slug: 'declaracoes' },
@@ -366,7 +365,6 @@ export function NavegacaoInferior() {
     if (label === 'Agenda / Lembretes') return 'Lembretes';
     if (label === 'Ordens de Serviço') return 'Ordens';
     if (label === 'Meus Clientes') return 'Clientes';
-    if (label === 'Clientes CAC') return 'Vínculos';
     if (label === 'Configurações') return 'Config';
     if (label === 'Agendamentos') return 'Agenda';
     return label;

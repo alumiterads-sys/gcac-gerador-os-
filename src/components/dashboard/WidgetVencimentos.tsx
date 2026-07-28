@@ -209,7 +209,7 @@ export function WidgetVencimentos() {
           <button 
             onClick={() => {
               if (alerta.isVinculado) {
-                navigate('/clientes-cac', { 
+                navigate('/portal-admin?tab=vinculos', { 
                   state: { 
                     autoOpenCacEmpresaId: alerta.cacEmpresaId 
                   } 

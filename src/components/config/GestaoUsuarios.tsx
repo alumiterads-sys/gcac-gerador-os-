@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles, X } from 'lucide-react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles, X, Link2 } from 'lucide-react';
 import { supabase } from '../../db/supabase';
+import { PainelClientesCAC } from '../vinculos/PainelClientesCAC';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useAuth } from '../../context/AuthContext';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
@@ -63,7 +64,7 @@ import { PainelAtiradores } from '../admin/PainelAtiradores';
 import { EditorSitePortal } from '../admin/EditorSitePortal';
 
 interface GestaoUsuariosProps {
-  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site';
+  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos';
 }
 
 const PROMPTS_RAPIDOS = [
@@ -176,7 +177,7 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
 
   // Sub-painel ativo para Master Admin
-  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site'>(abaInicial || 'empresas');
+  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos'>(abaInicial || 'empresas');
 
   useEffect(() => {
     if (abaInicial) {
@@ -1970,6 +1971,18 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
               >
                 <Settings2 size={14} />
                 Site Portal G CAC
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSubPainelAtivo('vinculos'); setBuscaUsuario(''); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                  subPainelAtivo === 'vinculos'
+                    ? 'bg-brand-blue/15 border-brand-blue/30 text-white font-bold'
+                    : 'bg-brand-dark-3 border-brand-dark-5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Link2 size={14} />
+                Clientes CAC
               </button>
             </div>
           )}
@@ -3830,6 +3843,11 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
               </div>
               <EditorSitePortal />
             </div>
+          )}
+
+          {/* ABA 9: VÍNCULOS CLIENTES CAC */}
+          {subPainelAtivo === 'vinculos' && (
+            <PainelClientesCAC />
           )}
         </div>
       )}

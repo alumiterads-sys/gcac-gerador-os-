@@ -29,3 +29,6 @@ dist-ssr
 *.avi
 *.mov
 
+
+.vercel
+.env*
