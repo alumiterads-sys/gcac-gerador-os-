@@ -100,9 +100,7 @@ export async function validarConvite(token: string): Promise<{
   erro?: string;
 }> {
   const { data, error } = await supabase
-    .from('convites_cac')
-    .select('*')
-    .eq('token', token)
+    .rpc('get_convite_by_token', { p_token: token })
     .maybeSingle();
 
   if (error || !data) {

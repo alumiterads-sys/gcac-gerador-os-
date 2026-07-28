@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useGoogleLogin } from '@react-oauth/google';
 import { Wifi, WifiOff, ShieldCheck, ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useStatusConexao } from '../../hooks/useStatusConexao';
+import { supabase } from '../../db/supabase';
 
 const SLIDES = [
   {
@@ -89,27 +89,24 @@ export function PaginaLogin() {
     setCurrentSlide((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
   };
 
-  const handleLogin = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-    onSuccess: async (tokenResponse) => {
-      setCarregando(true);
-      try {
-        await login(tokenResponse);
-      } catch (err: any) {
-        if (err.message === 'ACESSO_REJEITADO') {
-          setErro('Acesso Negado: Este aplicativo é restrito para uso oficial.');
-        } else {
-          setErro('Erro ao fazer login. Tente novamente.');
+  const handleLogin = async () => {
+    setCarregando(true);
+    setErro('');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          redirectTo: window.location.origin + '/login',
         }
-      } finally {
-        setCarregando(false);
-      }
-    },
-    onError: () => {
-      setErro('Login cancelado ou falhou. Tente novamente.');
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error('[DEBUG Auth] error initiating supabase login:', err);
+      setErro('Erro ao fazer login. Tente novamente.');
       setCarregando(false);
-    },
-  });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-brand-dark flex items-center justify-center p-4 sm:p-6 lg:p-12 relative overflow-y-auto overflow-x-hidden">

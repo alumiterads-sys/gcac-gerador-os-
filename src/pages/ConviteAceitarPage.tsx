@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
 import { ShieldCheck, CheckCircle2, XCircle, Clock, Loader2, Wifi, WifiOff, UserPlus, FileText, Layers } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStatusConexao } from '../hooks/useStatusConexao';
@@ -290,44 +289,22 @@ export function ConviteAceitarPage() {
   }, [navigate]);
 
   // ── Login Google ──────────────────────────────────────────────────────────
-  const handleLoginGoogle = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
-    onSuccess: async (tokenResponse) => {
-      setFase('logando');
-      try {
-        // Busca info do Google
-        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-        const info = await res.json();
-
-        // Salva o token e info básica mesmo antes de checar whitelist
-        const dadosTmp = { id: info.sub, nome: info.name, email: info.email, fotoPerfil: info.picture, accessToken: tokenResponse.access_token };
-        localStorage.setItem('gcac_usuario', JSON.stringify(dadosTmp));
-
-        // Tenta logar normalmente (se a conta já existe)
-        try {
-          await loginAuth(tokenResponse);
-          // loginAuth populou o usuario — aguarda o estado atualizar
-          // O processamento será disparado no useEffect abaixo
-        } catch {
-          // Conta ainda não existe — processarAceite cria a conta
+  const handleLoginGoogle = async () => {
+    setFase('logando');
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          redirectTo: window.location.href, // Retorna exatamente para esta página!
         }
-
-        // Processa o aceite com os dados do Google
-        if (convite) {
-          await processarAceite(convite, info.email, info.name, undefined);
-        }
-      } catch (e: any) {
-        setMensagemErro('Erro durante o login: ' + e.message);
-        setFase('erro');
-      }
-    },
-    onError: () => {
-      setMensagemErro('Login cancelado ou falhou. Tente novamente.');
+      });
+      if (error) throw error;
+    } catch (e: any) {
+      setMensagemErro('Erro ao iniciar login: ' + e.message);
       setFase('pronto');
-    },
-  });
+    }
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 

@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUsuario(null);
     localStorage.removeItem('gcac_usuario');
     sessionStorage.removeItem('gcac_token');
+    supabase.auth.signOut().catch(() => {});
   }, []);
 
   const refreshUsuario = useCallback(async () => {
@@ -259,6 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
+    // 1. Carrega dados do usuário do localStorage se existirem
     const dados = localStorage.getItem('gcac_usuario');
     if (dados) {
       try {
@@ -276,18 +278,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setEstaCarregando(false);
+
+    // 2. Escuta mudanças de autenticação do Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[DEBUG Auth] onAuthStateChange event:', event, 'session:', session);
+      if (session) {
+        try {
+          const emailLower = session.user.email?.trim().toLowerCase();
+          if (!emailLower) return;
+
+          // Processa login/recarga se for login inicial ou se não tiver dados salvos localmente
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || !localStorage.getItem('gcac_usuario')) {
+            await loginComSessaoSupabase(session);
+          }
+        } catch (err: any) {
+          console.error('[DEBUG Auth] Erro no processamento de sessão do Supabase:', err);
+        }
+      } else {
+        if (event === 'SIGNED_OUT') {
+          setUsuario(null);
+          localStorage.removeItem('gcac_usuario');
+          sessionStorage.removeItem('gcac_token');
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [refreshUsuario]);
 
-  const login = useCallback(async (tokenResponse: { access_token: string }) => {
+  const loginComSessaoSupabase = useCallback(async (session: any) => {
     try {
-      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const info = await res.json();
-      const emailLower = info.email.trim().toLowerCase();
+      const emailLower = session.user.email.trim().toLowerCase();
+      const meta = session.user.user_metadata;
 
       // 1. Busca na Whitelist do Banco de Dados
-      console.log('[DEBUG Auth] login starting for:', emailLower);
+      console.log('[DEBUG Auth] loginComSessaoSupabase starting for:', emailLower);
       const { data: whitelistData, error: whitelistError } = await supabase
         .from('usuarios_autorizados')
         .select('*')
@@ -296,15 +323,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (whitelistError) {
-        console.error('[DEBUG Auth] login whitelistError:', whitelistError);
+        console.error('[DEBUG Auth] loginComSessaoSupabase whitelistError:', whitelistError);
       } else {
-        console.log('[DEBUG Auth] login whitelist success:', whitelistData);
+        console.log('[DEBUG Auth] loginComSessaoSupabase whitelist success:', whitelistData);
       }
 
       // 2. Cadeado de segurança para Administrador Mestre (Fallback)
       const ehMasterAdmin = emailLower === 'gui.gomesassis@gmail.com';
 
       if (!ehMasterAdmin && (whitelistError || !whitelistData)) {
+        await supabase.auth.signOut();
         throw new Error('ACESSO_REJEITADO');
       }
 
@@ -318,19 +346,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let rawEmpresaNome = 'GCAC Principal';
       let tipoConta: 'empresa' | 'cac_individual' = 'empresa';
       let modulosAtivos: string[] = [];
-      let fotoPerfil = info.picture;
+      let fotoPerfil = meta.avatar_url || meta.picture || '';
       let dadosEmpresa: any = null;
+
       if (rawEmpresaId) {
-        console.log('[DEBUG Auth] login fetching company for ID:', rawEmpresaId);
+        console.log('[DEBUG Auth] loginComSessaoSupabase fetching company for ID:', rawEmpresaId);
         const { data: empData, error: empError } = await supabase
           .from('empresas')
           .select('*')
           .eq('id', rawEmpresaId)
           .single();
         if (empError) {
-          console.error('[DEBUG Auth] login empError:', empError);
+          console.error('[DEBUG Auth] loginComSessaoSupabase empError:', empError);
         } else {
-          console.log('[DEBUG Auth] login company success:', empData);
+          console.log('[DEBUG Auth] loginComSessaoSupabase company success:', empData);
         }
         if (empData) {
           rawEmpresaNome = empData.nome;
@@ -375,12 +404,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // Google OAuth access token is in session.provider_token
+      const googleAccessToken = session.provider_token || sessionStorage.getItem('gcac_token') || '';
+
       const novoUsuario: UsuarioGoogle = {
-        id: info.sub,
-        nome: info.name,
-        email: info.email,
+        id: meta.sub || session.user.id,
+        nome: meta.name || meta.full_name || '',
+        email: emailLower,
         fotoPerfil,
-        accessToken: tokenResponse.access_token,
+        accessToken: googleAccessToken,
         role,
         permissoes,
         empresaId: rawEmpresaId || undefined,
@@ -394,15 +426,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUsuario(novoUsuario);
       localStorage.setItem('gcac_usuario', JSON.stringify(novoUsuario));
-      sessionStorage.setItem('gcac_token', tokenResponse.access_token);
+      if (googleAccessToken) {
+        sessionStorage.setItem('gcac_token', googleAccessToken);
+      }
 
       // Registra o acesso no banco (para estatísticas do painel admin)
       registrarAcesso(novoUsuario.email).catch(() => {});
     } catch (err) {
-      console.error('Erro ao buscar dados do usuário:', err);
+      console.error('Erro no loginComSessaoSupabase:', err);
       throw err;
     }
   }, []);
+
+  const login = useCallback(async (session: any) => {
+    await loginComSessaoSupabase(session);
+  }, [loginComSessaoSupabase]);
 
   // We can delete the duplicate logout declaration at the end since we moved it to the top.
 
