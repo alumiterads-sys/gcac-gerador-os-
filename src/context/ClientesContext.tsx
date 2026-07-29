@@ -156,12 +156,12 @@ const mapToDB = (dados: any) => {
 };
 
 export function ClientesProvider({ children }: { children: React.ReactNode }) {
-  const { usuario } = useAuth();
+  const { usuario, estaAutenticado } = useAuth();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [carregado, setCarregado] = useState(false);
 
   const carregarClientes = useCallback(async () => {
-    if (!usuario?.empresaId) return;
+    if (!usuario?.empresaId || !estaAutenticado) return;
     const { data, error } = await supabase
       .from('clientes')
       .select('*')
@@ -250,7 +250,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
   }, [usuario]);
 
   const inicializarOpcoesArmasPadrao = useCallback(async () => {
-    if (!usuario?.empresaId) return;
+    if (!usuario?.empresaId || !estaAutenticado) return;
     setCarregandoOpcoes(true);
     try {
       // 1. Verificar o que já existe cadastrado no banco
@@ -415,13 +415,13 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (usuario?.empresaId) {
+    if (usuario?.empresaId && estaAutenticado) {
       carregarClientes();
       carregarMetadadosArmas();
       inicializarOpcoesArmasPadrao();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usuario]);
+  }, [usuario, estaAutenticado]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>

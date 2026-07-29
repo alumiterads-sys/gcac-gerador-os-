@@ -104,9 +104,8 @@ const mapToDB = (dados: any) => {
 };
 
 export function OrdensProvider({ children }: { children: React.ReactNode }) {
-  const { estaAutenticado } = useAuth();
+  const { usuario, estaAutenticado } = useAuth();
   const online = useStatusConexao();
-  const { usuario } = useAuth();
   const [ordens, setOrdens] = useState<OrdemDeServico[]>([]);
 
   const adicionarEvento = useCallback((historico: any[] = [], tipo: any, descricao: string, valorAnterior?: string, valorNovo?: string) => {
@@ -123,7 +122,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
   }, [usuario]);
 
   const carregarOrdens = useCallback(async () => {
-    if (!usuario?.empresaId) return;
+    if (!usuario?.empresaId || !estaAutenticado) return;
     const { data, error } = await supabase
       .from('ordens')
       .select('*')
@@ -138,7 +137,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     if (data) {
       setOrdens(data.map(mapFromDB));
     }
-  }, [usuario]);
+  }, [usuario, estaAutenticado]);
 
   useEffect(() => {
     carregarOrdens();
