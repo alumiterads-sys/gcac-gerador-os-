@@ -10,7 +10,7 @@ import { buscarVinculosPendentesCAC, VinculoDespachanteCac } from '../../service
 import { NotificacaoVinculo } from '../vinculos/NotificacaoVinculo';
 import { supabase } from '../../db/supabase';
 import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
-import { Lock, MessageCircle } from 'lucide-react';
+import { Lock, MessageCircle, Check } from 'lucide-react';
 import { getDebugLogs, subscribeToLogs, DebugLog } from '../../utils/debugLogger';
 
 export function AppShell() {
@@ -359,13 +359,21 @@ export function AppShell() {
           ) : null}
           <button
             onClick={() => setPainelDebugAberto(!painelDebugAberto)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-full shadow-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+            className={`relative flex items-center justify-center w-8 h-8 rounded-full shadow-lg transition-all duration-300 ${
+              logs.some(l => l.type === 'error')
+                ? 'bg-red-600 hover:bg-red-500 text-white'
+                : 'bg-green-600 hover:bg-green-500 text-white'
+            }`}
+            title={logs.some(l => l.type === 'error') ? 'Erros detectados no diagnóstico!' : 'Nenhum erro detectado'}
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            Ver Diagnóstico
+            {logs.some(l => l.type === 'error') ? (
+              <>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+                <span className="relative font-black text-sm leading-none">!</span>
+              </>
+            ) : (
+              <Check size={14} className="relative font-black" />
+            )}
           </button>
         </div>
       )}
