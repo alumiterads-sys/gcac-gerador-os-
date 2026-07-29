@@ -277,6 +277,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('gcac_usuario');
       }
     }
+    setEstaCarregando(false);
 
     // 2. Escuta mudanças de autenticação do Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -284,10 +285,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session) {
         try {
           const emailLower = session.user.email?.trim().toLowerCase();
-          if (!emailLower) return;
+          if (!emailLower) {
+            setEstaCarregando(false);
+            return;
+          }
 
-          // Processa login/recarga se for login inicial ou se não tiver dados salvos localmente
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || !localStorage.getItem('gcac_usuario')) {
+          // Processa login/recarga se for login inicial, recarga de token, sessão inicial ou se não tiver dados salvos
+          if (
+            event === 'SIGNED_IN' || 
+            event === 'TOKEN_REFRESHED' || 
+            event === 'INITIAL_SESSION' || 
+            !localStorage.getItem('gcac_usuario')
+          ) {
             await loginComSessaoSupabase(session);
           }
         } catch (err: any) {
