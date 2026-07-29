@@ -175,14 +175,20 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
     if (!form.horario)            e.horario     = 'Horário é obrigatório';
     if (!form.arma)               e.arma        = 'Informe a arma';
     
+    console.log('[DEBUG Agendamento] Validation results:', e);
     setErros(e);
     return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validar()) return;
+    console.log('[DEBUG Agendamento] handleSubmit called. Form state:', form);
+    if (!validar()) {
+      console.warn('[DEBUG Agendamento] Validation failed, aborting submit');
+      return;
+    }
     
+    setSalvando(true);
     try {
       const payload = {
         ...form,
