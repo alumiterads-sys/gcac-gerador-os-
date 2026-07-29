@@ -103,7 +103,14 @@ export function RotinaDiaria() {
 
   const handleConcluirServico = async (ordemId: string, servicoId: string) => {
     if (confirm('Deseja marcar este serviço como CONCLUÍDO?')) {
-      await atualizarStatusServico(ordemId, servicoId, 'Concluído');
+      try {
+        console.log('[DEBUG Rotina] Marcando serviço como concluído:', { ordemId, servicoId });
+        await atualizarStatusServico(ordemId, servicoId, 'Concluído');
+        console.log('[DEBUG Rotina] Serviço concluído com sucesso');
+      } catch (err: any) {
+        console.error('[DEBUG Rotina] Erro ao concluir serviço:', err);
+        alert('Erro ao concluir serviço: ' + (err.message || JSON.stringify(err)));
+      }
     }
   };
 
