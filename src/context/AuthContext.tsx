@@ -277,7 +277,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('gcac_usuario');
       }
     }
-    setEstaCarregando(false);
 
     // 2. Escuta mudanças de autenticação do Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -301,6 +300,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           sessionStorage.removeItem('gcac_token');
         }
       }
+      setEstaCarregando(false);
     });
 
     return () => {
