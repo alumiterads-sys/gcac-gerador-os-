@@ -421,7 +421,7 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       inicializarOpcoesArmasPadrao();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usuario?.empresaId]);
+  }, [usuario]);
 
   const criarCliente = useCallback(async (
     dados: Omit<Cliente, 'id' | 'criadoEm' | 'atualizadoEm'>
