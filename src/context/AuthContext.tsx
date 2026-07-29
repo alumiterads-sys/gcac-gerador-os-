@@ -280,27 +280,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setEstaCarregando(false);
 
     // 2. Escuta mudanças de autenticação do Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[DEBUG Auth] onAuthStateChange event:', event, 'session:', session);
       if (session) {
-        try {
-          const emailLower = session.user.email?.trim().toLowerCase();
-          if (!emailLower) {
-            setEstaCarregando(false);
-            return;
-          }
+        const emailLower = session.user.email?.trim().toLowerCase();
+        if (!emailLower) {
+          setEstaCarregando(false);
+          return;
+        }
 
-          // Processa login/recarga se for login inicial, recarga de token, sessão inicial ou se não tiver dados salvos
-          if (
-            event === 'SIGNED_IN' || 
-            event === 'TOKEN_REFRESHED' || 
-            event === 'INITIAL_SESSION' || 
-            !localStorage.getItem('gcac_usuario')
-          ) {
-            await loginComSessaoSupabase(session);
-          }
-        } catch (err: any) {
-          console.error('[DEBUG Auth] Erro no processamento de sessão do Supabase:', err);
+        // Processa login/recarga se for login inicial, recarga de token, sessão inicial ou se não tiver dados salvos
+        if (
+          event === 'SIGNED_IN' || 
+          event === 'TOKEN_REFRESHED' || 
+          event === 'INITIAL_SESSION' || 
+          !localStorage.getItem('gcac_usuario')
+        ) {
+          setTimeout(() => {
+            loginComSessaoSupabase(session).catch((err: any) => {
+              console.error('[DEBUG Auth] Erro no processamento de sessão do Supabase:', err);
+            });
+          }, 0);
         }
       } else {
         if (event === 'SIGNED_OUT') {
