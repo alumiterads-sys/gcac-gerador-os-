@@ -41,7 +41,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
 
   // ── Cabeçalho ───────────────────────────────────────────────────────────
   doc.setFillColor(ESCURO);
-  doc.rect(0, 0, largura, 42, 'F');
+  doc.rect(0, 0, largura, 35, 'F');
 
   // Logo
   try {
@@ -69,7 +69,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       } else if (logoBase64.startsWith('data:image/webp')) {
         format = 'WEBP';
       }
-      doc.addImage(logoBase64, format, 6, 2, 34, 38);
+      doc.addImage(logoBase64, format, 6, 2, 28, 31);
     }
   } catch { /* logo nao disponivel */ }
 
@@ -77,54 +77,52 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setTextColor('#FFFFFF');
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
-  doc.text(nomeEmpresa, 46, 11);
+  doc.text(nomeEmpresa, 40, 9);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor('#CCCCCC');
-  doc.text(responsavel, 46, 17);
-  doc.text(telefone, 46, 22);
-  doc.text(endereco, 46, 27);
+  doc.text(responsavel, 40, 14.5);
+  doc.text(telefone, 40, 18.5);
+  doc.text(endereco, 40, 22.5);
 
   // Linha separadora interna
   doc.setDrawColor('#333333');
-  doc.line(46, 30, largura - 12, 30);
+  doc.line(40, 25, largura - 12, 25);
 
   // Número ORC e Data
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor('#FFFFFF');
   doc.setFont('helvetica', 'bold');
   const numRotulo = `ORC-${String(orcamento.numero).padStart(4, '0')}`;
-  doc.text(numRotulo, largura - 12, 35, { align: 'right' });
+  doc.text(numRotulo, largura - 12, 29, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setTextColor('#AAAAAA');
-  doc.text('Emitido em: ' + formatarData(orcamento.criadoEm), largura - 12, 40, { align: 'right' });
+  doc.text('Emitido em: ' + formatarData(orcamento.criadoEm), largura - 12, 33, { align: 'right' });
 
   // Badge de Propósito
   doc.setFillColor('#444444');
-  doc.roundedRect(46, 33, 50, 8, 1.5, 1.5, 'F');
+  doc.roundedRect(40, 27, 45, 6.5, 1.5, 1.5, 'F');
   doc.setTextColor('#FFFFFF');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('ORÇAMENTO DE SERVIÇO', 71, 38.5, { align: 'center' });
+  doc.text('ORÇAMENTO DE SERVIÇO', 62.5, 31.5, { align: 'center' });
 
 
-  y = 50;
+  y = 40;
 
   // ── Dados do Cliente ─────────────────────────────────────────────────────
   y = secaoTitulo(doc, 'DADOS DO CLIENTE', y, VERDE);
-  y += 2;
 
   y = linhaInfo(doc, 'Nome Completo:', orcamento.nomeCliente, y, largura);
   y = linhaInfo(doc, 'Endereço:', orcamento.endereco || 'NÃO INFORMADO', y, largura);
   if (orcamento.cpf) y = linhaInfo(doc, 'CPF:', formatarCPF(orcamento.cpf), y, largura);
   y = linhaInfo(doc, 'Contato:', formatarTelefone(orcamento.contato), y, largura);
 
-  y += 4;
+  y += 2;
 
   // ── Descrição dos Serviços (Múltiplos) ───────────────────────────────────
   y = secaoTitulo(doc, 'DESCRIÇÃO DOS SERVIÇOS E VALORES', y, VERDE);
-  y += 2;
 
   const arrayServicos = (orcamento.servicos && orcamento.servicos.length > 0)
     ? orcamento.servicos
@@ -140,20 +138,20 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       const nomeFormatado = serv.nome.toUpperCase();
       
       // Configura fonte para o nome
-      doc.setFontSize(10.5);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       
       // Quebra o nome em linhas se for muito longo (largura - 75 para dar espaço generoso ao valor)
       const linhasNome = doc.splitTextToSize(nomeFormatado, largura - 75);
-      const alturaNome = linhasNome.length * 5;
+      const alturaNome = linhasNome.length * 4;
 
       // Calcula linhas do detalhe
-      doc.setFontSize(9.5);
+      doc.setFontSize(9);
       const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
-      let alturaBloco = 8 + alturaNome + (linhasDetalhe.length * 4.5);
+      let alturaBloco = 5.5 + alturaNome + (linhasDetalhe.length * 4.2);
       
       // Ajusta se bloco ficar pequeno 
-      if (alturaBloco < 11) alturaBloco = 11;
+      if (alturaBloco < 10) alturaBloco = 10;
 
       // Quebra de página se não couber o bloco inteiro
       if (y + alturaBloco > 275) {
@@ -169,25 +167,25 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
 
       // Nome do Serviço 
       doc.setTextColor(ESCURO);
-      doc.setFontSize(10.5);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(linhasNome, 17, y + 6);
+      doc.text(linhasNome, 17, y + 4.5);
 
       // Valor à direita do bloco (alinhado com a primeira linha do nome)
       doc.setTextColor(VERDE);
-      doc.setFontSize(11);
+      doc.setFontSize(10.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(formatarMoeda(serv.valor), largura - 16, y + 6, { align: 'right' });
+      doc.text(formatarMoeda(serv.valor), largura - 16, y + 4.5, { align: 'right' });
 
       // Detalhes
       if (serv.detalhes && serv.detalhes.trim()) {
-        doc.setFontSize(9.5);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor('#444444');
-        doc.text(linhasDetalhe, 17, y + 6 + alturaNome);
+        doc.text(linhasDetalhe, 17, y + 4.5 + alturaNome);
       }
       
-      y += alturaBloco + 2; // espaçamento de um card pro outro
+      y += alturaBloco + 1.5; // espaçamento de um card pro outro
     });
   }
 
@@ -204,8 +202,8 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
           '(Base Legal: Decreto 11.615/23, arts. 35 e 37; Portaria 166-COLOG/23, arts. 12, 16 e 17).'
         ];
 
-    // Calcula a altura da caixa com base no número de linhas (aproximadamente 5.5mm por linha + margens)
-    const rectHeight = 12 + (lines.length * 5.5);
+    // Calcula a altura da caixa com base no número de linhas (aproximadamente 4.2mm por linha + margens)
+    const rectHeight = 8 + (lines.length * 4.2);
 
     if (y + rectHeight + 5 > 275) {
       doc.addPage();
@@ -219,11 +217,11 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
     doc.setTextColor('#B45309');
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('AVISO DE EXIGÊNCIAS PARA RENOVAÇÃO DE CRAF', 17, y + 6);
+    doc.text('AVISO DE EXIGÊNCIAS PARA RENOVAÇÃO DE CRAF', 17, y + 5);
     
     doc.setFont('helvetica', 'normal');
     lines.forEach((line, index) => {
-      const lineY = y + 12 + (index * 5.5);
+      const lineY = y + 10 + (index * 4.2);
       if (line.toLowerCase().includes('base legal') || line.trim().startsWith('(')) {
         doc.setFontSize(6.5);
         doc.setTextColor('#D97706');
@@ -234,18 +232,17 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
       doc.text(line, 17, lineY);
     });
     
-    y += rectHeight + 6;
+    y += rectHeight + 3;
   }
 
   // ── Resumo Geral ─────────────────────────────────────────────────────────
-  // Verifica se cabe o bloco de resumo (aproximadamente 45mm de altura necessária)
-  if (y + 45 > 270) {
+  // Verifica se cabe o bloco de resumo (aproximadamente 35mm de altura necessária)
+  if (y + 35 > 270) {
     doc.addPage();
     y = 15;
   }
 
   y = secaoTitulo(doc, 'RESUMO GERAL', y, VERDE);
-  y += 2;
 
   // Detalhamento de valores
   const honorarios = orcamento.servicos.filter(s => !isLaudoExame(s.categoria || '', categoriasConfig)).reduce((acc, s) => acc + (s.valor || 0), 0);
@@ -254,7 +251,7 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   // Caixa valor total (aumentada para caber o detalhamento)
   doc.setFillColor('#EDF7ED');
   const cxY = y;
-  const cxAltura = 28; // Aumentado de 26 para 28
+  const cxAltura = 22;
   doc.roundedRect(largura - 75, cxY, 63, cxAltura, 2, 2, 'F');
   doc.setDrawColor(VERDE);
   doc.setLineWidth(0.5);
@@ -264,21 +261,21 @@ export async function gerarPdfOrcamentoBlob(orcamento: Orcamento): Promise<Blob>
   doc.setTextColor(CINZA);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
-  doc.text(`HONORÁRIOS: ${formatarMoeda(honorarios)}`, largura - 43.5, cxY + 5, { align: 'center' });
-  doc.text(`LAUDOS/EXTERNOS: ${formatarMoeda(laudos)}`, largura - 43.5, cxY + 9, { align: 'center' });
+  doc.text(`HONORÁRIOS: ${formatarMoeda(honorarios)}`, largura - 43.5, cxY + 4, { align: 'center' });
+  doc.text(`LAUDOS/EXTERNOS: ${formatarMoeda(laudos)}`, largura - 43.5, cxY + 7.5, { align: 'center' });
   
   doc.setDrawColor('#CCE6CC');
-  doc.line(largura - 70, cxY + 11, largura - 17, cxY + 11);
+  doc.line(largura - 70, cxY + 9.5, largura - 17, cxY + 9.5);
 
   doc.setTextColor(CINZA);
   doc.setFontSize(8);
-  doc.text('TOTAL PREVISTO', largura - 43.5, cxY + 16, { align: 'center' });
+  doc.text('TOTAL PREVISTO', largura - 43.5, cxY + 13.5, { align: 'center' });
   doc.setTextColor('#16A34A');
-  doc.setFontSize(15);
+  doc.setFontSize(14);
   const totalGeral = orcamento.servicos.reduce((acc, s) => acc + (s.valor || 0), 0);
-  doc.text(formatarMoeda(totalGeral), largura - 43.5, cxY + 23, { align: 'center' });
+  doc.text(formatarMoeda(totalGeral), largura - 43.5, cxY + 19, { align: 'center' });
 
-  y += cxAltura + 6;
+  y += cxAltura + 4;
 
   // ── Observações ──────────────────────────────────────────────────────────
   if (orcamento.observacoes && orcamento.observacoes.trim()) {
@@ -337,14 +334,14 @@ export async function imprimirPdfOrcamento(orcamento: Orcamento): Promise<void> 
 
 function secaoTitulo(doc: jsPDF, titulo: string, y: number, cor: string): number {
   doc.setFillColor(cor);
-  doc.rect(12, y, 4, 7, 'F');
+  doc.rect(12, y, 4, 5.5, 'F');
   doc.setTextColor(cor);
   doc.setFontSize(10.5);
   doc.setFont('helvetica', 'bold');
-  doc.text(titulo, 19, y + 5.5);
+  doc.text(titulo, 18, y + 4.5);
   doc.setDrawColor('#EEEEEE');
-  doc.line(12, y + 10, doc.internal.pageSize.getWidth() - 12, y + 10);
-  return y + 14;
+  doc.line(12, y + 7.5, doc.internal.pageSize.getWidth() - 12, y + 7.5);
+  return y + 11.5;
 }
 
 function linhaInfo(
@@ -362,7 +359,7 @@ function linhaInfo(
   doc.setTextColor('#111111');
   const texto = doc.splitTextToSize(valor || '-', largura - 70);
   doc.text(texto, 55, y);
-  return y + texto.length * 5 + 2;
+  return y + texto.length * 4.2 + 1.5;
 }
 
 async function blobParaBase64(blob: Blob): Promise<string> {
