@@ -102,8 +102,9 @@ CREATE POLICY guias_trafego_policy ON public.guias_trafego
     empresa_id = public.get_auth_empresa_id() 
     OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
     OR EXISTS (
-      SELECT 1 FROM public.clientes c 
-      WHERE c.id = cliente_id 
+      SELECT 1 FROM public.armas a
+      JOIN public.clientes c ON c.id = a.cliente_id
+      WHERE a.id = arma_id 
       AND (
         c.responsavel_id = public.get_auth_user_id()
         OR EXISTS (
@@ -119,8 +120,9 @@ CREATE POLICY guias_trafego_policy ON public.guias_trafego
     empresa_id = public.get_auth_empresa_id() 
     OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
     OR EXISTS (
-      SELECT 1 FROM public.clientes c 
-      WHERE c.id = cliente_id 
+      SELECT 1 FROM public.armas a
+      JOIN public.clientes c ON c.id = a.cliente_id
+      WHERE a.id = arma_id 
       AND (
         c.responsavel_id = public.get_auth_user_id()
         OR EXISTS (
