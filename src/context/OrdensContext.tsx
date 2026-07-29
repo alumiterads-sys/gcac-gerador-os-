@@ -130,7 +130,12 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       .eq('empresa_id', usuario.empresaId)
       .order('numero', { ascending: false });
     
-    if (!error && data) {
+    if (error) {
+      console.error('[DEBUG Ordens] Erro ao buscar ordens no supabase:', error);
+      return;
+    }
+    
+    if (data) {
       setOrdens(data.map(mapFromDB));
     }
   }, [usuario]);
