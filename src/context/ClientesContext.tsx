@@ -454,11 +454,44 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       const path = `${usuario.empresaId}/clientes/${clienteId}/cr_ibama_${uuidv4()}.${ext}`;
       crIbamaUrl = await uploadBase64File(crIbamaUrl, 'documentos-clientes', path) || '';
     }
+
+    // Tenta herdar a responsabilidade caso o cliente já exista cadastrado por outro despachante (Wilton / GCAC)
+    let responsavelId = dados.responsavelId;
+    let ignorarMensagensAlertas = dados.ignorarMensagensAlertas;
+
+    if (dados.cpf) {
+      const cleanCpf = dados.cpf.replace(/\D/g, '');
+      const formatCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      if (cleanCpf) {
+        try {
+          const { data: existenteGlobal } = await supabase
+            .from('clientes')
+            .select('responsavel_id, ignorar_mensagens_alertas')
+            .or(`cpf.eq.${cleanCpf},cpf.eq.${formatCpf}`)
+            .order('atualizado_em', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (existenteGlobal) {
+            if (existenteGlobal.responsavel_id !== undefined) {
+              responsavelId = existenteGlobal.responsavel_id;
+            }
+            if (existenteGlobal.ignorar_mensagens_alertas !== undefined && existenteGlobal.ignorar_mensagens_alertas !== null) {
+              ignorarMensagensAlertas = existenteGlobal.ignorar_mensagens_alertas;
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao buscar dados globais para herança de responsabilidade:', err);
+        }
+      }
+    }
     
     const dadosComUrls = {
       ...dados,
       crUrl,
-      crIbamaUrl
+      crIbamaUrl,
+      responsavelId,
+      ignorarMensagensAlertas
     };
 
     const { data, error } = await supabase
@@ -537,6 +570,30 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
           .from('clientes')
           .update({ ...mapToDB(dadosComUrls), atualizado_em: new Date().toISOString() })
           .eq('id', cData.id);
+      }
+    }
+
+    // 3. Sincronizar responsavel_id e ignorar_mensagens_alertas em outras empresas caso tenham o mesmo CPF
+    const targetCpf = dados.cpf || clienteAtual?.cpf;
+    if (targetCpf) {
+      const cleanCpf = targetCpf.replace(/\D/g, '');
+      const formatCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      
+      const payloadSync: any = {};
+      if (dados.responsavelId !== undefined) payloadSync.responsavel_id = dados.responsavelId || null;
+      if (dados.ignorarMensagensAlertas !== undefined) payloadSync.ignorar_mensagens_alertas = dados.ignorarMensagensAlertas;
+      
+      if (Object.keys(payloadSync).length > 0) {
+        payloadSync.atualizado_em = new Date().toISOString();
+        try {
+          await supabase
+            .from('clientes')
+            .update(payloadSync)
+            .neq('id', id)
+            .or(`cpf.eq.${cleanCpf},cpf.eq.${formatCpf}`);
+        } catch (err) {
+          console.error('Erro ao sincronizar responsabilidade entre clientes por CPF:', err);
+        }
       }
     }
 

@@ -10,7 +10,7 @@ interface OrdensContextType {
   totalPendentes: number;
   criarOrdem: (dados: Omit<OrdemDeServico, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm' | 'driveArquivoJsonId' | 'drivePdfId' | 'ultimaSincronizacao' | 'pendenteSincronizacao'>) => Promise<string>;
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
-  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any) => Promise<void>;
+  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string) => Promise<void>;
   atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
   atualizarProtocoloServico: (ordemId: string, servicoId: string, protocolo: string) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
@@ -262,16 +262,22 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     }
   }, [online, estaAutenticado, carregarOrdens]);
 
-  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any) => {
+  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string) => {
     const ordem = ordens.find(o => o.id === ordemId);
     if (!ordem) return;
 
     const novosServicos = ordem.servicos.map(s => 
-      s.id === servicoId ? { ...s, statusExecucao: novoStatus } : s
+      s.id === servicoId 
+        ? { 
+            ...s, 
+            statusExecucao: novoStatus,
+            ...(protocolo !== undefined ? { protocolo } : {})
+          } 
+        : s
     );
 
     const servico = ordem.servicos.find(s => s.id === servicoId);
-    const novoHistorico = adicionarEvento(
+    let novoHistorico = adicionarEvento(
       ordem.historicoStatus,
       'status_execucao',
       `Status do serviço "${servico?.nome}" alterado para ${novoStatus}`,
@@ -279,11 +285,21 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
       novoStatus
     );
 
+    if (protocolo) {
+      novoHistorico = adicionarEvento(
+        novoHistorico,
+        'protocolo',
+        `Protocolo do serviço "${servico?.nome}" inserido: ${protocolo}`,
+        servico?.protocolo,
+        protocolo
+      );
+    }
+
     await atualizarOrdem(ordemId, { 
       servicos: novosServicos,
       historicoStatus: novoHistorico
     });
-  }, [ordens, atualizarOrdem]);
+  }, [ordens, atualizarOrdem, adicionarEvento]);
 
   const atualizarGruServico = useCallback(async (ordemId: string, servicoId: string, pago: boolean) => {
     const ordem = ordens.find(o => o.id === ordemId);

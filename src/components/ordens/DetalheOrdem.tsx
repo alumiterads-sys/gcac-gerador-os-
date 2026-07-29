@@ -14,6 +14,7 @@ import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
+import { Modal } from '../common/Modal';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -42,6 +43,9 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [mensagemWhatsApp, setMensagemWhatsApp] = useState('');
   const [editandoDesconto, setEditandoDesconto] = useState(false);
   const [valorDescontoInput, setValorDescontoInput] = useState(String(ordem.desconto || 0));
+  const [modalProtocoloAberto, setModalProtocoloAberto] = useState(false);
+  const [servicoParaProtocolo, setServicoParaProtocolo] = useState<{ id: string; nome: string; protocoloExistente: string } | null>(null);
+  const [novoProtocolo, setNovoProtocolo] = useState('');
 
   React.useEffect(() => {
     setValorDescontoInput(String(ordem.desconto || 0));
@@ -183,11 +187,36 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   };
 
   const handleMudarStatus = async (servicoId: string, novoStatus: StatusExecucaoServico) => {
+    if (novoStatus === 'Protocolado — Ag. PF') {
+      const serv = ordem.servicos.find(s => s.id === servicoId);
+      setServicoParaProtocolo({
+        id: servicoId,
+        nome: serv?.nome || '',
+        protocoloExistente: serv?.protocolo || ''
+      });
+      setNovoProtocolo(serv?.protocolo || '');
+      setModalProtocoloAberto(true);
+      setStatusAberto(null);
+      return;
+    }
+
     try {
       await atualizarStatusServico(ordem.id, servicoId, novoStatus);
       setStatusAberto(null);
     } catch {
       mostrar('erro', 'Erro ao atualizar o status do serviço.');
+    }
+  };
+
+  const confirmarProtocolo = async () => {
+    if (!servicoParaProtocolo) return;
+    try {
+      await atualizarStatusServico(ordem.id, servicoParaProtocolo.id, 'Protocolado — Ag. PF', novoProtocolo);
+      setModalProtocoloAberto(false);
+      setServicoParaProtocolo(null);
+      mostrar('sucesso', 'Status e protocolo atualizados com sucesso!');
+    } catch {
+      mostrar('erro', 'Erro ao salvar o protocolo.');
     }
   };
 
@@ -859,6 +888,53 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         telefone={ordem.contato}
         mensagem={mensagemWhatsApp}
       />
+
+      {modalProtocoloAberto && servicoParaProtocolo && (
+        <Modal
+          aberto={modalProtocoloAberto}
+          onFechar={() => {
+            setModalProtocoloAberto(false);
+            setServicoParaProtocolo(null);
+          }}
+          titulo="Inserir Número de Protocolo"
+          tamanho="sm"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="label">Serviço</label>
+              <p className="text-sm text-gray-300 font-medium">{servicoParaProtocolo.nome}</p>
+            </div>
+            <div>
+              <label className="label">Número de Protocolo</label>
+              <input
+                type="text"
+                className="w-full bg-brand-dark-3 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-sm text-gray-200 outline-none transition-colors uppercase"
+                placeholder="Digite o número de protocolo"
+                value={novoProtocolo}
+                onChange={e => setNovoProtocolo(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3 w-full pt-4 border-t border-brand-dark-5">
+              <button
+                onClick={() => {
+                  setModalProtocoloAberto(false);
+                  setServicoParaProtocolo(null);
+                }}
+                className="btn-ghost flex-1 py-2 rounded-lg text-xs font-bold uppercase"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarProtocolo}
+                className="btn-primary flex-1 py-2 rounded-lg text-xs font-bold uppercase"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

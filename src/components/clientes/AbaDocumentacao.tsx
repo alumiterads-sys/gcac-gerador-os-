@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Target, MapPin, Calendar, Plus, Trash2, ShieldAlert, AlertTriangle,
   ChevronDown, ChevronUp, FileText, Globe, Landmark, Upload, Loader2, Pencil, RefreshCw
@@ -178,8 +178,12 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
   const [manejoParaEditar, setManejoParaEditar] = useState<AutorizacaoManejo | null>(null);
   const [modalEditarCr, setModalEditarCr] = useState<{ tipo: 'CR' | 'IBAMA_CR'; label: string } | null>(null);
 
+  const carregadoUmaVez = useRef(false);
+
   const carregarDados = useCallback(async () => {
-    setCarregando(true);
+    if (!carregadoUmaVez.current) {
+      setCarregando(true);
+    }
     try {
       if (cacEmpresaId && usuario?.empresaId) {
         const acervo = await buscarAcervoVinculado(cacEmpresaId, usuario.empresaId);
@@ -245,6 +249,7 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
         gtsMap[a.id] = await buscarGts(a.id);
       }));
       setGtsPorArma(gtsMap);
+      carregadoUmaVez.current = true;
     } catch (err) {
       console.error('Erro ao carregar documentos:', err);
     } finally {
@@ -274,7 +279,10 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={carregarDados}
+            onClick={() => {
+              carregadoUmaVez.current = false;
+              carregarDados();
+            }}
             disabled={exportando || carregando}
             title="Atualizar acervo"
             className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border border-brand-dark-5 bg-brand-dark-3 text-gray-400 hover:text-white hover:bg-brand-dark-4 disabled:opacity-50"
