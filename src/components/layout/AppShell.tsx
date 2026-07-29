@@ -11,7 +11,7 @@ import { NotificacaoVinculo } from '../vinculos/NotificacaoVinculo';
 import { supabase } from '../../db/supabase';
 import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
 import { Lock, MessageCircle, Check } from 'lucide-react';
-import { getDebugLogs, subscribeToLogs, DebugLog } from '../../utils/debugLogger';
+import { getDebugLogs, subscribeToLogs, clearDebugLogs, DebugLog } from '../../utils/debugLogger';
 
 export function AppShell() {
   const { estaAutenticado, usuario, logout } = useAuth();
@@ -331,12 +331,21 @@ export function AppShell() {
             <div className="bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl p-4 w-[90vw] max-w-md max-h-[300px] overflow-y-auto mb-2 text-xs font-mono text-gray-200">
               <div className="flex items-center justify-between border-b border-brand-dark-5 pb-2 mb-2 font-sans">
                 <span className="font-semibold text-red-400">Log de Diagnóstico (Supabase/RLS)</span>
-                <button 
-                  onClick={() => setPainelDebugAberto(false)} 
-                  className="text-gray-400 hover:text-white px-2 py-0.5 bg-brand-dark-5 rounded text-[10px]"
-                >
-                  Fechar
-                </button>
+                <div className="flex gap-1.5">
+                  <button 
+                    onClick={clearDebugLogs} 
+                    className="text-gray-400 hover:text-white px-2 py-0.5 bg-brand-dark-5 rounded text-[10px]"
+                    title="Limpar todos os logs"
+                  >
+                    Limpar
+                  </button>
+                  <button 
+                    onClick={() => setPainelDebugAberto(false)} 
+                    className="text-gray-400 hover:text-white px-2 py-0.5 bg-brand-dark-5 rounded text-[10px]"
+                  >
+                    Fechar
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 {logs.length === 0 ? (

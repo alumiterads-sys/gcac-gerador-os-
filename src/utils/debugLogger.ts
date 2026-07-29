@@ -20,6 +20,14 @@ export function subscribeToLogs(listener: () => void) {
   };
 }
 
+export function clearDebugLogs() {
+  logs = [];
+  try {
+    sessionStorage.removeItem('gcac_debug_logs');
+  } catch {}
+  listeners.forEach(l => l());
+}
+
 export function addDebugLog(type: DebugLog['type'], message: string, stack?: string) {
   const newLog: DebugLog = {
     timestamp: new Date().toLocaleTimeString(),
