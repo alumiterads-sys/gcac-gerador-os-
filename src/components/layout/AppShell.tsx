@@ -11,6 +11,7 @@ import { NotificacaoVinculo } from '../vinculos/NotificacaoVinculo';
 import { supabase } from '../../db/supabase';
 import { InstallPwaPrompt } from '../common/InstallPwaPrompt';
 import { Lock, MessageCircle } from 'lucide-react';
+import { getDebugLogs, subscribeToLogs, DebugLog } from '../../utils/debugLogger';
 
 export function AppShell() {
   const { estaAutenticado, usuario, logout } = useAuth();
@@ -20,6 +21,15 @@ export function AppShell() {
   const [jaSincronizou, setJaSincronizou] = React.useState(false);
   const [vinculoPendente, setVinculoPendente] = React.useState<VinculoDespachanteCac | null>(null);
   const [modalVinculoAberto, setModalVinculoAberto] = React.useState(false);
+  const [logs, setLogs] = React.useState<DebugLog[]>([]);
+  const [painelDebugAberto, setPainelDebugAberto] = React.useState(false);
+
+  React.useEffect(() => {
+    setLogs(getDebugLogs());
+    return subscribeToLogs(() => {
+      setLogs(getDebugLogs());
+    });
+  }, []);
 
   // Scroll to top on route change (Default behavior)
   React.useEffect(() => {
@@ -312,6 +322,52 @@ export function AppShell() {
           onClose={() => setModalVinculoAberto(false)}
           onRespondido={handleRespondido}
         />
+      )}
+
+      {/* Painel de Diagnóstico para Administrador Mestre */}
+      {usuario?.email === 'gui.gomesassis@gmail.com' && (
+        <div className="fixed bottom-20 right-4 z-[9999] flex flex-col items-end">
+          {painelDebugAberto ? (
+            <div className="bg-brand-dark-2 border border-brand-dark-5 rounded-xl shadow-2xl p-4 w-[90vw] max-w-md max-h-[300px] overflow-y-auto mb-2 text-xs font-mono text-gray-200">
+              <div className="flex items-center justify-between border-b border-brand-dark-5 pb-2 mb-2 font-sans">
+                <span className="font-semibold text-red-400">Log de Diagnóstico (Supabase/RLS)</span>
+                <button 
+                  onClick={() => setPainelDebugAberto(false)} 
+                  className="text-gray-400 hover:text-white px-2 py-0.5 bg-brand-dark-5 rounded text-[10px]"
+                >
+                  Fechar
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {logs.length === 0 ? (
+                  <div className="text-gray-500 text-center py-4 font-sans">Nenhum erro ou aviso registrado.</div>
+                ) : (
+                  logs.map((log, index) => (
+                    <div key={index} className={`p-1.5 rounded border ${
+                      log.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300'
+                    }`}>
+                      <div className="flex justify-between text-[9px] opacity-60">
+                        <span>[{log.type.toUpperCase()}]</span>
+                        <span>{log.timestamp}</span>
+                      </div>
+                      <div className="break-all whitespace-pre-wrap mt-0.5">{log.message}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
+          <button
+            onClick={() => setPainelDebugAberto(!painelDebugAberto)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-full shadow-lg text-[10px] font-bold uppercase tracking-wider transition-all"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
+            Ver Diagnóstico
+          </button>
+        </div>
       )}
     </div>
   );
