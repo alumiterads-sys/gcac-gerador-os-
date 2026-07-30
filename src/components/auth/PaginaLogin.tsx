@@ -96,6 +96,9 @@ export function PaginaLogin() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
+          queryParams: {
+            prompt: 'select_account',
+          },
           scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
           redirectTo: window.location.origin + '/login',
         }
