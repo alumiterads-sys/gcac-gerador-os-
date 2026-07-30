@@ -543,6 +543,61 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
     };
   }, [cliente.id, cliente.cpf, usuario?.empresaId]);
 
+  // Sincroniza responsabilidade e alertas com outros despachantes que tenham o mesmo cliente (por CPF)
+  useEffect(() => {
+    const despachanteEmpresaId = usuario?.empresaId;
+    if (usuario?.tipoConta === 'cac_individual' || !despachanteEmpresaId || !cliente.cpf) return;
+
+    let cancelado = false;
+
+    async function sincronizarResponsabilidade() {
+      try {
+        const cleanCpf = cliente.cpf.replace(/\D/g, '');
+        const formatCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+
+        // Busca se existe algum outro registro com o mesmo CPF no Supabase
+        const { data } = await supabase
+          .from('clientes')
+          .select('responsavel_id, ignorar_mensagens_alertas, atualizado_em')
+          .neq('id', cliente.id)
+          .or(`cpf.eq.${cleanCpf},cpf.eq.${formatCpf}`)
+          .order('atualizado_em', { ascending: false })
+          .limit(1);
+
+        if (cancelado) return;
+
+        if (data && data.length > 0) {
+          const maisRecente = data[0];
+          
+          // Compara as datas de atualização
+          const dataMaisRecente = new Date(maisRecente.atualizado_em);
+          const dataLocal = cliente.atualizadoEm ? new Date(cliente.atualizadoEm) : new Date(0);
+          
+          if (dataMaisRecente > dataLocal) {
+            const responsavelDiferente = maisRecente.responsavel_id !== cliente.responsavelId;
+            const alertasDiferentes = maisRecente.ignorar_mensagens_alertas !== cliente.ignorarMensagensAlertas;
+
+            if (responsavelDiferente || alertasDiferentes) {
+              console.log('Sincronizando responsabilidade do cliente via CPF com outro despachante:', maisRecente);
+              await atualizarCliente(cliente.id, {
+                responsavelId: maisRecente.responsavel_id,
+                ignorarMensagensAlertas: maisRecente.ignorar_mensagens_alertas
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao sincronizar responsabilidade por CPF:', err);
+      }
+    }
+
+    sincronizarResponsabilidade();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [cliente.id, cliente.cpf, cliente.responsavelId, cliente.ignorarMensagensAlertas, cliente.atualizadoEm, usuario?.empresaId, atualizarCliente]);
+
   // Conta os alertas de documentos em background para o badge da aba
   useEffect(() => {
     let cancelado = false;
