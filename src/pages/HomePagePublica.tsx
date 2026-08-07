@@ -109,15 +109,15 @@ export function HomePagePublica() {
               <ul className="space-y-3.5 mb-8">
                 <li className="flex items-start gap-2.5 text-xs text-gray-400">
                   <Smartphone className="text-brand-blue flex-shrink-0 mt-0.5" size={14} />
-                  <span>Alertas automáticos de vencimento de CR, CRAF e GT no celular.</span>
+                  <span>Alertas inteligentes de vencimento de CR, CRAF, GT e laudos no celular com compartilhamento automático para seu despachante.</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-xs text-gray-400">
                   <Shield className="text-brand-blue flex-shrink-0 mt-0.5" size={14} />
-                  <span>Cadastro ilimitado de armas, guias e autorizações de manejo.</span>
+                  <span>Controle de acervo completo, guias de tráfego e documentos do IBAMA (manejo de fauna e acesso rural).</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-xs text-gray-400">
                   <Award className="text-brand-blue flex-shrink-0 mt-0.5" size={14} />
-                  <span>Ficha cadastral automática e exportação de dados para Excel e PDF.</span>
+                  <span>Vínculo digital com despachante credenciado para acompanhamento em tempo real e exportação de fichas em Excel/PDF.</span>
                 </li>
               </ul>
             </div>
