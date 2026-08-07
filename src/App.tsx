@@ -48,6 +48,8 @@ import { PreCadastroPage } from './pages/PreCadastroPage';
 import PortalAdminPage from './pages/PortalAdminPage';
 import { TermosUso, PoliticaPrivacidade } from './components/public/TermosPrivacidade';
 import { GerenciadorDeclaracoes } from './components/declaracoes/GerenciadorDeclaracoes';
+import { HomePagePublica } from './pages/HomePagePublica';
+import { SolicitarServicoPage } from './pages/SolicitarServicoPage';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -290,19 +292,20 @@ export default function App() {
                         <LembretesProvider>
                           <BrowserRouter>
                           <Routes>
-                            {/* Login */}
+                            {/* Rotas Públicas */}
+                            <Route path="/" element={<HomePagePublica />} />
+                            <Route path="/solicitar-servico" element={<SolicitarServicoPage />} />
                             <Route path="/login" element={<PaginaLoginGuard />} />
                             <Route path="/cadastro" element={<PreCadastroPage />} />
                             <Route path="/termos" element={<TermosUso />} />
                             <Route path="/privacidade" element={<PoliticaPrivacidade />} />
 
-                            {/* App protegido */}
-                            <Route path="/" element={
+                            {/* App protegido (Layout Sem Caminho) */}
+                            <Route element={
                               <RotaProtegida>
                                 <AppShell />
                               </RotaProtegida>
                             }>
-                              <Route index element={<ProtecaoIndex />} />
                               <Route path="dashboard" element={<RotaProtegida modulo="painel"><Dashboard /></RotaProtegida>} />
                               <Route path="ordens" element={<RotaProtegida modulo="ordens"><ListaOrdens /></RotaProtegida>} />
                               <Route path="ordens/nova" element={

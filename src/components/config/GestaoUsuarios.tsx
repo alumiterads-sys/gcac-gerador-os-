@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles, X, Link2 } from 'lucide-react';
+import { UserPlus, Shield, Mail, User, Trash2, Edit2, CheckCircle, XCircle, ChevronDown, ChevronUp, Lock, Building, ArrowLeft, Settings2, BadgeDollarSign, Calendar, CreditCard, Crosshair, ShieldAlert, Bell, Sparkles, X, Link2, MessageSquare } from 'lucide-react';
 import { supabase } from '../../db/supabase';
 import { PainelClientesCAC } from '../vinculos/PainelClientesCAC';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
@@ -62,9 +62,10 @@ const RECURSOS_SISTEMA = [
 
 import { PainelAtiradores } from '../admin/PainelAtiradores';
 import { EditorSitePortal } from '../admin/EditorSitePortal';
+import { PainelChamadosSite } from '../admin/PainelChamadosSite';
 
 interface GestaoUsuariosProps {
-  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos';
+  abaInicial?: 'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos' | 'chamados';
 }
 
 const PROMPTS_RAPIDOS = [
@@ -177,7 +178,7 @@ export function GestaoUsuarios({ abaInicial }: GestaoUsuariosProps = {}) {
   const isMasterAdmin = usuario?.email === 'gui.gomesassis@gmail.com';
 
   // Sub-painel ativo para Master Admin
-  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos'>(abaInicial || 'empresas');
+  const [subPainelAtivo, setSubPainelAtivo] = useState<'empresas' | 'cacs' | 'equipe_interna' | 'faturamento' | 'leads' | 'monitor_cacs' | 'broadcast' | 'site' | 'vinculos' | 'chamados'>(abaInicial || 'empresas');
 
   useEffect(() => {
     if (abaInicial) {
@@ -1971,6 +1972,18 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
               >
                 <Settings2 size={14} />
                 Site Portal G CAC
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSubPainelAtivo('chamados'); setBuscaUsuario(''); }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                  subPainelAtivo === 'chamados'
+                    ? 'bg-brand-blue/15 border-brand-blue/30 text-white font-bold'
+                    : 'bg-brand-dark-3 border-brand-dark-5 text-gray-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare size={14} />
+                Chamados do Site
               </button>
               <button
                 type="button"
@@ -3848,6 +3861,20 @@ Você pode adicionar comentários, observações ou explicações adicionais ant
           {/* ABA 9: VÍNCULOS CLIENTES CAC */}
           {subPainelAtivo === 'vinculos' && (
             <PainelClientesCAC />
+          )}
+
+          {/* ABA 10: CHAMADOS DO SITE */}
+          {subPainelAtivo === 'chamados' && (
+            <div className="card space-y-6 animate-fade-in">
+              <div className="pb-2 border-b border-brand-dark-5">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquare size={16} className="text-brand-blue" />
+                  CHAMADOS E LEADS DO SITE
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">Gerencie as solicitações de serviço de despachante enviadas pelos clientes no site e converta-as em clientes cadastrados</p>
+              </div>
+              <PainelChamadosSite />
+            </div>
           )}
         </div>
       )}
