@@ -60,7 +60,7 @@ export function PainelChamadosSite() {
       setChamados(data || []);
     } catch (err: any) {
       console.error('Erro ao buscar chamados:', err);
-      mostrar({ tipo: 'erro', mensagem: 'Falha ao carregar chamados do site.' });
+      mostrar('erro', 'Falha ao carregar chamados do site.');
     } finally {
       setCarregando(false);
     }
@@ -104,10 +104,10 @@ export function PainelChamadosSite() {
       if (error) throw error;
       
       setChamados(prev => prev.map(c => c.id === id ? { ...c, status: novoStatus as any } : c));
-      mostrar({ tipo: 'sucesso', mensagem: `Status atualizado para ${novoStatus.replace('_', ' ')}.` });
+      mostrar('sucesso', `Status atualizado para ${novoStatus.replace('_', ' ')}.`);
     } catch (err) {
       console.error('Erro ao alterar status do chamado:', err);
-      mostrar({ tipo: 'erro', mensagem: 'Falha ao atualizar status do chamado.' });
+      mostrar('erro', 'Falha ao atualizar status do chamado.');
     }
   };
 
@@ -120,7 +120,7 @@ export function PainelChamadosSite() {
       const jaExiste = clientes.some(c => c.cpf && c.cpf.replace(/\D/g, '') === cleanCpf);
       
       if (jaExiste) {
-        mostrar({ tipo: 'erro', mensagem: 'Este CPF já está cadastrado em sua lista de clientes.' });
+        mostrar('erro', 'Este CPF já está cadastrado em sua lista de clientes.');
         setProcessandoId(null);
         return;
       }
@@ -141,13 +141,10 @@ export function PainelChamadosSite() {
       // 3. Atualizar status do chamado para "em_atendimento"
       await handleAlterarStatus(chamado.id, 'em_atendimento');
       
-      mostrar({ tipo: 'sucesso', mensagem: `Cliente ${chamado.nome} cadastrado e vinculado com sucesso!` });
+      mostrar('sucesso', `Cliente ${chamado.nome} cadastrado e vinculado com sucesso!`);
     } catch (err: any) {
       console.error('Erro ao converter chamado em cliente:', err);
-      mostrar({ 
-        tipo: 'erro', 
-        mensagem: err.message || 'Erro ao converter chamado em cliente. Verifique se o CPF é válido.' 
-      });
+      mostrar('erro', err.message || 'Erro ao converter chamado em cliente. Verifique se o CPF é válido.');
     } finally {
       setProcessandoId(null);
     }
@@ -172,7 +169,7 @@ export function PainelChamadosSite() {
   return (
     <div className="space-y-6">
       
-      <Notificacao estado={notif} onClose={fechar} />
+      <Notificacao {...notif} onFechar={fechar} />
 
       {/* Top Banner de Métricas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
