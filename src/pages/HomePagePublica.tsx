@@ -102,7 +102,7 @@ export function HomePagePublica() {
               </div>
 
               <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                Gerencie seus documentos com controle offline-first. Ideal para atiradores que querem organizar seu próprio acervo e monitorar prazos de forma inteligente.
+                Gerencie seus documentos com controle offline-first. Ideal para atiradores desportivos, caçadores e colecionadores (CAC) que querem organizar seu próprio acervo e monitorar prazos de forma inteligente.
               </p>
 
               {/* Benefícios */}
