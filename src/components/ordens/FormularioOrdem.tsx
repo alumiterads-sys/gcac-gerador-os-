@@ -1408,24 +1408,34 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                 crafEmRenovacao: armaData.crafEmRenovacao
               };
 
+              const tempArma = { ...novaArmaObj, tempId: armaId };
+
+              // Atualiza o estado local de forma otimista e imediata
+              setArmasCliente(prev => {
+                const existe = prev.some(a => a.id === armaId);
+                if (existe) return prev;
+                return [...prev, tempArma as any];
+              });
+
+              if (servicoIndexParaArma !== null) {
+                const serv = form.servicos[servicoIndexParaArma];
+                atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
+              }
+
               if (clienteEncontrado?.id) {
-                await salvarArma({
-                  ...novaArmaObj,
-                  clienteId: clienteEncontrado.id
-                });
-                const lista = await buscarArmas(clienteEncontrado.id);
-                setArmasCliente(lista);
-                if (servicoIndexParaArma !== null) {
-                  const serv = form.servicos[servicoIndexParaArma];
-                  atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
+                // Tenta persistir no Supabase, mas protege contra falhas de rede/CORS
+                try {
+                  await salvarArma({
+                    ...novaArmaObj,
+                    clienteId: clienteEncontrado.id
+                  });
+                  const lista = await buscarArmas(clienteEncontrado.id);
+                  setArmasCliente(lista);
+                } catch (netErr) {
+                  console.warn('[DEBUG] Falha ao salvar arma no Supabase, mantida no estado local:', netErr);
                 }
               } else {
-                const tempArma = { ...novaArmaObj, tempId: armaId };
                 setNovasArmas(prev => [...prev, tempArma]);
-                if (servicoIndexParaArma !== null) {
-                  const serv = form.servicos[servicoIndexParaArma];
-                  atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
-                }
               }
 
               setModalArmaAberto(false);
