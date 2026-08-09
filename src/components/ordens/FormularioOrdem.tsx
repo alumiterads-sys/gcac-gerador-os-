@@ -148,6 +148,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { criarOrdem, atualizarOrdem } = useOrdens();
+  const { servicos } = useServicos();
   const { 
     clientes, criarCliente, atualizarCliente, buscarClientePorNomeExato, 
     clubesRegistrados, buscarArmas, salvarArma 
@@ -181,7 +182,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   }, [usuario?.empresaId]);
 
   const exigeVinculoArma = (servNome: string) => {
-    const servConfig = servicos.find(s => s.nome.toUpperCase() === servNome.toUpperCase());
+    const servConfig = servicos.find((s: any) => s.nome.toUpperCase() === servNome.toUpperCase());
     if (servConfig) return !!servConfig.vinculaArma;
     
     // Fallback names

@@ -15,7 +15,7 @@ import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { Modal } from '../common/Modal';
-import { visualizarDocumentoBase64, fileToBase64 } from '../../utils/fileUtils';
+import { visualizarDocumentoBase64, fileToBase64, uploadBase64File } from '../../utils/fileUtils';
 import { parseGtPdf } from '../../services/gtParserService';
 
 interface DetalheOrdemProps {
@@ -255,17 +255,15 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       setConclusaoArquivo(base64);
 
       if (file.type === 'application/pdf' && servicoConclusao?.exigeGt) {
-        mostrar('alerta', 'Analisando arquivo PDF da Guia de Tráfego...');
+        mostrar('info', 'Analisando arquivo PDF da Guia de Tráfego...');
         try {
-          const parsed = await parseGtPdf(base64);
+          const parsed = await parseGtPdf(file);
           if (parsed) {
             if (parsed.vencimento) {
               setVencimentoGt(parsed.vencimento);
             }
             if (parsed.cidade && parsed.uf) {
               setDestinoGt(`${parsed.cidade} - ${parsed.uf}`);
-            } else if (parsed.destino) {
-              setDestinoGt(parsed.destino);
             }
             setSalvarNoPerfilCac(true);
             mostrar('sucesso', 'Dados da Guia extraídos com sucesso do PDF!');
@@ -303,7 +301,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
             armaId: serv.armaId,
             vencimento: vencimentoGt,
             destino: destinoGt.toUpperCase(),
-            documentoUrl: finalFileUrl || undefined
+            arquivoUrl: finalFileUrl || undefined
           });
         }
       }

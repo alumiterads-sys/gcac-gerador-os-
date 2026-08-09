@@ -10,7 +10,7 @@ interface OrdensContextType {
   totalPendentes: number;
   criarOrdem: (dados: Omit<OrdemDeServico, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm' | 'driveArquivoJsonId' | 'drivePdfId' | 'ultimaSincronizacao' | 'pendenteSincronizacao'>) => Promise<string>;
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
-  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string) => Promise<void>;
+  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string) => Promise<void>;
   atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
   atualizarProtocoloServico: (ordemId: string, servicoId: string, protocolo: string) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
@@ -301,7 +301,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
         novoHistorico,
         'arquivo_conclusao',
         `Documento de conclusão do serviço "${servico?.nome}" anexado`,
-        null,
+        undefined,
         'Anexado'
       );
     }
