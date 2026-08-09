@@ -229,16 +229,21 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     (c.nome && form.nomeCliente && c.nome.trim().toUpperCase() === form.nomeCliente.trim().toUpperCase())
   );
 
+  console.log('[DEBUG] FormularioOrdem render - clienteEncontrado:', clienteEncontrado?.id, 'armasCliente:', armasCliente, 'novasArmas:', novasArmas);
+
   useEffect(() => {
     const carregarArmas = async () => {
       if (clienteEncontrado?.id) {
+        console.log('[DEBUG] carregarArmas - buscando para cliente:', clienteEncontrado.id);
         try {
           const list = await buscarArmas(clienteEncontrado.id);
+          console.log('[DEBUG] carregarArmas - resultado:', list);
           setArmasCliente(list);
         } catch (err) {
-          console.error('Erro ao buscar armas do cliente:', err);
+          console.error('[DEBUG] Erro ao buscar armas do cliente:', err);
         }
       } else {
+        console.log('[DEBUG] carregarArmas - limpando lista de armas');
         setArmasCliente([]);
       }
     };
