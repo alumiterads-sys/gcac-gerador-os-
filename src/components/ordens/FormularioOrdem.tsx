@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   OrdemDeServico, STATUS_OS, FORMAS_PAGAMENTO, CANAIS_ATENDIMENTO,
   FormaPagamento, StatusOS, CanalAtendimento, ServicoConfig, StatusExecucaoServico,
-  STATUS_EXECUCAO_SERVICO, PagamentoItem
+  STATUS_EXECUCAO_SERVICO, PagamentoItem, Arma
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useClientes } from '../../context/ClientesContext';
@@ -20,6 +20,8 @@ import { classeStatusExecucao, iconeStatusExecucao, formatarMoeda, removerAcento
 import { supabase } from '../../db/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { isLaudoExame } from '../../utils/categoriaHelper';
+import { ModalArma } from '../clientes/AbaDocumentacao';
+import { fileToBase64, uploadBase64File, visualizarDocumentoBase64 } from '../../utils/fileUtils';
 
 interface FormularioOrdemProps {
   ordemExistente?: OrdemDeServico;
@@ -146,7 +148,10 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { criarOrdem, atualizarOrdem } = useOrdens();
-  const { clientes, criarCliente, atualizarCliente, buscarClientePorNomeExato, clubesRegistrados } = useClientes();
+  const { 
+    clientes, criarCliente, atualizarCliente, buscarClientePorNomeExato, 
+    clubesRegistrados, buscarArmas, salvarArma 
+  } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const { usuario } = useAuth();
   const [salvando, setSalvando] = useState(false);
@@ -155,6 +160,11 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const [focoNome, setFocoNome] = useState(false);
   const [focoClube, setFocoClube] = useState(false);
   const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+  
+  const [armasCliente, setArmasCliente] = useState<Arma[]>([]);
+  const [novasArmas, setNovasArmas] = useState<any[]>([]);
+  const [modalArmaAberto, setModalArmaAberto] = useState(false);
+  const [servicoIndexParaArma, setServicoIndexParaArma] = useState<number | null>(null);
 
   useEffect(() => {
     const carregarUsuarios = async () => {
@@ -169,6 +179,15 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     };
     carregarUsuarios();
   }, [usuario?.empresaId]);
+
+  const exigeVinculoArma = (servNome: string) => {
+    const servConfig = servicos.find(s => s.nome.toUpperCase() === servNome.toUpperCase());
+    if (servConfig) return !!servConfig.vinculaArma;
+    
+    // Fallback names
+    const nomeNorm = removerAcentos(servNome.toLowerCase());
+    return nomeNorm.includes('guia') || nomeNorm.includes('gt') || nomeNorm.includes('craf') || nomeNorm.includes('transferencia');
+  };
 
   const clubeParceiroNome = usuario?.dadosEmpresa?.clubeParceiroPadrao || '';
   const temClubeParceiro = !!clubeParceiroNome;
@@ -208,6 +227,22 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     (c.cpf && form.cpf && c.cpf.replace(/\D/g, '') === form.cpf.replace(/\D/g, '')) ||
     (c.nome && form.nomeCliente && c.nome.trim().toUpperCase() === form.nomeCliente.trim().toUpperCase())
   );
+
+  useEffect(() => {
+    const carregarArmas = async () => {
+      if (clienteEncontrado?.id) {
+        try {
+          const list = await buscarArmas(clienteEncontrado.id);
+          setArmasCliente(list);
+        } catch (err) {
+          console.error('Erro ao buscar armas do cliente:', err);
+        }
+      } else {
+        setArmasCliente([]);
+      }
+    };
+    carregarArmas();
+  }, [clienteEncontrado, buscarArmas]);
 
   // Preenchimento automático vindo do perfil do cliente
   useEffect(() => {
@@ -397,6 +432,42 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     }));
   };
 
+  const atualizarArmaServico = (id: string, armaId: string, armaModelo: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => 
+        s.id === id ? { ...s, armaId, armaModelo, gtTipo: '', gtDestino: '' } : s
+      )
+    }));
+  };
+
+  const atualizarArquivoServico = (id: string, arquivoUrl: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => 
+        s.id === id ? { ...s, arquivoUrl } : s
+      )
+    }));
+  };
+
+  const atualizarGtCamposServico = (id: string, gtTipo: string, gtDestino: string) => {
+    setForm(f => ({
+      ...f,
+      servicos: (f.servicos as any[]).map((s: any) => {
+        if (s.id === id) {
+          const detalhesPre = `FINALIDADE: ${gtTipo.toUpperCase()} | DESTINO: ${gtDestino.toUpperCase()}`;
+          return { ...s, gtTipo, gtDestino, detalhes: detalhesPre };
+        }
+        return s;
+      })
+    }));
+  };
+
+  const abrirModalCadastroArma = (idx: number) => {
+    setServicoIndexParaArma(idx);
+    setModalArmaAberto(true);
+  };
+
   const atualizarResponsavelServico = (id: string, responsavelNome: string) => {
     setForm(f => ({
       ...f,
@@ -444,6 +515,67 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
     salvandoRef.current = true;
     setSalvando(true);
     try {
+      // 1. Salvamento silencioso do Cliente na agenda
+      let realClienteId = '';
+      try {
+        const clienteExistente = await buscarClientePorNomeExato(form.nomeCliente.trim().toUpperCase());
+        const payloadCli = {
+          nome: form.nomeCliente.trim().toUpperCase(),
+          cpf: form.cpf.trim(),
+          contato: form.contato.trim(),
+          senhaGov: form.senhaGov.trim(),
+          filiadoProTiro: form.filiadoProTiro,
+          clubeFiliado: form.filiadoProTiro ? '' : form.clubeFiliado.trim().toUpperCase(),
+          endereco: form.endereco.trim().toUpperCase(),
+          observacoes: ''
+        };
+        if (clienteExistente) {
+          realClienteId = clienteExistente.id;
+          await atualizarCliente(realClienteId, payloadCli);
+        } else {
+          realClienteId = await criarCliente(payloadCli);
+        }
+      } catch (err) {
+        console.error('Erro silencioso ao salvar/atualizar cliente na agenda', err);
+      }
+
+      // 2. Salvar as novasArmas associadas a este cliente
+      if (realClienteId) {
+        for (const arma of novasArmas) {
+          try {
+            const { tempId, ...armaSemTempId } = arma;
+            await salvarArma({
+              ...armaSemTempId,
+              clienteId: realClienteId
+            });
+          } catch (err) {
+            console.error('Erro ao salvar arma do cliente na finalização da OS:', err);
+          }
+        }
+      }
+
+      // 3. Processar arquivos dos serviços em base64 (upload para o Storage)
+      const servicosProcessados = [];
+      for (const s of form.servicos as any[]) {
+        let arquivoUrl = s.arquivoUrl || '';
+        if (arquivoUrl && arquivoUrl.startsWith('data:')) {
+          try {
+            const ext = arquivoUrl.split(';base64,')[0].split(':')[1].split('/')[1] || 'pdf';
+            const path = `${usuario?.empresaId}/ordens/servicos/${s.id}/conclusao_${uuidv4()}.${ext}`;
+            const publicUrl = await uploadBase64File(arquivoUrl, 'documentos-clientes', path);
+            arquivoUrl = publicUrl || '';
+          } catch (err) {
+            console.error('Erro ao enviar anexo de conclusão de serviço para o storage:', err);
+          }
+        }
+        servicosProcessados.push({
+          ...s,
+          detalhes: (s.detalhes || '').trim(),
+          protocolo: (s.protocolo || '').trim().toUpperCase(),
+          arquivoUrl
+        });
+      }
+
       const dados = {
         nomeCliente:       form.nomeCliente.trim().toUpperCase(),
         contato:           form.contato.trim(),
@@ -452,11 +584,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         filiadoProTiro:    form.filiadoProTiro,
         clubeFiliado:      form.filiadoProTiro ? '' : form.clubeFiliado.trim().toUpperCase(),
         endereco:          form.endereco.trim().toUpperCase(),
-        servicos:          (form.servicos as any[]).map((s: any) => ({ 
-          ...s, 
-          detalhes: (s.detalhes || '').trim(),
-          protocolo: (s.protocolo || '').trim().toUpperCase()
-        })),
+        servicos:          servicosProcessados,
         valor:             form.valor,
         desconto:          form.desconto,
         taxaPFTotal:       (form.servicos as any[]).reduce((acc: number, s: any) => acc + (s.taxaPF || 0), 0),
@@ -468,28 +596,6 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
         valorPago:         form.valorPago,
         historicoPagamentos: form.historicoPagamentos,
       };
-
-      // Salvamento silencioso do Cliente na agenda
-      try {
-        const clienteExistente = await buscarClientePorNomeExato(dados.nomeCliente);
-        const payloadCli = {
-          nome: dados.nomeCliente,
-          cpf: dados.cpf,
-          contato: dados.contato,
-          senhaGov: dados.senhaGov,
-          filiadoProTiro: dados.filiadoProTiro,
-          clubeFiliado: dados.clubeFiliado,
-          endereco: dados.endereco,
-          observacoes: ''
-        };
-        if (clienteExistente) {
-          await atualizarCliente(clienteExistente.id, payloadCli);
-        } else {
-          await criarCliente(payloadCli);
-        }
-      } catch (err) {
-        console.error('Erro silencioso ao salvar/atualizar cliente na agenda', err);
-      }
 
       if (ordemExistente) {
         await atualizarOrdem(ordemExistente.id, dados);
@@ -777,6 +883,183 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                       </div>
                     </div>
                   </>
+                )}
+
+                {/* ⚔️ Seção de Arma / Guia */}
+                {exigeVinculoArma(serv.nome) && (
+                  <div className="bg-brand-dark-3 p-3 rounded-lg border border-brand-dark-5 mb-3 space-y-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-500 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                        ⚔️ Vincular Armamento
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-xs text-gray-200 outline-none transition-colors"
+                          value={serv.armaId || ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            const arma = [...armasCliente, ...novasArmas].find(a => a.id === val || a.tempId === val);
+                            if (arma) {
+                              atualizarArmaServico(serv.id, val, `${arma.fabricante} ${arma.modelo} (${arma.calibre})`);
+                            } else {
+                              atualizarArmaServico(serv.id, '', '');
+                            }
+                          }}
+                        >
+                          <option value="">Selecione uma arma...</option>
+                          {armasCliente.map(a => (
+                            <option key={a.id} value={a.id}>{a.fabricante} {a.modelo} - {a.calibre} (Série: {a.numeroSerie})</option>
+                          ))}
+                          {novasArmas.map(a => (
+                            <option key={a.tempId} value={a.tempId}>*NOVA* {a.fabricante} {a.modelo} - {a.calibre} (Série: {a.numeroSerie})</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => abrirModalCadastroArma(index)}
+                          className="px-3 py-2 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue-light border border-brand-blue/30 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+                        >
+                          + Cadastrar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Automação de Guias / GT baseada no Acervo da Arma */}
+                    {(() => {
+                      const selectedArma = [...armasCliente, ...novasArmas].find(a => a.id === serv.armaId || a.tempId === serv.armaId);
+                      const isGuia = serv.nome.toUpperCase().includes('GUIA') || serv.nome.toUpperCase().includes('GT');
+                      if (!selectedArma || !isGuia) return null;
+
+                      const acervo = selectedArma.acervo || 'Tiro Desportivo';
+                      let opcoesTipos: string[] = [];
+                      if (acervo === 'Caça') {
+                        opcoesTipos = ['Guia de Caça', 'Guia de Treinamento de Caça', 'Guia de Manutenção'];
+                      } else if (acervo === 'Tiro Desportivo') {
+                        opcoesTipos = ['Guia de Treinamento', 'Guia de Competição', 'Guia de Manutenção'];
+                      } else {
+                        opcoesTipos = ['Guia de Exposição', 'Guia de Manutenção'];
+                      }
+
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-brand-dark-5/50">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                              Finalidade / Tipo da Guia
+                            </label>
+                            <select
+                              className="w-full bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none"
+                              value={serv.gtTipo || ''}
+                              onChange={e => atualizarGtCamposServico(serv.id, e.target.value, serv.gtDestino || '')}
+                            >
+                              <option value="">Selecione...</option>
+                              {opcoesTipos.map(o => (
+                                <option key={o} value={o}>{o}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {serv.gtTipo && (
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">
+                                {serv.gtTipo.includes('Caça') && !serv.gtTipo.includes('Treinamento') 
+                                  ? 'Município / Fazenda de Destino' 
+                                  : serv.gtTipo.includes('Manutenção') 
+                                    ? 'Armaria de Destino' 
+                                    : 'Clube de Tiro de Destino'}
+                              </label>
+
+                              {((serv.gtTipo.includes('Caça') && !serv.gtTipo.includes('Treinamento')) || serv.gtTipo.includes('Manutenção')) ? (
+                                <input
+                                  type="text"
+                                  className="w-full bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-white uppercase"
+                                  placeholder={serv.gtTipo.includes('Manutenção') ? "Ex: ARMARIA PRO GUNS" : "Ex: JATAÍ - GO"}
+                                  value={serv.gtDestino || ''}
+                                  onChange={e => atualizarGtCamposServico(serv.id, serv.gtTipo, e.target.value)}
+                                />
+                              ) : (
+                                <>
+                                  <select
+                                    className="w-full bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none"
+                                    value={serv.gtDestino || ''}
+                                    onChange={e => atualizarGtCamposServico(serv.id, serv.gtTipo, e.target.value)}
+                                  >
+                                    <option value="">Selecione o clube...</option>
+                                    {clubesRegistrados.map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                    <option value="OUTRO">OUTRO CLUBE (DIGITAR...)</option>
+                                  </select>
+
+                                  {serv.gtDestino === 'OUTRO' && (
+                                    <input
+                                      type="text"
+                                      className="w-full mt-2 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-white uppercase"
+                                      placeholder="Digite o nome do clube..."
+                                      onBlur={e => {
+                                        const val = e.target.value.trim().toUpperCase();
+                                        if (val) {
+                                          atualizarGtCamposServico(serv.id, serv.gtTipo, val);
+                                        }
+                                      }}
+                                    />
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* 📄 Anexo de Conclusão no Formulário */}
+                {serv.statusExecucao === 'Concluído' && (
+                  <div className="mt-2 p-3 bg-brand-dark-3 rounded-lg border border-brand-dark-5 space-y-2 mb-3">
+                    <label className="text-[10px] font-bold text-brand-green uppercase tracking-wider block">
+                      Anexar Documento de Conclusão (PDF ou Imagem)
+                    </label>
+                    {serv.arquivoUrl ? (
+                      <div className="flex items-center justify-between text-xs bg-brand-dark-4 p-2 rounded border border-brand-dark-5">
+                        <span className="text-gray-300 truncate">✓ Documento anexado</span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              visualizarDocumentoBase64(serv.arquivoUrl!, `Documento-${serv.nome}`);
+                            }}
+                            className="text-brand-blue-light hover:underline font-bold"
+                          >
+                            Visualizar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => atualizarArquivoServico(serv.id, '')}
+                            className="text-red-400 hover:underline font-bold"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            try {
+                              const base64 = await fileToBase64(file);
+                              atualizarArquivoServico(serv.id, base64);
+                            } catch (err) {
+                              alert('Erro ao processar arquivo.');
+                            }
+                          }
+                        }}
+                        className="text-xs text-gray-400 file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-black file:bg-brand-blue/20 file:text-brand-blue-light hover:file:bg-brand-blue/30 cursor-pointer"
+                      />
+                    )}
+                  </div>
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -1095,6 +1378,60 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       </div>
 
       <Notificacao {...notif} onFechar={fechar} />
+
+      {modalArmaAberto && (
+        <ModalArma
+          onFechar={() => {
+            setModalArmaAberto(false);
+            setServicoIndexParaArma(null);
+          }}
+          onSalvar={async (armaData) => {
+            try {
+              const armaId = armaData.id || uuidv4();
+              const novaArmaObj = {
+                ...armaData,
+                id: armaId,
+                tipo: armaData.tipo?.trim(),
+                modelo: armaData.modelo?.trim().toUpperCase(),
+                calibre: armaData.calibre?.trim().toUpperCase(),
+                fabricante: armaData.fabricante?.trim().toUpperCase(),
+                numeroSerie: armaData.numeroSerie?.trim().toUpperCase(),
+                numeroSigma: armaData.numeroSigma?.trim().toUpperCase(),
+                acervo: armaData.acervo,
+                vencimentoCraf: armaData.vencimentoCraf,
+                crafEmRenovacao: armaData.crafEmRenovacao
+              };
+
+              if (clienteEncontrado?.id) {
+                await salvarArma({
+                  ...novaArmaObj,
+                  clienteId: clienteEncontrado.id
+                });
+                const lista = await buscarArmas(clienteEncontrado.id);
+                setArmasCliente(lista);
+                if (servicoIndexParaArma !== null) {
+                  const serv = form.servicos[servicoIndexParaArma];
+                  atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
+                }
+              } else {
+                const tempArma = { ...novaArmaObj, tempId: armaId };
+                setNovasArmas(prev => [...prev, tempArma]);
+                if (servicoIndexParaArma !== null) {
+                  const serv = form.servicos[servicoIndexParaArma];
+                  atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
+                }
+              }
+
+              setModalArmaAberto(false);
+              setServicoIndexParaArma(null);
+              mostrar('sucesso', 'Armamento registrado com sucesso!');
+            } catch (err: any) {
+              console.error(err);
+              mostrar('erro', 'Erro ao registrar arma: ' + (err.message || 'Verifique os dados informados.'));
+            }
+          }}
+        />
+      )}
     </form>
   );
 }

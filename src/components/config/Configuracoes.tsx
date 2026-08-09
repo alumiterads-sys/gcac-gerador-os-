@@ -1791,7 +1791,16 @@ export function Configuracoes() {
                   <tbody className="divide-y divide-brand-dark-5">
                     {servicos.map(s => (
                       <tr key={s.id} className="hover:bg-brand-dark-4 transition-colors">
-                        <td className="px-3 py-3 font-medium text-white min-w-[180px] leading-tight py-4">{s.nome}</td>
+                        <td className="px-3 py-3 font-medium text-white min-w-[180px] leading-tight py-4">
+                          <div className="flex items-center gap-1.5">
+                            <span>{s.nome}</span>
+                            {s.vinculaArma && (
+                              <span className="text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.5 rounded font-black uppercase tracking-wider" title="Exige vinculação de arma de fogo">
+                                ⚔️ Arma
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-3 py-3 text-brand-green font-bold">{formatarMoeda(s.valorPadrao)}</td>
                         <td className="px-3 py-3 text-brand-blue-light font-bold">{formatarMoeda(s.valorFiliado || 0)}</td>
                         <td className="px-3 py-3 text-yellow-400/80">{formatarMoeda(s.taxaPF)}</td>

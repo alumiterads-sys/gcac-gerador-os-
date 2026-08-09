@@ -262,7 +262,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     }
   }, [online, estaAutenticado, carregarOrdens]);
 
-  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string) => {
+  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string) => {
     const ordem = ordens.find(o => o.id === ordemId);
     if (!ordem) return;
 
@@ -271,7 +271,8 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
         ? { 
             ...s, 
             statusExecucao: novoStatus,
-            ...(protocolo !== undefined ? { protocolo } : {})
+            ...(protocolo !== undefined ? { protocolo } : {}),
+            ...(arquivoUrl !== undefined ? { arquivoUrl } : {})
           } 
         : s
     );
@@ -292,6 +293,16 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
         `Protocolo do serviço "${servico?.nome}" inserido: ${protocolo}`,
         servico?.protocolo,
         protocolo
+      );
+    }
+
+    if (arquivoUrl) {
+      novoHistorico = adicionarEvento(
+        novoHistorico,
+        'arquivo_conclusao',
+        `Documento de conclusão do serviço "${servico?.nome}" anexado`,
+        null,
+        'Anexado'
       );
     }
 

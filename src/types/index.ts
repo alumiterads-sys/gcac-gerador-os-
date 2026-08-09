@@ -48,6 +48,7 @@ export interface ServicoConfig {
   exigeGRU?: boolean;
   categoria: string;
   pagoDiretoDefault?: boolean;
+  vinculaArma?: boolean;
   criadoEm: string;
 }
 
@@ -155,6 +156,11 @@ export interface OrdemDeServico {
     protocolo?: string;
     responsavelNome?: string;
     valorRepasse?: number;
+    armaId?: string;
+    armaModelo?: string;
+    arquivoUrl?: string;
+    gtTipo?: string;
+    gtDestino?: string;
   }[];
   valor: number;
   desconto?: number;

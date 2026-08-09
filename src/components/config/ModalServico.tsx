@@ -21,6 +21,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
   const [valorFiliado, setValorFiliado] = useState('');
   const [taxaPF, setTaxaPF] = useState('');
   const [exigeGRU, setExigeGRU] = useState(false);
+  const [vinculaArma, setVinculaArma] = useState(false);
   const [categoria, setCategoria] = useState<string>('Honorário');
 
   const categorias = usuario?.dadosEmpresa?.categoriasServico || [
@@ -35,6 +36,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       setValorFiliado(servicoParaEditar.valorFiliado?.toString().replace('.', ',') || '');
       setTaxaPF(servicoParaEditar.taxaPF.toString().replace('.', ','));
       setExigeGRU(servicoParaEditar.exigeGRU ?? false);
+      setVinculaArma(servicoParaEditar.vinculaArma ?? false);
       setCategoria(servicoParaEditar.categoria || 'Honorário');
     } else {
       setNome('');
@@ -42,6 +44,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       setValorFiliado('');
       setTaxaPF('');
       setExigeGRU(false);
+      setVinculaArma(false);
       setCategoria(categorias[0]?.nome || 'Honorário');
     }
   }, [servicoParaEditar, aberto, categorias]);
@@ -59,9 +62,9 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
       const t = parseFloat(taxaPF.replace(',', '.')) || 0;
 
       if (servicoParaEditar) {
-        await atualizarServico(servicoParaEditar.id, { nome: nome.trim().toUpperCase(), valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria });
+        await atualizarServico(servicoParaEditar.id, { nome: nome.trim().toUpperCase(), valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria, vinculaArma });
       } else {
-        await criarServico({ nome: nome.trim().toUpperCase(), valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria });
+        await criarServico({ nome: nome.trim().toUpperCase(), valorPadrao: v, valorFiliado: vf, taxaPF: t, exigeGRU, categoria, vinculaArma });
       }
       fechar();
     } catch (err) {
@@ -147,7 +150,7 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
             />
           </div>
 
-          <label className="flex items-center gap-3 p-3 bg-brand-dark-3 border border-brand-blue/20 rounded-xl cursor-pointer hover:bg-brand-dark-2 transition-colors">
+           <label className="flex items-center gap-3 p-3 bg-brand-dark-3 border border-brand-blue/20 rounded-xl cursor-pointer hover:bg-brand-dark-2 transition-colors">
             <input
               type="checkbox"
               checked={exigeGRU}
@@ -157,6 +160,19 @@ export function ModalServico({ aberto, fechar, servicoParaEditar }: ModalServico
             <div>
               <div className="font-bold text-white text-sm">Exige Pagamento de GRU / Taxa?</div>
               <div className="text-xs text-gray-400">Ative para exibir controles de GRU e protocolo na Ordem de Serviço</div>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3 p-3 bg-brand-dark-3 border border-brand-blue/20 rounded-xl cursor-pointer hover:bg-brand-dark-2 transition-colors">
+            <input
+              type="checkbox"
+              checked={vinculaArma}
+              onChange={(e) => setVinculaArma(e.target.checked)}
+              className="checkbox checkbox-primary"
+            />
+            <div>
+              <div className="font-bold text-white text-sm">Vincular Arma a este Serviço?</div>
+              <div className="text-xs text-gray-400">Ative para habilitar seleção de arma e automações de Guia de Tráfego</div>
             </div>
           </label>
 

@@ -15,6 +15,8 @@ import { useClientes } from '../../context/ClientesContext';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { Modal } from '../common/Modal';
+import { visualizarDocumentoBase64, fileToBase64 } from '../../utils/fileUtils';
+import { parseGtPdf } from '../../services/gtParserService';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -27,7 +29,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     atualizarGruServico, registrarPagamento, removerPagamento,
     sincronizarComPerfil, sincronizarOrdem
   } = useOrdens();
-  const { clientes, buscarCreditos, adicionarCredito } = useClientes();
+  const { clientes, buscarCreditos, adicionarCredito, salvarGt } = useClientes();
   const { estaAutenticado, usuario } = useAuth();
   const podeExcluir = usuario?.role === 'admin' || usuario?.permissoes?.includes('excluir_registros');
   const { estado: notif, mostrar, fechar } = useNotificacao();
@@ -46,6 +48,14 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [modalProtocoloAberto, setModalProtocoloAberto] = useState(false);
   const [servicoParaProtocolo, setServicoParaProtocolo] = useState<{ id: string; nome: string; protocoloExistente: string } | null>(null);
   const [novoProtocolo, setNovoProtocolo] = useState('');
+
+  const [modalConclusaoAberto, setModalConclusaoAberto] = useState(false);
+  const [servicoConclusao, setServicoConclusao] = useState<{ id: string; nome: string; exigeGt: boolean } | null>(null);
+  const [conclusaoArquivo, setConclusaoArquivo] = useState<string | null>(null);
+  const [salvarNoPerfilCac, setSalvarNoPerfilCac] = useState(false);
+  const [vencimentoGt, setVencimentoGt] = useState('');
+  const [destinoGt, setDestinoGt] = useState('');
+  const [salvandoConclusao, setSalvandoConclusao] = useState(false);
 
   React.useEffect(() => {
     setValorDescontoInput(String(ordem.desconto || 0));
@@ -200,6 +210,23 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       return;
     }
 
+    if (novoStatus === 'Concluído') {
+      const serv = ordem.servicos.find(s => s.id === servicoId);
+      const isGuia = serv?.nome.toUpperCase().includes('GUIA') || serv?.nome.toUpperCase().includes('GT');
+      setServicoConclusao({
+        id: servicoId,
+        nome: serv?.nome || '',
+        exigeGt: !!isGuia
+      });
+      setConclusaoArquivo(null);
+      setSalvarNoPerfilCac(false);
+      setVencimentoGt('');
+      setDestinoGt('');
+      setModalConclusaoAberto(true);
+      setStatusAberto(null);
+      return;
+    }
+
     try {
       await atualizarStatusServico(ordem.id, servicoId, novoStatus);
       setStatusAberto(null);
@@ -217,6 +244,78 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       mostrar('sucesso', 'Status e protocolo atualizados com sucesso!');
     } catch {
       mostrar('erro', 'Erro ao salvar o protocolo.');
+    }
+  };
+
+  const handleConclusaoArquivoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const base64 = await fileToBase64(file);
+      setConclusaoArquivo(base64);
+
+      if (file.type === 'application/pdf' && servicoConclusao?.exigeGt) {
+        mostrar('alerta', 'Analisando arquivo PDF da Guia de Tráfego...');
+        try {
+          const parsed = await parseGtPdf(base64);
+          if (parsed) {
+            if (parsed.vencimento) {
+              setVencimentoGt(parsed.vencimento);
+            }
+            if (parsed.cidade && parsed.uf) {
+              setDestinoGt(`${parsed.cidade} - ${parsed.uf}`);
+            } else if (parsed.destino) {
+              setDestinoGt(parsed.destino);
+            }
+            setSalvarNoPerfilCac(true);
+            mostrar('sucesso', 'Dados da Guia extraídos com sucesso do PDF!');
+          }
+        } catch (parseErr) {
+          console.warn('Erro ao ler PDF de Guia:', parseErr);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      mostrar('erro', 'Erro ao ler arquivo.');
+    }
+  };
+
+  const confirmarConclusao = async () => {
+    if (!servicoConclusao) return;
+    setSalvandoConclusao(true);
+    try {
+      let finalFileUrl = '';
+      
+      if (conclusaoArquivo) {
+        const { v4: uuidv4 } = await import('uuid');
+        const ext = conclusaoArquivo.split(';base64,')[0].split(':')[1].split('/')[1] || 'pdf';
+        const path = `${usuario?.empresaId}/ordens/servicos/${servicoConclusao.id}/conclusao_${uuidv4()}.${ext}`;
+        const publicUrl = await uploadBase64File(conclusaoArquivo, 'documentos-clientes', path);
+        finalFileUrl = publicUrl || '';
+      }
+
+      await atualizarStatusServico(ordem.id, servicoConclusao.id, 'Concluído', undefined, finalFileUrl);
+
+      if (servicoConclusao.exigeGt && salvarNoPerfilCac) {
+        const serv = ordem.servicos.find(s => s.id === servicoConclusao.id);
+        if (serv?.armaId) {
+          await salvarGt({
+            armaId: serv.armaId,
+            vencimento: vencimentoGt,
+            destino: destinoGt.toUpperCase(),
+            documentoUrl: finalFileUrl || undefined
+          });
+        }
+      }
+
+      setModalConclusaoAberto(false);
+      setServicoConclusao(null);
+      mostrar('sucesso', 'Serviço concluído com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      mostrar('erro', 'Erro ao concluir o serviço: ' + (err.message || ''));
+    } finally {
+      setSalvandoConclusao(false);
     }
   };
 
@@ -496,6 +595,32 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                        <span className="text-[10px] font-black text-brand-blue-light bg-brand-blue/10 px-2 py-0.5 rounded border border-brand-blue/20 uppercase tracking-widest flex items-center gap-1.5">
                          <List size={10} /> PROTOCOLO: {serv.protocolo}
                        </span>
+                    </div>
+                  )}
+
+                  {serv.armaModelo && (
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 uppercase tracking-widest flex items-center gap-1.5" title="Armamento Vinculado">
+                         ⚔️ ARMA: {serv.armaModelo}
+                       </span>
+                    </div>
+                  )}
+
+                  {serv.arquivoUrl && (
+                    <div className="flex items-center gap-2">
+                       <button
+                         type="button"
+                         onClick={() => {
+                           if (serv.arquivoUrl!.startsWith('data:')) {
+                             visualizarDocumentoBase64(serv.arquivoUrl!, `Documento-${serv.nome}`);
+                           } else {
+                             window.open(serv.arquivoUrl, '_blank');
+                           }
+                         }}
+                         className="text-[10px] font-black text-brand-green-light bg-brand-green/10 px-2 py-0.5 rounded border border-brand-green/20 uppercase tracking-widest flex items-center gap-1.5 hover:bg-brand-green/20 transition-all text-left"
+                       >
+                         📄 VISUALIZAR DOCUMENTO ANEXADO
+                       </button>
                     </div>
                   )}
 
@@ -930,6 +1055,116 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                 className="btn-primary flex-1 py-2 rounded-lg text-xs font-bold uppercase"
               >
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {modalConclusaoAberto && servicoConclusao && (
+        <Modal
+          aberto={modalConclusaoAberto}
+          onFechar={() => {
+            setModalConclusaoAberto(false);
+            setServicoConclusao(null);
+          }}
+          titulo={`Concluir Serviço: ${servicoConclusao.nome}`}
+          tamanho="md"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="label">Anexar Documento Comprobatório (PDF/Imagem)</label>
+              {conclusaoArquivo ? (
+                <div className="flex items-center justify-between text-xs bg-brand-dark-3 p-3 rounded-xl border border-brand-dark-5">
+                  <span className="text-gray-300 truncate font-semibold">✓ Documento carregado</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => visualizarDocumentoBase64(conclusaoArquivo, 'Documento')}
+                      className="text-brand-blue-light hover:underline font-bold"
+                    >
+                      Visualizar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConclusaoArquivo(null)}
+                      className="text-red-400 hover:underline font-bold"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={handleConclusaoArquivoChange}
+                  className="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border file:border-brand-dark-5 file:text-xs file:font-bold file:bg-brand-dark-3 file:text-white hover:file:bg-brand-dark-2 cursor-pointer bg-brand-dark-4 border border-brand-dark-5 p-2 rounded-xl"
+                />
+              )}
+            </div>
+
+            {servicoConclusao.exigeGt && (
+              <div className="bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={salvarNoPerfilCac}
+                    onChange={e => setSalvarNoPerfilCac(e.target.checked)}
+                    className="checkbox checkbox-primary"
+                  />
+                  <div>
+                    <span className="font-bold text-white text-xs">Registrar como Guia de Tráfego ativa no perfil do CAC</span>
+                    <p className="text-[10px] text-gray-500">Isso fará o sistema gerenciar o vencimento desta guia automaticamente.</p>
+                  </div>
+                </label>
+
+                {salvarNoPerfilCac && (
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-brand-dark-5/50 animate-scale-up">
+                    <div>
+                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Data de Vencimento</label>
+                      <input
+                        type="date"
+                        className="input text-xs"
+                        value={vencimentoGt}
+                        onChange={e => setVencimentoGt(e.target.value)}
+                        required={salvarNoPerfilCac}
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Clube / Destino da Guia</label>
+                      <input
+                        type="text"
+                        className="input text-xs uppercase"
+                        placeholder="Ex: CLUBE DE TIRO X"
+                        value={destinoGt}
+                        onChange={e => setDestinoGt(e.target.value)}
+                        required={salvarNoPerfilCac}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3 w-full pt-4 border-t border-brand-dark-5">
+              <button
+                type="button"
+                onClick={() => {
+                  setModalConclusaoAberto(false);
+                  setServicoConclusao(null);
+                }}
+                className="btn-ghost flex-1 py-2.5 rounded-lg text-xs font-bold uppercase"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarConclusao}
+                disabled={salvandoConclusao || (salvarNoPerfilCac && (!vencimentoGt || !destinoGt))}
+                className="btn-primary flex-1 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-2"
+              >
+                {salvandoConclusao ? 'Processando...' : 'Confirmar Conclusão'}
               </button>
             </div>
           </div>

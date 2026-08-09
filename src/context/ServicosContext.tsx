@@ -40,6 +40,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
           taxaPF: row.taxa_pf,
           exigeGRU: row.exige_gru !== false, // Default para true se for null ou undefined no BD legados
           categoria: row.categoria || 'Honorário',
+          vinculaArma: !!row.vincula_arma,
           criadoEm: row.criado_em
         })));
       }
@@ -65,6 +66,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
         taxa_pf: dados.taxaPF,
         exige_gru: dados.exigeGRU,
         categoria: dados.categoria,
+        vincula_arma: dados.vinculaArma || false,
         empresa_id: usuario.empresaId
       }]);
 
@@ -80,6 +82,7 @@ export function ServicosProvider({ children }: { children: React.ReactNode }) {
     if (dados.taxaPF !== undefined) payload.taxa_pf = dados.taxaPF;
     if (dados.exigeGRU !== undefined) payload.exige_gru = dados.exigeGRU;
     if (dados.categoria !== undefined) payload.categoria = dados.categoria;
+    if (dados.vinculaArma !== undefined) payload.vincula_arma = dados.vinculaArma;
 
     const { error } = await supabase
       .from('servicos_config')
