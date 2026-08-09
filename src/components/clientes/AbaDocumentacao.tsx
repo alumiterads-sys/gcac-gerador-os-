@@ -1228,8 +1228,8 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
         </div>
 
         <div className="flex gap-3 pt-6 border-t border-slate-800/60 mt-4">
-          <button onClick={onFechar} className="btn-ghost flex-1">Cancelar</button>
-          <button onClick={() => onSalvar(form)} className="btn-primary flex-1">
+          <button type="button" onClick={onFechar} className="btn-ghost flex-1">Cancelar</button>
+          <button type="button" onClick={() => onSalvar(form)} className="btn-primary flex-1">
             {armaParaEditar ? 'Salvar Alterações' : 'Salvar Arma'}
           </button>
         </div>
@@ -1636,8 +1636,8 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
             )}
           </div>
           <div className="flex gap-3 pt-4">
-            <button onClick={onFechar} className="btn-ghost flex-1">Cancelar</button>
-            <button onClick={handleSalvar} className="btn-primary flex-1">
+            <button type="button" onClick={onFechar} className="btn-ghost flex-1">Cancelar</button>
+            <button type="button" onClick={handleSalvar} className="btn-primary flex-1">
               {gtParaEditar ? 'Salvar Alterações' : 'Salvar Guia'}
             </button>
           </div>
