@@ -10,7 +10,7 @@ interface OrdensContextType {
   totalPendentes: number;
   criarOrdem: (dados: Omit<OrdemDeServico, 'id' | 'numero' | 'criadoEm' | 'atualizadoEm' | 'driveArquivoJsonId' | 'drivePdfId' | 'ultimaSincronizacao' | 'pendenteSincronizacao'>) => Promise<string>;
   atualizarOrdem: (id: string, dados: Partial<OrdemDeServico>) => Promise<void>;
-  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string) => Promise<void>;
+  atualizarStatusServico: (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string, armaId?: string, armaModelo?: string) => Promise<void>;
   atualizarGruServico: (ordemId: string, servicoId: string, pago: boolean) => Promise<void>;
   atualizarProtocoloServico: (ordemId: string, servicoId: string, protocolo: string) => Promise<void>;
   deletarOrdem: (id: string) => Promise<void>;
@@ -262,7 +262,7 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
     }
   }, [online, estaAutenticado, carregarOrdens]);
 
-  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string) => {
+  const atualizarStatusServico = useCallback(async (ordemId: string, servicoId: string, novoStatus: any, protocolo?: string, arquivoUrl?: string, armaId?: string, armaModelo?: string) => {
     const ordem = ordens.find(o => o.id === ordemId);
     if (!ordem) return;
 
@@ -272,7 +272,9 @@ export function OrdensProvider({ children }: { children: React.ReactNode }) {
             ...s, 
             statusExecucao: novoStatus,
             ...(protocolo !== undefined ? { protocolo } : {}),
-            ...(arquivoUrl !== undefined ? { arquivoUrl } : {})
+            ...(arquivoUrl !== undefined ? { arquivoUrl } : {}),
+            ...(armaId !== undefined ? { armaId } : {}),
+            ...(armaModelo !== undefined ? { armaModelo } : {})
           } 
         : s
     );

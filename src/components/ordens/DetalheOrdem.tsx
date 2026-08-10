@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Trash2, FileDown, Printer, Cloud, CloudOff, CheckCircle, MessageCircle, Users, Phone, Mail, HelpCircle, ChevronDown, List, ShieldCheck, History, Clock, CreditCard, FileText, RefreshCw } from 'lucide-react';
 import { 
   OrdemDeServico, CanalAtendimento, STATUS_EXECUCAO_SERVICO, 
-  StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO 
+  StatusExecucaoServico, StatusOS, FormaPagamento, STATUS_OS, FORMAS_PAGAMENTO, Arma 
 } from '../../types';
 import { useOrdens } from '../../context/OrdensContext';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,7 @@ import { baixarPdf, imprimirPdf } from '../../services/geradorPdf';
 import { DialogConfirmacao } from '../common/DialogConfirmacao';
 import { Notificacao, useNotificacao } from '../common/Notificacao';
 import { useClientes } from '../../context/ClientesContext';
+import { ModalArma } from '../clientes/AbaDocumentacao';
 import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classeStatus, classeStatusExecucao, iconeStatusExecucao, calcularProgressoServicos } from '../../utils/formatters';
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { Modal } from '../common/Modal';
@@ -29,7 +30,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     atualizarGruServico, registrarPagamento, removerPagamento,
     sincronizarComPerfil, sincronizarOrdem
   } = useOrdens();
-  const { clientes, buscarCreditos, adicionarCredito, salvarGt } = useClientes();
+  const { clientes, buscarCreditos, adicionarCredito, salvarGt, buscarArmas, salvarArma } = useClientes();
   const { estaAutenticado, usuario } = useAuth();
   const podeExcluir = usuario?.role === 'admin' || usuario?.permissoes?.includes('excluir_registros');
   const { estado: notif, mostrar, fechar } = useNotificacao();
@@ -56,6 +57,9 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [vencimentoGt, setVencimentoGt] = useState('');
   const [destinoGt, setDestinoGt] = useState('');
   const [salvandoConclusao, setSalvandoConclusao] = useState(false);
+  const [armasCliente, setArmasCliente] = useState<Arma[]>([]);
+  const [armaSelecionadaId, setArmaSelecionadaId] = useState<string>('');
+  const [modalArmaAberto, setModalArmaAberto] = useState(false);
 
   React.useEffect(() => {
     setValorDescontoInput(String(ordem.desconto || 0));
@@ -103,6 +107,21 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       sincronizarComPerfil(ordem.id).catch(console.error);
     }
   }, [clienteDaOS, ordem.id, ordem.senhaGov, ordem.nomeCliente, ordem.contato, ordem.endereco, ordem.filiadoProTiro, ordem.clubeFiliado, sincronizarComPerfil]);
+
+  React.useEffect(() => {
+    if (modalConclusaoAberto && clienteDaOS) {
+      buscarArmas(clienteDaOS.id)
+        .then(setArmasCliente)
+        .catch(err => console.error('[DetalheOrdem] Erro ao buscar armas:', err));
+    }
+  }, [modalConclusaoAberto, clienteDaOS, buscarArmas]);
+
+  React.useEffect(() => {
+    if (modalConclusaoAberto && servicoConclusao) {
+      const serv = ordem.servicos.find(s => s.id === servicoConclusao.id);
+      setArmaSelecionadaId(serv?.armaId || '');
+    }
+  }, [modalConclusaoAberto, servicoConclusao, ordem.servicos]);
 
   const servicos = ordem.servicos || [];
   const totalServicos = servicos.length;
@@ -292,18 +311,37 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         finalFileUrl = publicUrl || '';
       }
 
-      await atualizarStatusServico(ordem.id, servicoConclusao.id, 'Concluído', undefined, finalFileUrl);
-
-      if (servicoConclusao.exigeGt && salvarNoPerfilCac) {
-        const serv = ordem.servicos.find(s => s.id === servicoConclusao.id);
-        if (serv?.armaId) {
-          await salvarGt({
-            armaId: serv.armaId,
-            vencimento: vencimentoGt,
-            destino: destinoGt.toUpperCase(),
-            arquivoUrl: finalFileUrl || undefined
-          });
+      const serv = ordem.servicos.find(s => s.id === servicoConclusao.id);
+      
+      // Obter armaId e armaModelo a serem associados ao serviço
+      let targetArmaId = serv?.armaId;
+      let targetArmaModelo = serv?.armaModelo;
+      
+      if (servicoConclusao.exigeGt && salvarNoPerfilCac && armaSelecionadaId) {
+        targetArmaId = armaSelecionadaId;
+        const arma = armasCliente.find(a => a.id === armaSelecionadaId);
+        if (arma) {
+          targetArmaModelo = `${arma.fabricante} ${arma.modelo} (${arma.calibre})`;
         }
+      }
+
+      await atualizarStatusServico(
+        ordem.id, 
+        servicoConclusao.id, 
+        'Concluído', 
+        undefined, 
+        finalFileUrl,
+        servicoConclusao.exigeGt && salvarNoPerfilCac ? targetArmaId : undefined,
+        servicoConclusao.exigeGt && salvarNoPerfilCac ? targetArmaModelo : undefined
+      );
+
+      if (servicoConclusao.exigeGt && salvarNoPerfilCac && targetArmaId) {
+        await salvarGt({
+          armaId: targetArmaId,
+          vencimento: vencimentoGt,
+          destino: destinoGt.toUpperCase(),
+          arquivoUrl: finalFileUrl || undefined
+        });
       }
 
       setModalConclusaoAberto(false);
@@ -1118,27 +1156,55 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                 </label>
 
                 {salvarNoPerfilCac && (
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-brand-dark-5/50 animate-scale-up">
+                  <div className="space-y-3 pt-2 border-t border-brand-dark-5/50 animate-scale-up">
                     <div>
-                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Data de Vencimento</label>
-                      <input
-                        type="date"
-                        className="input text-xs"
-                        value={vencimentoGt}
-                        onChange={e => setVencimentoGt(e.target.value)}
-                        required={salvarNoPerfilCac}
-                      />
+                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Armamento da Guia</label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-xs text-gray-200 outline-none transition-colors"
+                          value={armaSelecionadaId}
+                          onChange={e => setArmaSelecionadaId(e.target.value)}
+                          required={salvarNoPerfilCac}
+                        >
+                          <option value="">Selecione uma arma...</option>
+                          {armasCliente.map(a => (
+                            <option key={a.id} value={a.id}>
+                              {a.fabricante} {a.modelo} ({a.calibre}) - SÉRIE: {a.numeroSerie}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setModalArmaAberto(true)}
+                          className="px-3 py-2 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue-light border border-brand-blue/30 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+                        >
+                          + Cadastrar
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Clube / Destino da Guia</label>
-                      <input
-                        type="text"
-                        className="input text-xs uppercase"
-                        placeholder="Ex: CLUBE DE TIRO X"
-                        value={destinoGt}
-                        onChange={e => setDestinoGt(e.target.value)}
-                        required={salvarNoPerfilCac}
-                      />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Data de Vencimento</label>
+                        <input
+                          type="date"
+                          className="input text-xs"
+                          value={vencimentoGt}
+                          onChange={e => setVencimentoGt(e.target.value)}
+                          required={salvarNoPerfilCac}
+                        />
+                      </div>
+                      <div>
+                        <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Clube / Destino da Guia</label>
+                        <input
+                          type="text"
+                          className="input text-xs uppercase"
+                          placeholder="Ex: CLUBE DE TIRO X"
+                          value={destinoGt}
+                          onChange={e => setDestinoGt(e.target.value)}
+                          required={salvarNoPerfilCac}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1159,7 +1225,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
               <button
                 type="button"
                 onClick={confirmarConclusao}
-                disabled={salvandoConclusao || (salvarNoPerfilCac && (!vencimentoGt || !destinoGt))}
+                disabled={salvandoConclusao || (salvarNoPerfilCac && (!vencimentoGt || !destinoGt || !armaSelecionadaId))}
                 className="btn-primary flex-1 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-2"
               >
                 {salvandoConclusao ? 'Processando...' : 'Confirmar Conclusão'}
@@ -1167,6 +1233,48 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
             </div>
           </div>
         </Modal>
+      )}
+
+      {modalArmaAberto && (
+        <ModalArma
+          onFechar={() => setModalArmaAberto(false)}
+          onSalvar={async (armaData) => {
+            try {
+              if (!clienteDaOS) {
+                mostrar('erro', 'Cliente não encontrado para esta ordem de serviço.');
+                return;
+              }
+              const { v4: uuidv4 } = await import('uuid');
+              const armaId = armaData.id || uuidv4();
+              const novaArmaObj = {
+                ...armaData,
+                id: armaId,
+                tipo: armaData.tipo?.trim(),
+                modelo: armaData.modelo?.trim().toUpperCase(),
+                calibre: armaData.calibre?.trim().toUpperCase(),
+                fabricante: armaData.fabricante?.trim().toUpperCase(),
+                numeroSerie: armaData.numeroSerie?.trim().toUpperCase(),
+                numeroSigma: armaData.numeroSigma?.trim().toUpperCase(),
+                acervo: armaData.acervo,
+                vencimentoCraf: armaData.vencimentoCraf,
+                crafEmRenovacao: armaData.crafEmRenovacao
+              };
+
+              await salvarArma({
+                ...novaArmaObj,
+                clienteId: clienteDaOS.id
+              });
+
+              const lista = await buscarArmas(clienteDaOS.id);
+              setArmasCliente(lista);
+              setArmaSelecionadaId(armaId);
+              setModalArmaAberto(false);
+              mostrar('sucesso', 'Armamento cadastrado com sucesso!');
+            } catch (err: any) {
+              mostrar('erro', 'Erro ao registrar arma: ' + (err.message || 'Verifique os dados informados.'));
+            }
+          }}
+        />
       )}
     </div>
   );
