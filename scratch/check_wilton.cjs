@@ -6,21 +6,28 @@ const supabaseKey = 'sb_publishable_HAFcm7qicaIH-FrexVz3lQ_mqRRhurR';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function main() {
-  const { data: companies, error } = await supabase
-    .from('empresas')
-    .select('*');
+  console.log('Querying clients by name like %MILTON%');
+
+  const { data: clients, error } = await supabase
+    .from('clientes')
+    .select('id, nome, cpf, responsavel_id, ignorar_mensagens_alertas, empresa_id')
+    .ilike('nome', '%MILTON%');
 
   if (error) {
-    console.error('Error fetching companies:', error);
+    console.error('Error fetching clients:', error);
     return;
   }
 
-  const wiltonComp = companies.find(c => c.nome && c.nome.toUpperCase().includes('WILTON'));
-  if (wiltonComp) {
-    console.log('Found company:', wiltonComp);
-  } else {
-    console.log('Wilton company not found. All companies:', companies.map(c => ({ id: c.id, nome: c.nome })));
-  }
+  console.log('Clients found in database:');
+  clients.forEach(c => {
+    console.log(`- ID: ${c.id}`);
+    console.log(`  Name: ${c.nome}`);
+    console.log(`  CPF: ${c.cpf}`);
+    console.log(`  Responsavel ID: ${c.responsavel_id}`);
+    console.log(`  Ignorar Alertas: ${c.ignorar_mensagens_alertas}`);
+    console.log(`  Empresa ID: ${c.empresa_id}`);
+    console.log('--------------------------------------');
+  });
 }
 
 main();

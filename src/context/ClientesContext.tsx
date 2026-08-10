@@ -64,12 +64,12 @@ interface ClientesContextType {
   deletarArma: (id: string, overrideEmpresaId?: string) => Promise<void>;
   
   // Gestão de GTs
-  buscarGts: (armaId: string) => Promise<GuiaTrafego[]>;
+  buscarGts: (armaId: string, overrideEmpresaId?: string) => Promise<GuiaTrafego[]>;
   salvarGt: (gt: Partial<GuiaTrafego> & { armaId: string }, overrideEmpresaId?: string) => Promise<void>;
   deletarGt: (id: string, overrideEmpresaId?: string) => Promise<void>;
   
   // Gestão de Manejo
-  buscarManejos: (clienteId: string) => Promise<AutorizacaoManejo[]>;
+  buscarManejos: (clienteId: string, overrideEmpresaId?: string) => Promise<AutorizacaoManejo[]>;
   salvarManejo: (manejo: Partial<AutorizacaoManejo> & { clienteId: string }, overrideEmpresaId?: string) => Promise<void>;
   deletarManejo: (id: string, overrideEmpresaId?: string) => Promise<void>;
   
