@@ -85,6 +85,7 @@ export interface Cliente {
   ignorarMensagensAlertas?: boolean;
   criadoEm: string;
   atualizadoEm: string;
+  empresaId?: string;
 }
 
 export interface Arma {

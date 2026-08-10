@@ -497,12 +497,12 @@ export function Configuracoes() {
     }
     setExportando(true);
     try {
-      const armas = await buscarArmas(cliente.id);
+      const armas = await buscarArmas(cliente.id, cliente.empresaId);
       const armasComGts = await Promise.all(armas.map(async (arma) => {
         const gts = await buscarGts(arma.id);
         return { ...arma, gts };
       }));
-      const manejos = await buscarManejos(cliente.id);
+      const manejos = await buscarManejos(cliente.id, cliente.empresaId);
 
       const perfil = {
         nome: cliente.nome,
@@ -538,12 +538,12 @@ export function Configuracoes() {
     }
     setExportando(true);
     try {
-      const armas = await buscarArmas(cliente.id);
+      const armas = await buscarArmas(cliente.id, cliente.empresaId);
       const armasComGts = await Promise.all(armas.map(async (arma) => {
         const gts = await buscarGts(arma.id);
         return { ...arma, gts };
       }));
-      const manejos = await buscarManejos(cliente.id);
+      const manejos = await buscarManejos(cliente.id, cliente.empresaId);
 
       const perfil = {
         nome: cliente.nome,
@@ -579,12 +579,12 @@ export function Configuracoes() {
     }
     setExportando(true);
     try {
-      const armas = await buscarArmas(cliente.id);
+      const armas = await buscarArmas(cliente.id, cliente.empresaId);
       const armasComGts = await Promise.all(armas.map(async (arma) => {
         const gts = await buscarGts(arma.id);
         return { ...arma, gts };
       }));
-      const manejos = await buscarManejos(cliente.id);
+      const manejos = await buscarManejos(cliente.id, cliente.empresaId);
 
       const backup = {
         exportadoEm: new Date().toISOString(),

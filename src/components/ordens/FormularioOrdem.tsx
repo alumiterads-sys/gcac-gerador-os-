@@ -236,7 +236,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       if (clienteEncontrado?.id) {
         console.log('[DEBUG] carregarArmas - buscando para cliente:', clienteEncontrado.id);
         try {
-          const list = await buscarArmas(clienteEncontrado.id);
+          const list = await buscarArmas(clienteEncontrado.id, clienteEncontrado.empresaId);
           console.log('[DEBUG] carregarArmas - resultado:', list);
           setArmasCliente(list);
         } catch (err) {
@@ -1410,32 +1410,22 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
               const tempArma = { ...novaArmaObj, tempId: armaId };
 
-              // Atualiza o estado local de forma otimista e imediata
-              setArmasCliente(prev => {
-                const existe = prev.some(a => a.id === armaId);
-                if (existe) return prev;
-                return [...prev, tempArma as any];
-              });
+              if (clienteEncontrado?.id) {
+                // Salva no Supabase passando o empresaId do cliente e depois recarrega a lista
+                await salvarArma({
+                  ...novaArmaObj,
+                  clienteId: clienteEncontrado.id
+                }, clienteEncontrado.empresaId);
+                
+                const lista = await buscarArmas(clienteEncontrado.id, clienteEncontrado.empresaId);
+                setArmasCliente(lista);
+              } else {
+                setNovasArmas(prev => [...prev, tempArma]);
+              }
 
               if (servicoIndexParaArma !== null) {
                 const serv = form.servicos[servicoIndexParaArma];
                 atualizarArmaServico(serv.id, armaId, `${novaArmaObj.fabricante} ${novaArmaObj.modelo} (${novaArmaObj.calibre})`);
-              }
-
-              if (clienteEncontrado?.id) {
-                // Tenta persistir no Supabase, mas protege contra falhas de rede/CORS
-                try {
-                  await salvarArma({
-                    ...novaArmaObj,
-                    clienteId: clienteEncontrado.id
-                  });
-                  const lista = await buscarArmas(clienteEncontrado.id);
-                  setArmasCliente(lista);
-                } catch (netErr) {
-                  console.warn('[DEBUG] Falha ao salvar arma no Supabase, mantida no estado local:', netErr);
-                }
-              } else {
-                setNovasArmas(prev => [...prev, tempArma]);
               }
 
               setModalArmaAberto(false);

@@ -237,8 +237,8 @@ export function AbaDocumentacao({ cliente, armaIdInicial, cacEmpresaId, podeEdit
       }
 
       const [armasData, manejosData] = await Promise.all([
-        buscarArmas(cliente.id),
-        buscarManejos(cliente.id)
+        buscarArmas(cliente.id, cacEmpresaId),
+        buscarManejos(cliente.id, cacEmpresaId)
       ]);
       setArmas(armasData);
       setManejos(manejosData);

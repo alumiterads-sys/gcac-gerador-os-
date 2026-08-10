@@ -59,7 +59,7 @@ interface ClientesContextType {
   deletarOpcaoArma: (id: string) => Promise<void>;
   
   // Gestão de Armas
-  buscarArmas: (clienteId: string) => Promise<Arma[]>;
+  buscarArmas: (clienteId: string, overrideEmpresaId?: string) => Promise<Arma[]>;
   salvarArma: (arma: Partial<Arma> & { clienteId: string }, overrideEmpresaId?: string) => Promise<void>;
   deletarArma: (id: string, overrideEmpresaId?: string) => Promise<void>;
   
@@ -119,6 +119,7 @@ const mapFromDB = (row: any): Cliente => ({
   ignorarMensagensAlertas: !!row.ignorar_mensagens_alertas,
   criadoEm: row.criado_em,
   atualizadoEm: row.atualizado_em,
+  empresaId: row.empresa_id || undefined,
 });
 
 const mapToDB = (dados: any) => {
@@ -676,13 +677,14 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
   }, [clientes]);
 
   // --- Gestão de Armas ---
-  const buscarArmas = useCallback(async (clienteId: string) => {
+  const buscarArmas = useCallback(async (clienteId: string, overrideEmpresaId?: string) => {
     if (!usuario?.empresaId) return [];
+    const empresaId = overrideEmpresaId || usuario.empresaId;
     const { data, error } = await supabase
       .from('armas')
       .select('*')
       .eq('cliente_id', clienteId)
-      .eq('empresa_id', usuario.empresaId)
+      .eq('empresa_id', empresaId)
       .order('modelo', { ascending: true });
     
     if (error) throw error;
@@ -730,18 +732,10 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       empresa_id: empresaId
     };
 
-    if (dados.id) {
-      const { error } = await supabase
-        .from('armas')
-        .update(payload)
-        .eq('id', dados.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('armas')
-        .insert([{ id: armaId, ...payload }]);
-      if (error) throw error;
-    }
+    const { error } = await supabase
+      .from('armas')
+      .upsert({ id: armaId, ...payload });
+    if (error) throw error;
     
     await carregarMetadadosArmas();
   }, [carregarMetadadosArmas, usuario]);

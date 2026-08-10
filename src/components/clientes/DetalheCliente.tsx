@@ -625,8 +625,8 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           }
         } else {
           const [armasData, manejosData] = await Promise.all([
-            buscarArmas(cliente.id),
-            buscarManejos(cliente.id)
+            buscarArmas(cliente.id, cacEmpresaId),
+            buscarManejos(cliente.id, cacEmpresaId)
           ]);
           if (cancelado) return;
           armasList = armasData || [];
