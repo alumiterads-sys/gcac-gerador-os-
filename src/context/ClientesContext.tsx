@@ -673,8 +673,12 @@ export function ClientesProvider({ children }: { children: React.ReactNode }) {
       .map(c => c.clubeFiliado)
       .filter(c => c && c.trim().length > 0 && c.toUpperCase() !== 'NÃO RELATADO');
     
-    return Array.from(new Set(todosClubes.map(c => c.toUpperCase()))).sort();
-  }, [clientes]);
+    const clubesOpcoes = opcoesArmas
+      .filter(o => o.tipo === 'clube')
+      .map(o => o.nome);
+    
+    return Array.from(new Set([...todosClubes, ...clubesOpcoes].map(c => c.toUpperCase()))).sort();
+  }, [clientes, opcoesArmas]);
 
   // --- Gestão de Armas ---
   const buscarArmas = useCallback(async (clienteId: string, overrideEmpresaId?: string) => {
