@@ -147,7 +147,7 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
         contato: formCr.contato.trim(),
         crUrl: formCr.crUrl,
         crIbamaUrl: formCr.crIbamaUrl
-      });
+      }, cacEmpresaId);
       setEditandoCr(false);
       await atualizarDados();
     } catch (err) {

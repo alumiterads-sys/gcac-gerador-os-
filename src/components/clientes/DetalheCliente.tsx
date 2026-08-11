@@ -1226,7 +1226,7 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
           }}
           onSalvar={async (atividades) => {
             try {
-              await atualizarCliente(cliente.id, atividades);
+              await atualizarCliente(cliente.id, atividades, cacEmpresaId);
               // Marcar como salvo no sessionStorage para evitar reexibição enquanto
               // o contexto ainda não refletiu os novos dados
               sessionStorage.setItem(`prompt-cr-ignorado-${cliente.id}`, 'true');

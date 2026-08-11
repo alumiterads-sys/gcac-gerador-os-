@@ -168,7 +168,7 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
       };
 
       if (clienteEditando) {
-        await atualizarCliente(clienteEditando.id, payload);
+        await atualizarCliente(clienteEditando.id, payload, clienteEditando.empresaId);
       } else {
         await criarCliente(payload);
       }
