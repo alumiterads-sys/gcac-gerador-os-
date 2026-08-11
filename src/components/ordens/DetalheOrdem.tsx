@@ -110,7 +110,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
 
   React.useEffect(() => {
     if (modalConclusaoAberto && clienteDaOS) {
-      buscarArmas(clienteDaOS.id)
+      buscarArmas(clienteDaOS.id, clienteDaOS.empresaId)
         .then(setArmasCliente)
         .catch(err => console.error('[DetalheOrdem] Erro ao buscar armas:', err));
     }
@@ -1263,9 +1263,9 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
               await salvarArma({
                 ...novaArmaObj,
                 clienteId: clienteDaOS.id
-              });
+              }, clienteDaOS.empresaId);
 
-              const lista = await buscarArmas(clienteDaOS.id);
+              const lista = await buscarArmas(clienteDaOS.id, clienteDaOS.empresaId);
               setArmasCliente(lista);
               setArmaSelecionadaId(armaId);
               setModalArmaAberto(false);

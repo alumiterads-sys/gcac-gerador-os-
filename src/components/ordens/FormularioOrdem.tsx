@@ -524,7 +524,15 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
       // 1. Salvamento silencioso do Cliente na agenda
       let realClienteId = '';
       try {
-        const clienteExistente = await buscarClientePorNomeExato(form.nomeCliente.trim().toUpperCase());
+        const cleanCpf = form.cpf.trim().replace(/\D/g, '');
+        let clienteExistente = null;
+        if (cleanCpf) {
+          clienteExistente = clientes.find(c => c.cpf && c.cpf.replace(/\D/g, '') === cleanCpf);
+        }
+        if (!clienteExistente) {
+          clienteExistente = await buscarClientePorNomeExato(form.nomeCliente.trim().toUpperCase());
+        }
+
         const payloadCli = {
           nome: form.nomeCliente.trim().toUpperCase(),
           cpf: form.cpf.trim(),
@@ -547,13 +555,16 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
 
       // 2. Salvar as novasArmas associadas a este cliente
       if (realClienteId) {
+        const clienteObj = clientes.find(c => c.id === realClienteId);
+        const clientEmpresaId = clienteObj?.empresaId || usuario?.empresaId;
+
         for (const arma of novasArmas) {
           try {
             const { tempId, ...armaSemTempId } = arma;
             await salvarArma({
               ...armaSemTempId,
               clienteId: realClienteId
-            });
+            }, clientEmpresaId);
           } catch (err) {
             console.error('Erro ao salvar arma do cliente na finalização da OS:', err);
           }
