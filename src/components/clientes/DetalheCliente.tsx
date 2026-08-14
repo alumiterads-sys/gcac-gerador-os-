@@ -12,7 +12,7 @@ import { FormularioCliente } from './FormularioCliente';
 import { AbaDocumentacao } from './AbaDocumentacao';
 import { AbaCreditos } from './AbaCreditos';
 import { Cliente } from '../../types';
-import { formatarCPF, formatarTelefone, formatarMoeda, formatarData, isOrdemConcluida } from '../../utils/formatters';
+import { formatarCPF, formatarTelefone, formatarMoeda, formatarData, isOrdemConcluida, obterResumoExecucao, iconeStatusExecucao } from '../../utils/formatters';
 import { calcularAlerta } from '../../utils/vencimentos';
 import { useOrdens } from '../../context/OrdensContext';
 import { useOrcamentos } from '../../context/OrcamentosContext';
@@ -1129,7 +1129,11 @@ export function DetalheCliente({ cliente }: DetalheClienteProps) {
                       value: o.valor, 
                       status: o.status,
                       path: `/ordens/${o.id}`,
-                      servicos: o.servicos ? o.servicos.map(s => s.nome) : []
+                      servicos: o.servicos ? o.servicos.map(s => ({
+                        nome: s.nome,
+                        statusExecucao: s.statusExecucao
+                      })) : [],
+                      execucao: o.servicos ? obterResumoExecucao(o.servicos) : null
                     }))} 
                     emptyMsg={mostrarTodasOrdens ? "Nenhuma ordem de serviço encontrada para este cliente." : "Não há ordens de serviço em aberto para este cliente."}
                   />
@@ -1416,16 +1420,72 @@ function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
               <p className="text-sm font-bold text-white truncate">{item.title}</p>
               <p className="text-[10px] text-gray-500">{formatarData(item.date)}</p>
               
+              {item.execucao && (
+                <div className="mt-1 flex items-center gap-1.5 w-fit">
+                  {item.execucao.tipo === 'unificado' ? (
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border uppercase tracking-wider ${item.execucao.classe}`}>
+                      {item.execucao.icone} {item.execucao.texto}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1.5 w-fit">
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter whitespace-nowrap">
+                        {item.execucao.texto}
+                      </span>
+                      <div className="w-12 h-1 bg-brand-dark-5 rounded-full overflow-hidden border border-white/5">
+                        <div 
+                          className="h-full bg-brand-blue transition-all duration-500 shadow-[0_0_6px_rgba(45,141,224,0.4)]"
+                          style={{ width: `${item.execucao.progresso}%` }}
+                        />
+                      </div>
+                      <span className="text-[8px] font-bold text-brand-blue-light">{item.execucao.progresso}%</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {item.servicos && item.servicos.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {item.servicos.map((servico: string, idx: number) => (
-                    <span 
-                      key={idx} 
-                      className="px-1.5 py-0.5 rounded bg-brand-dark-2 text-[9px] text-brand-blue-light border border-brand-dark-5 font-semibold uppercase tracking-wider whitespace-nowrap"
-                    >
-                      {servico}
-                    </span>
-                  ))}
+                  {item.servicos.map((servico: any, idx: number) => {
+                    const isObj = typeof servico === 'object' && servico !== null;
+                    const nome = isObj ? servico.nome : servico;
+                    const statusExec = isObj ? servico.statusExecucao : undefined;
+
+                    let icon = '';
+                    let badgeClass = 'bg-brand-dark-2 text-brand-blue-light border-brand-dark-5';
+
+                    if (statusExec) {
+                      icon = iconeStatusExecucao(statusExec);
+                      switch (statusExec) {
+                        case 'Não Iniciado':
+                          badgeClass = 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+                          break;
+                        case 'Iniciado — Montando Processo':
+                          badgeClass = 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+                          break;
+                        case 'Aguardando Documentos':
+                          badgeClass = 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20';
+                          break;
+                        case 'Protocolado — Ag. PF':
+                          badgeClass = 'bg-purple-500/10 text-purple-300 border-purple-500/20';
+                          break;
+                        case 'Concluído':
+                          badgeClass = 'bg-green-500/10 text-green-300 border-green-500/20';
+                          break;
+                      }
+                    }
+
+                    return (
+                      <span 
+                        key={idx} 
+                        className={`px-1.5 py-0.5 rounded text-[9px] border font-semibold uppercase tracking-wider whitespace-nowrap flex items-center gap-1 ${badgeClass}`}
+                        title={statusExec}
+                      >
+                        {icon && <span>{icon}</span>}
+                        <span>{nome}</span>
+                        {statusExec && <span className="text-[8px] opacity-75 font-normal">({statusExec})</span>}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1433,7 +1493,13 @@ function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
           <div className="flex items-center gap-4 shrink-0 ml-4 self-center">
             <div className="text-right">
               <p className="text-sm font-bold text-white">{formatarMoeda(item.value)}</p>
-              <p className="text-[10px] text-brand-green font-bold uppercase tracking-widest">{item.status}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${
+                item.status === 'Pago' ? 'text-brand-green' :
+                item.status === 'Gratuidade' ? 'text-purple-400' :
+                item.status === 'Aguardando Pagamento' ? 'text-yellow-500' :
+                item.status === 'Parcialmente Pago' ? 'text-orange-400' :
+                'text-gray-400'
+              }`}>{item.status}</p>
             </div>
             <ChevronRight size={16} className="text-gray-600 transition-transform group-hover:translate-x-1" />
           </div>
