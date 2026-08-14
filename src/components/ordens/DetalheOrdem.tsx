@@ -56,6 +56,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [salvarNoPerfilCac, setSalvarNoPerfilCac] = useState(false);
   const [vencimentoGt, setVencimentoGt] = useState('');
   const [destinoGt, setDestinoGt] = useState('');
+  const [tipoGt, setTipoGt] = useState<'Treino' | 'Caça' | 'Manutenção' | 'Transferência' | 'Outro'>('Treino');
   const [salvandoConclusao, setSalvandoConclusao] = useState(false);
   const [armasCliente, setArmasCliente] = useState<Arma[]>([]);
   const [armaSelecionadaId, setArmaSelecionadaId] = useState<string>('');
@@ -232,6 +233,17 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     if (novoStatus === 'Concluído') {
       const serv = ordem.servicos.find(s => s.id === servicoId);
       const isGuia = serv?.nome.toUpperCase().includes('GUIA') || serv?.nome.toUpperCase().includes('GT');
+      
+      let defaultTipo: 'Treino' | 'Caça' | 'Manutenção' | 'Transferência' | 'Outro' = 'Treino';
+      if (serv?.gtTipo) {
+        const t = serv.gtTipo.toLowerCase();
+        if (t.includes('caça') && !t.includes('treinamento')) defaultTipo = 'Caça';
+        else if (t.includes('manutenção') || t.includes('manutencao')) defaultTipo = 'Manutenção';
+        else if (t.includes('transferência') || t.includes('transferencia')) defaultTipo = 'Transferência';
+        else if (t.includes('treinamento') || t.includes('treino') || t.includes('competição') || t.includes('competicao')) defaultTipo = 'Treino';
+        else defaultTipo = 'Outro';
+      }
+
       setServicoConclusao({
         id: servicoId,
         nome: serv?.nome || '',
@@ -241,6 +253,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       setSalvarNoPerfilCac(false);
       setVencimentoGt('');
       setDestinoGt('');
+      setTipoGt(defaultTipo);
       setModalConclusaoAberto(true);
       setStatusAberto(null);
       return;
@@ -338,6 +351,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       if (servicoConclusao.exigeGt && salvarNoPerfilCac && targetArmaId) {
         await salvarGt({
           armaId: targetArmaId,
+          tipo: tipoGt,
           vencimento: vencimentoGt,
           destino: destinoGt.toUpperCase(),
           arquivoUrl: finalFileUrl || undefined
@@ -1183,7 +1197,22 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Tipo da Guia</label>
+                        <select
+                          className="w-full bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none"
+                          value={tipoGt}
+                          onChange={e => setTipoGt(e.target.value as any)}
+                          required={salvarNoPerfilCac}
+                        >
+                          <option value="Treino">Treino</option>
+                          <option value="Caça">Caça</option>
+                          <option value="Manutenção">Manutenção</option>
+                          <option value="Transferência">Transferência</option>
+                          <option value="Outro">Outro</option>
+                        </select>
+                      </div>
                       <div>
                         <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Data de Vencimento</label>
                         <input
@@ -1195,11 +1224,11 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
                         />
                       </div>
                       <div>
-                        <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Clube / Destino da Guia</label>
+                        <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Clube / Destino</label>
                         <input
                           type="text"
                           className="input text-xs uppercase"
-                          placeholder="Ex: CLUBE DE TIRO X"
+                          placeholder="Ex: JATAI-GO"
                           value={destinoGt}
                           onChange={e => setDestinoGt(e.target.value)}
                           required={salvarNoPerfilCac}
