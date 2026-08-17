@@ -1412,7 +1412,7 @@ function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
           onClick={() => navigate(item.path)}
           className="flex items-start justify-between p-3 rounded-xl bg-brand-dark-3 border border-brand-dark-5 hover:border-brand-blue/30 transition-all cursor-pointer group"
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-lg bg-brand-dark-2 flex items-center justify-center text-brand-blue group-hover:scale-110 transition-transform shrink-0">
               <FileText size={18} />
             </div>
