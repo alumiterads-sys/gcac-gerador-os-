@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Cliente } from '../../types';
 import { useClientes } from '../../context/ClientesContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, Save, Eye, EyeOff, CheckCircle, Upload } from 'lucide-react';
+import { X, Save, Eye, EyeOff, CheckCircle, Upload, Camera } from 'lucide-react';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
 import { supabase } from '../../db/supabase';
+import { ModalUploadCelular } from '../common/ModalUploadCelular';
 
 interface Props {
   clienteEditando: Cliente | null;
@@ -82,6 +83,8 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
     responsavelId: clienteEditando?.responsavelId ?? '',
     ignorarMensagensAlertas: clienteEditando?.ignorarMensagensAlertas ?? false,
   });
+
+  const [cameraModalConfig, setCameraModalConfig] = useState<{ isOpen: boolean; campo: 'crUrl' | 'crIbamaUrl'; label: string } | null>(null);
 
   const atualizar = (campo: string, valor: any) => {
     setForm(f => ({ ...f, [campo]: valor }));
@@ -387,6 +390,13 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
               <label htmlFor="cr-attachment" className="btn-ghost flex items-center gap-2 cursor-pointer text-xs h-10 border border-brand-dark-5 rounded-lg px-3">
                 <Upload size={14} /> {form.crUrl ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+              <button
+                type="button"
+                onClick={() => setCameraModalConfig({ isOpen: true, campo: 'crUrl', label: 'CR Exército' })}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
               {form.crUrl && (
                 <>
                   <button type="button" onClick={() => visualizarDocumentoBase64(form.crUrl, `CR-${form.numeroCr || 'exercito'}`)}
@@ -442,6 +452,13 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
               <label htmlFor="cr-ibama-attachment" className="btn-ghost flex items-center gap-2 cursor-pointer text-xs h-10 border border-brand-dark-5 rounded-lg px-3">
                 <Upload size={14} /> {form.crIbamaUrl ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+              <button
+                type="button"
+                onClick={() => setCameraModalConfig({ isOpen: true, campo: 'crIbamaUrl', label: 'CR IBAMA' })}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
               {form.crIbamaUrl && (
                 <>
                   <button type="button" onClick={() => visualizarDocumentoBase64(form.crIbamaUrl, `CR-IBAMA-${form.numeroCrIbama || 'ibama'}`)}
@@ -530,6 +547,18 @@ export function FormularioCliente({ clienteEditando, onFechar }: Props) {
           </div>
         </form>
       </div>
+
+      {cameraModalConfig && (
+        <ModalUploadCelular
+          isOpen={cameraModalConfig.isOpen}
+          onClose={() => setCameraModalConfig(null)}
+          onUploadSuccess={(base64) => {
+            atualizar(cameraModalConfig.campo, base64);
+            setCameraModalConfig(null);
+          }}
+          titulo={`Tirar Foto do ${cameraModalConfig.label}`}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Target, MapPin, Calendar, Plus, Trash2, ShieldAlert, AlertTriangle,
-  ChevronDown, ChevronUp, FileText, Globe, Landmark, Upload, Loader2, Pencil, RefreshCw
+  ChevronDown, ChevronUp, FileText, Globe, Landmark, Upload, Loader2, Pencil, RefreshCw, Camera
 } from 'lucide-react';
 import { parseIbamaPdf } from '../../services/ibamaParserService';
 import { parseGtPdf } from '../../services/gtParserService';
@@ -13,6 +13,7 @@ import { calcularAlerta, obterClasseAlerta } from '../../utils/vencimentos';
 import { fileToBase64, visualizarDocumentoBase64 } from '../../utils/fileUtils';
 import { useAuth } from '../../context/AuthContext';
 import { buscarAcervoVinculado } from '../../services/vinculosService';
+import { ModalUploadCelular } from '../common/ModalUploadCelular';
 
 const TIPOS_ARMA = ['Pistola', 'Revólver', 'Carabina / Fuzil', 'Espingarda'];
 
@@ -801,6 +802,7 @@ export function ModalEditarCr({
     url: urlInicial || '',
     emRenovacao: emRenovacaoInicial ?? false
   });
+  const [cameraModalAberto, setCameraModalAberto] = useState(false);
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -878,6 +880,15 @@ export function ModalEditarCr({
               >
                 <Upload size={14} /> {form.url ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+              
+              <button
+                type="button"
+                onClick={() => setCameraModalAberto(true)}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
+
               {form.url && (
                 <>
                   <button 
@@ -909,6 +920,15 @@ export function ModalEditarCr({
           </button>
         </div>
       </div>
+
+      {cameraModalAberto && (
+        <ModalUploadCelular
+          isOpen={cameraModalAberto}
+          onClose={() => setCameraModalAberto(false)}
+          onUploadSuccess={(base64) => setForm(prev => ({ ...prev, url: base64, emRenovacao: false }))}
+          titulo={`Tirar Foto do ${label}`}
+        />
+      )}
     </div>
   );
 }
@@ -1027,6 +1047,7 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
     crafUrl: armaParaEditar?.crafUrl || '',
     crafEmRenovacao: armaParaEditar?.crafEmRenovacao ?? false
   });
+  const [cameraModalAberto, setCameraModalAberto] = useState(false);
 
   const modelosConfigurados = opcoesArmas.filter(o => o.tipo === 'modelo').map(o => o.nome);
   const calibresConfigurados = opcoesArmas.filter(o => o.tipo === 'calibre').map(o => o.nome);
@@ -1200,6 +1221,15 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
               >
                 <Upload size={14} /> {form.crafUrl ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+
+              <button
+                type="button"
+                onClick={() => setCameraModalAberto(true)}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
+
               {form.crafUrl && (
                 <>
                   <button 
@@ -1234,6 +1264,15 @@ export function ModalArma({ armaParaEditar, onFechar, onSalvar }: { armaParaEdit
           </button>
         </div>
       </div>
+
+      {cameraModalAberto && (
+        <ModalUploadCelular
+          isOpen={cameraModalAberto}
+          onClose={() => setCameraModalAberto(false)}
+          onUploadSuccess={(base64) => setForm(prev => ({ ...prev, crafUrl: base64, crafEmRenovacao: false }))}
+          titulo="Tirar Foto do CRAF"
+        />
+      )}
     </div>
   );
 }
@@ -1248,6 +1287,7 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
     arquivoUrl: gtParaEditar?.arquivoUrl || '',
     gtEmRenovacao: gtParaEditar?.gtEmRenovacao ?? false
   });
+  const [cameraModalAberto, setCameraModalAberto] = useState(false);
   
   // Estados para UF e Cidade (para guias do tipo Caça)
   const [selectedUf, setSelectedUf] = useState('');
@@ -1610,6 +1650,15 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
               >
                 <Upload size={14} /> {form.arquivoUrl ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+
+              <button
+                type="button"
+                onClick={() => setCameraModalAberto(true)}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
+
               {form.arquivoUrl && (
                 <>
                   <button 
@@ -1643,6 +1692,15 @@ export function ModalGt({ armaAcervo, armaNumeroSerie, gtParaEditar, onFechar, o
           </div>
         </div>
       </div>
+
+      {cameraModalAberto && (
+        <ModalUploadCelular
+          isOpen={cameraModalAberto}
+          onClose={() => setCameraModalAberto(false)}
+          onUploadSuccess={(base64) => setForm(prev => ({ ...prev, arquivoUrl: base64, gtEmRenovacao: false }))}
+          titulo="Tirar Foto da Guia de Tráfego"
+        />
+      )}
     </div>
   );
 }
@@ -1660,6 +1718,7 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
     manejoEmRenovacao: manejoParaEditar?.manejoEmRenovacao ?? false
   });
   const [importando, setImportando] = useState(false);
+  const [cameraModalAberto, setCameraModalAberto] = useState(false);
 
   // Estados para UF e Cidade
   const [selectedUf, setSelectedUf] = useState('');
@@ -1935,6 +1994,15 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
               >
                 <Upload size={14} /> {form.arquivoUrl ? 'Alterar Anexo' : 'Anexar Documento'}
               </label>
+
+              <button
+                type="button"
+                onClick={() => setCameraModalAberto(true)}
+                className="btn-ghost flex items-center gap-2 text-xs h-10 border border-brand-dark-5 rounded-lg px-3 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+              >
+                <Camera size={14} /> Tirar Foto
+              </button>
+
               {form.arquivoUrl && (
                 <>
                   <button 
@@ -1969,6 +2037,15 @@ export function ModalManejo({ manejoParaEditar, onFechar, onSalvar }: { manejoPa
           </button>
         </div>
       </div>
+
+      {cameraModalAberto && (
+        <ModalUploadCelular
+          isOpen={cameraModalAberto}
+          onClose={() => setCameraModalAberto(false)}
+          onUploadSuccess={(base64) => setForm(prev => ({ ...prev, arquivoUrl: base64, manejoEmRenovacao: false }))}
+          titulo="Tirar Foto da Autorização de Manejo"
+        />
+      )}
     </div>
   );
 }

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   X, Target, FileText, Award, Shield, AlertTriangle,
   CheckCircle, ChevronDown, ChevronUp, Calendar, User,
-  Plus, Pencil, Trash2, ShieldCheck, Loader2, Info, Upload
+  Plus, Pencil, Trash2, ShieldCheck, Loader2, Info, Upload, Camera
 } from 'lucide-react';
+import { ModalUploadCelular } from '../common/ModalUploadCelular';
 import { VinculoDespachanteCac, AcervoVinculado, buscarAcervoVinculado } from '../../services/vinculosService';
 import { useClientes } from '../../context/ClientesContext';
 import { useAuth } from '../../context/AuthContext';
@@ -106,6 +107,7 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
   const [modalGtAberto, setModalGtAberto] = useState<{ armaId: string; gt?: GuiaTrafego } | null>(null);
   const [modalManejoAberto, setModalManejoAberto] = useState(false);
   const [manejoParaEditar, setManejoParaEditar] = useState<AutorizacaoManejo | null>(null);
+  const [cameraModalConfig, setCameraModalConfig] = useState<{ isOpen: boolean; campo: 'crUrl' | 'crIbamaUrl'; label: string } | null>(null);
 
   const { usuario } = useAuth();
   const { cliente, armas, manejos } = dadosAcervo;
@@ -445,6 +447,13 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
                     <label htmlFor="avg-cr-attachment" className="btn-ghost flex items-center gap-1 cursor-pointer text-[10px] h-8 border border-brand-dark-5 rounded-lg px-2">
                       <Upload size={12} /> {formCr.crUrl ? 'Alterar' : 'Anexar'}
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setCameraModalConfig({ isOpen: true, campo: 'crUrl', label: 'CR Exército' })}
+                      className="btn-ghost flex items-center gap-1 text-[10px] h-8 border border-brand-dark-5 rounded-lg px-2 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+                    >
+                      <Camera size={12} /> Tirar Foto
+                    </button>
                     {formCr.crUrl && (
                       <>
                         <button type="button" onClick={() => visualizarDocumentoBase64(formCr.crUrl, `CR-${formCr.numeroCr || 'exercito'}`)} className="text-brand-blue hover:text-brand-blue-light text-[10px] font-semibold">Visualizar</button>
@@ -470,6 +479,13 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
                     <label htmlFor="avg-cr-ibama-attachment" className="btn-ghost flex items-center gap-1 cursor-pointer text-[10px] h-8 border border-brand-dark-5 rounded-lg px-2">
                       <Upload size={12} /> {formCr.crIbamaUrl ? 'Alterar' : 'Anexar'}
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => setCameraModalConfig({ isOpen: true, campo: 'crIbamaUrl', label: 'CR IBAMA' })}
+                      className="btn-ghost flex items-center gap-1 text-[10px] h-8 border border-brand-dark-5 rounded-lg px-2 hover:bg-brand-blue/10 hover:border-brand-blue/30"
+                    >
+                      <Camera size={12} /> Tirar Foto
+                    </button>
                     {formCr.crIbamaUrl && (
                       <>
                         <button type="button" onClick={() => visualizarDocumentoBase64(formCr.crIbamaUrl, `CR-IBAMA-${formCr.numeroCrIbama || 'ibama'}`)} className="text-brand-blue hover:text-brand-blue-light text-[10px] font-semibold">Visualizar</button>
@@ -792,6 +808,18 @@ export function AcervoVinculadoGerenciador({ vinculo, acervo, onClose }: Props) 
             setManejoParaEditar(null);
           }}
           onSalvar={handleSalvarManejo}
+        />
+      )}
+
+      {cameraModalConfig && (
+        <ModalUploadCelular
+          isOpen={cameraModalConfig.isOpen}
+          onClose={() => setCameraModalConfig(null)}
+          onUploadSuccess={(base64) => {
+            setFormCr(prev => ({ ...prev, [cameraModalConfig.campo]: base64 }));
+            setCameraModalConfig(null);
+          }}
+          titulo={`Tirar Foto do ${cameraModalConfig.label}`}
         />
       )}
     </div>

@@ -50,6 +50,7 @@ import { TermosUso, PoliticaPrivacidade } from './components/public/TermosPrivac
 import { GerenciadorDeclaracoes } from './components/declaracoes/GerenciadorDeclaracoes';
 import { HomePagePublica } from './pages/HomePagePublica';
 import { SolicitarServicoPage } from './pages/SolicitarServicoPage';
+import { UploadCelularPage } from './pages/UploadCelularPage';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -371,6 +372,9 @@ export default function App() {
 
                             {/* Rota pública: landing page de aceite de convite CAC */}
                             <Route path="/convite/:token" element={<ConviteAceitarPage />} />
+
+                            {/* Rota pública: upload de fotos via celular */}
+                            <Route path="/upload-celular/:sessionId" element={<UploadCelularPage />} />
 
                             <Route path="*" element={<WildcardRedirect />} />
                           </Routes>
