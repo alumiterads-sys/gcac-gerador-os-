@@ -8,7 +8,19 @@ CREATE TABLE IF NOT EXISTS public.locais_laudos (
     UNIQUE (empresa_id, nome)
 );
 
-ALTER TABLE public.locais_laudos DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.locais_laudos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS locais_laudos_all_policy ON public.locais_laudos;
+CREATE POLICY locais_laudos_all_policy ON public.locais_laudos
+  FOR ALL TO authenticated
+  USING (
+    empresa_id = public.get_auth_empresa_id()
+    OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
+  )
+  WITH CHECK (
+    empresa_id = public.get_auth_empresa_id()
+    OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
+  );
 
 -- 2. Criar Tabela de Profissionais
 CREATE TABLE IF NOT EXISTS public.profissionais_laudos (
@@ -22,7 +34,19 @@ CREATE TABLE IF NOT EXISTS public.profissionais_laudos (
     UNIQUE (empresa_id, nome, tipo)
 );
 
-ALTER TABLE public.profissionais_laudos DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profissionais_laudos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS profissionais_laudos_all_policy ON public.profissionais_laudos;
+CREATE POLICY profissionais_laudos_all_policy ON public.profissionais_laudos
+  FOR ALL TO authenticated
+  USING (
+    empresa_id = public.get_auth_empresa_id()
+    OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
+  )
+  WITH CHECK (
+    empresa_id = public.get_auth_empresa_id()
+    OR LOWER(auth.jwt() ->> 'email') = 'gui.gomesassis@gmail.com'
+  );
 
 -- 3. Inserir sementes (seeds) para a empresa padrão
 DO $$
