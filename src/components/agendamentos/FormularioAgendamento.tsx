@@ -29,7 +29,10 @@ const DEFAULTS = {
 
 export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCancel }: FormularioAgendamentoProps) {
   const location = useLocation();
-  const { criarAgendamento, atualizarAgendamento, buscarAgendamentoPorCPF } = useAgendamentos();
+  const { 
+    criarAgendamento, atualizarAgendamento, buscarAgendamentoPorCPF,
+    locais, profissionais 
+  } = useAgendamentos();
   const { clientes } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const [salvando, setSalvando] = useState(false);
@@ -75,6 +78,50 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
 
   const [erros, setErros] = useState<Record<string, string>>({});
 
+  // 1. Filtrar profissionais ativos pelo tipo
+  const profissionaisFiltrados = profissionais.filter(
+    p => p.ativo && p.tipo === form.tipo
+  );
+
+  // 2. Achar o profissional selecionado atualmente
+  const profissionalSelecionado = profissionais.find(
+    p => p.nome.toUpperCase() === form.profissional.toUpperCase()
+  );
+
+  // 3. Filtrar locais ativos
+  const locaisFiltrados = locais.filter(loc => {
+    if (!loc.ativo) return false;
+    if (profissionalSelecionado) {
+      return profissionalSelecionado.locaisIds.includes(loc.id);
+    }
+    return true;
+  });
+
+  // Preencher profissional/local padrão do banco de dados ao carregar
+  useEffect(() => {
+    if (!agendamentoExistente && profissionais.length > 0 && locais.length > 0) {
+      setForm(f => {
+        const matchesHardcodedPsi = f.tipo === 'Psicológico' && f.profissional === DEFAULTS['Psicológico'].profissional;
+        const matchesHardcodedTiro = f.tipo === 'Tiro' && f.profissional === DEFAULTS['Tiro'].profissional;
+        
+        if (matchesHardcodedPsi || matchesHardcodedTiro || !f.profissional) {
+          const profs = profissionais.filter(p => p.ativo && p.tipo === f.tipo);
+          if (profs.length > 0) {
+            const firstProf = profs[0];
+            const firstLocId = firstProf.locaisIds[0];
+            const firstLoc = locais.find(l => l.id === firstLocId);
+            return {
+              ...f,
+              profissional: firstProf.nome,
+              local: firstLoc ? firstLoc.nome : ''
+            };
+          }
+        }
+        return f;
+      });
+    }
+  }, [profissionais, locais, agendamentoExistente]);
+
   const atualizar = (campo: string, valor: any) => {
     setForm(f => {
       const novoForm = { ...f, [campo]: valor };
@@ -82,9 +129,24 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
       // Se mudar o tipo e não for edição, aplica os padrões
       if (campo === 'tipo' && !agendamentoExistente) {
         const defaults = DEFAULTS[valor as TipoAgendamento];
-        novoForm.local = defaults.local;
-        novoForm.profissional = defaults.profissional;
         novoForm.valor = defaults.valor;
+
+        const profs = profissionais.filter(p => p.ativo && p.tipo === valor);
+        if (profs.length > 0) {
+          const firstProf = profs[0];
+          novoForm.profissional = firstProf.nome;
+          
+          const firstLocId = firstProf.locaisIds[0];
+          const firstLoc = locais.find(l => l.id === firstLocId);
+          if (firstLoc) {
+            novoForm.local = firstLoc.nome;
+          } else {
+            novoForm.local = '';
+          }
+        } else {
+          novoForm.local = defaults.local;
+          novoForm.profissional = defaults.profissional;
+        }
       }
 
       return novoForm;
@@ -445,35 +507,57 @@ export function FormularioAgendamento({ agendamentoExistente, onSuccess, onCance
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div>
-              <label className="label">Local </label>
-              <div className="relative">
-                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input 
-                  type="text" 
-                  className="input pl-10"
-                  list="lista-clubes"
-                  placeholder="EX: CLUBE PRO TIRO"
-                  value={form.local}
-                  onChange={e => atualizar('local', e.target.value)}
-                />
-                <datalist id="lista-clubes">
-                  <option value="CLUBE DE TIRO E CAÇA PRÓ TIRO (JATAÍ)" />
-                  <option value="CLUBE DE TIRO ARMAZÉM DO CAC" />
-                  <option value="CLUBE DE TIRO E CAÇA DO PANTANAL" />
-                  <option value="CLÍNICA METRA" />
-                </datalist>
-              </div>
-            </div>
-            <div>
               <label className="label">{form.tipo === 'Psicológico' ? 'Psicóloga' : 'Instrutor'}</label>
               <div className="relative">
                 <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                <input 
-                  type="text" 
-                  className="input pl-10"
+                <select
+                  className="input pl-10 bg-brand-dark-3"
                   value={form.profissional}
-                  onChange={e => atualizar('profissional', e.target.value)}
-                />
+                  onChange={e => {
+                    const profNome = e.target.value;
+                    atualizar('profissional', profNome);
+                    
+                    const prof = profissionais.find(p => p.nome.toUpperCase() === profNome.toUpperCase());
+                    if (prof) {
+                      const firstLocId = prof.locaisIds[0];
+                      const firstLoc = locais.find(l => l.id === firstLocId);
+                      if (firstLoc) {
+                        atualizar('local', firstLoc.nome);
+                      } else {
+                        atualizar('local', '');
+                      }
+                    } else {
+                      atualizar('local', '');
+                    }
+                  }}
+                >
+                  <option value="">Selecione...</option>
+                  {profissionaisFiltrados.map(p => (
+                    <option key={p.id} value={p.nome}>{p.nome}</option>
+                  ))}
+                  {form.profissional && !profissionaisFiltrados.some(p => p.nome.toUpperCase() === form.profissional.toUpperCase()) && (
+                    <option value={form.profissional}>{form.profissional} (Não cadastrado)</option>
+                  )}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="label">Local </label>
+              <div className="relative">
+                <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <select 
+                  className="input pl-10 bg-brand-dark-3"
+                  value={form.local}
+                  onChange={e => atualizar('local', e.target.value)}
+                >
+                  <option value="">Selecione o Local</option>
+                  {locaisFiltrados.map(loc => (
+                    <option key={loc.id} value={loc.nome}>{loc.nome}</option>
+                  ))}
+                  {form.local && !locaisFiltrados.some(l => l.nome.toUpperCase() === form.local.toUpperCase()) && (
+                    <option value={form.local}>{form.local} (Não cadastrado)</option>
+                  )}
+                </select>
               </div>
             </div>
             <div>

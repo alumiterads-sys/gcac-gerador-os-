@@ -505,3 +505,22 @@ export interface OpcaoArma {
   criadoEm?: string;
 }
 
+export interface LocalLaudo {
+  id: string;
+  empresaId: string;
+  nome: string;
+  ativo: boolean;
+  criadoEm: string;
+}
+
+export interface ProfissionalLaudo {
+  id: string;
+  empresaId: string;
+  nome: string;
+  tipo: 'Tiro' | 'Psicológico';
+  locaisIds: string[];
+  ativo: boolean;
+  criadoEm: string;
+}
+
+

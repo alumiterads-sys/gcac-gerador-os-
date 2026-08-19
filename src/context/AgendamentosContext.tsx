@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
-import { Agendamento, TipoAgendamento } from '../types';
+import { Agendamento, TipoAgendamento, LocalLaudo, ProfissionalLaudo } from '../types';
 import { supabase } from '../db/supabase';
 import { useAuth } from './AuthContext';
 import { useNotificacoesSistema } from './NotificacoesSistemaContext';
@@ -14,6 +14,20 @@ interface AgendamentosContextType {
   confirmarAgendamentoColaborador: (id: string, confirmado: boolean) => Promise<void>;
   finalizarLaudo: (id: string) => Promise<void>;
   buscarAgendamentoPorCPF: (cpf: string, tipo?: TipoAgendamento) => Agendamento | undefined;
+
+  // Locais
+  locais: LocalLaudo[];
+  carregarLocais: () => Promise<void>;
+  criarLocal: (dados: Omit<LocalLaudo, 'id' | 'empresaId' | 'criadoEm'>) => Promise<string>;
+  atualizarLocal: (id: string, dados: Partial<LocalLaudo>) => Promise<void>;
+  deletarLocal: (id: string) => Promise<void>;
+
+  // Profissionais
+  profissionais: ProfissionalLaudo[];
+  carregarProfissionais: () => Promise<void>;
+  criarProfissional: (dados: Omit<ProfissionalLaudo, 'id' | 'empresaId' | 'criadoEm'>) => Promise<string>;
+  atualizarProfissional: (id: string, dados: Partial<ProfissionalLaudo>) => Promise<void>;
+  deletarProfissional: (id: string) => Promise<void>;
 }
 
 const AgendamentosContext = createContext<AgendamentosContextType | null>(null);
@@ -64,11 +78,51 @@ const mapToDB = (dados: any) => {
   return payload;
 };
 
+// Mapeadores Locais
+const mapLocalFromDB = (row: any): LocalLaudo => ({
+  id: row.id,
+  empresaId: row.empresa_id,
+  nome: row.nome,
+  ativo: row.ativo,
+  criadoEm: row.criado_em,
+});
+
+const mapLocalToDB = (dados: Partial<LocalLaudo>) => {
+  const payload: any = {};
+  if (dados.nome !== undefined) payload.nome = String(dados.nome).toUpperCase();
+  if (dados.ativo !== undefined) payload.ativo = dados.ativo;
+  return payload;
+};
+
+// Mapeadores Profissionais
+const mapProfissionalFromDB = (row: any): ProfissionalLaudo => ({
+  id: row.id,
+  empresaId: row.empresa_id,
+  nome: row.nome,
+  tipo: row.tipo as 'Tiro' | 'Psicológico',
+  locaisIds: row.locais_ids || [],
+  ativo: row.ativo,
+  criadoEm: row.criado_em,
+});
+
+const mapProfissionalToDB = (dados: Partial<ProfissionalLaudo>) => {
+  const payload: any = {};
+  if (dados.nome !== undefined) payload.nome = String(dados.nome).toUpperCase();
+  if (dados.tipo !== undefined) payload.tipo = dados.tipo;
+  if (dados.locaisIds !== undefined) payload.locais_ids = dados.locaisIds;
+  if (dados.ativo !== undefined) payload.ativo = dados.ativo;
+  return payload;
+};
+
 export function AgendamentosProvider({ children }: { children: React.ReactNode }) {
   const { usuario, estaAutenticado } = useAuth();
   const { enviarNotificacao } = useNotificacoesSistema();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [locais, setLocais] = useState<LocalLaudo[]>([]);
+  const [profissionais, setProfissionais] = useState<ProfissionalLaudo[]>([]);
   const [estaCarregando, setEstaCarregando] = useState(true);
+
+  // ─── Métodos de Agendamentos ─────────────────────────────────────────────
 
   const carregarAgendamentos = useCallback(async () => {
     if (!estaAutenticado || !usuario?.empresaId) return;
@@ -80,8 +134,6 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       .eq('empresa_id', usuario.empresaId)
       .order('data', { ascending: false });
     
-    // Se for colaborador, filtra apenas os seus próprios dados (Multi-Tenant)
-    // O Administrador (Guilherme) continua vendo tudo
     if (usuario?.role === 'colaborador') {
       query = query.eq('usuario_id', usuario.id);
     }
@@ -94,9 +146,40 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     setEstaCarregando(false);
   }, [estaAutenticado, usuario]);
 
+  // ─── Métodos de Locais ───────────────────────────────────────────────────
+
+  const carregarLocais = useCallback(async () => {
+    if (!estaAutenticado || !usuario?.empresaId) return;
+    const { data, error } = await supabase
+      .from('locais_laudos')
+      .select('*')
+      .eq('empresa_id', usuario.empresaId)
+      .order('nome', { ascending: true });
+    if (!error && data) {
+      setLocais(data.map(mapLocalFromDB));
+    }
+  }, [estaAutenticado, usuario]);
+
+  // ─── Métodos de Profissionais ────────────────────────────────────────────
+
+  const carregarProfissionais = useCallback(async () => {
+    if (!estaAutenticado || !usuario?.empresaId) return;
+    const { data, error } = await supabase
+      .from('profissionais_laudos')
+      .select('*')
+      .eq('empresa_id', usuario.empresaId)
+      .order('nome', { ascending: true });
+    if (!error && data) {
+      setProfissionais(data.map(mapProfissionalFromDB));
+    }
+  }, [estaAutenticado, usuario]);
+
+  // Effects iniciais
   useEffect(() => {
     carregarAgendamentos();
-  }, [carregarAgendamentos]);
+    carregarLocais();
+    carregarProfissionais();
+  }, [carregarAgendamentos, carregarLocais, carregarProfissionais]);
 
   const criarAgendamento = useCallback(async (
     dados: Omit<Agendamento, 'id' | 'confirmado' | 'criadoEm'>
@@ -123,7 +206,6 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     
     if (!data) throw new Error('Falha ao criar agendamento: nenhum dado retornado');
     
-    // Notificar Admin apenas se for Colaborador E se o despacho for para GCAC
     if (usuario?.role === 'colaborador' && dados.despachante === 'GCAC / Guilherme') {
       enviarNotificacao({
         titulo: 'Novo Agendamento por Colaborador',
@@ -134,7 +216,7 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
 
     await carregarAgendamentos();
     return data.id;
-  }, [carregarAgendamentos]);
+  }, [carregarAgendamentos, usuario, enviarNotificacao]);
 
   const atualizarAgendamento = useCallback(async (id: string, dados: Partial<Agendamento>) => {
     const { error } = await supabase
@@ -144,7 +226,6 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
 
     if (error) throw error;
 
-    // Notificar Admin apenas se for Colaborador E se o despacho for para GCAC
     if (usuario?.role === 'colaborador' && dados.despachante === 'GCAC / Guilherme') {
       enviarNotificacao({
         titulo: 'Agendamento Atualizado',
@@ -202,6 +283,70 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
     );
   }, [agendamentos]);
 
+  // CRUD Locais
+  const criarLocal = useCallback(async (dados: Omit<LocalLaudo, 'id' | 'empresaId' | 'criadoEm'>): Promise<string> => {
+    if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
+    const { data, error } = await supabase
+      .from('locais_laudos')
+      .insert([{ ...mapLocalToDB(dados), empresa_id: usuario.empresaId }])
+      .select()
+      .single();
+    if (error) throw error;
+    await carregarLocais();
+    return data.id;
+  }, [carregarLocais, usuario]);
+
+  const atualizarLocal = useCallback(async (id: string, dados: Partial<LocalLaudo>) => {
+    const { error } = await supabase
+      .from('locais_laudos')
+      .update(mapLocalToDB(dados))
+      .eq('id', id);
+    if (error) throw error;
+    await carregarLocais();
+    await carregarProfissionais();
+  }, [carregarLocais, carregarProfissionais]);
+
+  const deletarLocal = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('locais_laudos')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    await carregarLocais();
+    await carregarProfissionais();
+  }, [carregarLocais, carregarProfissionais]);
+
+  // CRUD Profissionais
+  const criarProfissional = useCallback(async (dados: Omit<ProfissionalLaudo, 'id' | 'empresaId' | 'criadoEm'>): Promise<string> => {
+    if (!usuario?.empresaId) throw new Error('Usuário não autenticado');
+    const { data, error } = await supabase
+      .from('profissionais_laudos')
+      .insert([{ ...mapProfissionalToDB(dados), empresa_id: usuario.empresaId }])
+      .select()
+      .single();
+    if (error) throw error;
+    await carregarProfissionais();
+    return data.id;
+  }, [carregarProfissionais, usuario]);
+
+  const atualizarProfissional = useCallback(async (id: string, dados: Partial<ProfissionalLaudo>) => {
+    const { error } = await supabase
+      .from('profissionais_laudos')
+      .update(mapProfissionalToDB(dados))
+      .eq('id', id);
+    if (error) throw error;
+    await carregarProfissionais();
+  }, [carregarProfissionais]);
+
+  const deletarProfissional = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('profissionais_laudos')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    await carregarProfissionais();
+  }, [carregarProfissionais]);
+
   return (
     <AgendamentosContext.Provider value={{
       agendamentos,
@@ -212,7 +357,21 @@ export function AgendamentosProvider({ children }: { children: React.ReactNode }
       confirmarAgendamento,
       confirmarAgendamentoColaborador,
       finalizarLaudo,
-      buscarAgendamentoPorCPF
+      buscarAgendamentoPorCPF,
+      
+      // Locais
+      locais,
+      carregarLocais,
+      criarLocal,
+      atualizarLocal,
+      deletarLocal,
+
+      // Profissionais
+      profissionais,
+      carregarProfissionais,
+      criarProfissional,
+      atualizarProfissional,
+      deletarProfissional
     }}>
       {children}
     </AgendamentosContext.Provider>

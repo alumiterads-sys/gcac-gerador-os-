@@ -6,6 +6,7 @@ import { useStatusConexao } from '../../hooks/useStatusConexao';
 import { useOrdens } from '../../context/OrdensContext';
 import { useServicos } from '../../context/ServicosContext';
 import { useClientes } from '../../context/ClientesContext';
+import { useAgendamentos } from '../../context/AgendamentosContext';
 import { 
   LogOut, Cloud, RefreshCw, User, Wifi, WifiOff, ShieldCheck, 
   Plus, Settings2, Edit2, Trash2, BadgeDollarSign, ChevronDown,
@@ -47,6 +48,18 @@ export function Configuracoes() {
     clientes, buscarArmas, buscarGts, buscarManejos,
     opcoesArmas, carregandoOpcoes, criarOpcaoArma, atualizarOpcaoArma, deletarOpcaoArma 
   } = useClientes();
+  const { 
+    locais, criarLocal, atualizarLocal, deletarLocal,
+    profissionais, criarProfissional, atualizarProfissional, deletarProfissional 
+  } = useAgendamentos();
+
+  const [laudosExpandido, setLaudosExpandido] = useState(false);
+  const [tabLaudosAtiva, setTabLaudosAtiva] = useState<'profissional' | 'local'>('profissional');
+  const [modalLocalAberto, setModalLocalAberto] = useState(false);
+  const [localEditando, setLocalEditando] = useState<{ id?: string, nome: string, ativo: boolean } | null>(null);
+  const [modalProfissionalAberto, setModalProfissionalAberto] = useState(false);
+  const [profissionalEditando, setProfissionalEditando] = useState<{ id?: string, nome: string, tipo: 'Tiro' | 'Psicológico', locaisIds: string[], ativo: boolean } | null>(null);
+
   const itensFila = ordens.filter(o => o.pendenteSincronizacao).length;
   
   const online = useStatusConexao();
@@ -2152,6 +2165,252 @@ export function Configuracoes() {
         </div>
       )}
 
+      {/* ── Locais e Profissionais de Laudo ── */}
+      {!isCac && (
+        <div className="card space-y-4">
+          <div 
+            className="flex items-center justify-between cursor-pointer group"
+            onClick={() => setLaudosExpandido(!laudosExpandido)}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg transition-colors ${laudosExpandido ? 'bg-brand-blue/20 text-brand-blue-light' : 'bg-brand-dark-4 text-gray-500 group-hover:text-white'}`}>
+                <MapPin size={16} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-wider">
+                  Instrutores, Psicólogos e Locais de Laudo
+                </h2>
+                {!laudosExpandido && (
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest text-left">
+                    Gerenciar profissionais credenciados (tiro/psicologia) e locais de aplicação de laudos
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className={`text-gray-500 transition-transform duration-300 ${laudosExpandido ? 'rotate-180' : ''}`}>
+              <ChevronDown size={20} />
+            </div>
+          </div>
+
+          {laudosExpandido && (
+            <div className="animate-slide-down space-y-4 pt-3 border-t border-brand-dark-5">
+              {/* Abas */}
+              <div className="flex gap-2 border-b border-brand-dark-5 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setTabLaudosAtiva('profissional')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase ${
+                    tabLaudosAtiva === 'profissional'
+                      ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20'
+                      : 'bg-brand-dark-4 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Profissionais (Instrutores/Psicólogos)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTabLaudosAtiva('local')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all uppercase ${
+                    tabLaudosAtiva === 'local'
+                      ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20'
+                      : 'bg-brand-dark-4 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Locais de Atendimento
+                </button>
+              </div>
+
+              {tabLaudosAtiva === 'local' ? (
+                <>
+                  {/* Locais */}
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-400">
+                      Locais cadastrados para a realização dos laudos.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocalEditando({ nome: '', ativo: true });
+                        setModalLocalAberto(true);
+                      }}
+                      className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 font-bold"
+                    >
+                      <Plus size={14} />
+                      Novo Local
+                    </button>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto border border-brand-dark-5 rounded-xl scrollbar-thin scrollbar-thumb-slate-800">
+                    {locais.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-gray-500 font-bold uppercase">
+                        Nenhum local cadastrado.
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-brand-dark-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider border-b border-brand-dark-5">
+                            <th className="p-3">Nome</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-dark-5">
+                          {locais.map(item => (
+                            <tr key={item.id} className="hover:bg-brand-dark-4 transition-colors">
+                              <td className="p-3 text-xs text-white font-medium uppercase">{item.nome}</td>
+                              <td className="p-3 text-xs">
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${item.ativo ? 'bg-brand-green/10 text-brand-green border border-brand-green/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                  {item.ativo ? 'Ativo' : 'Inativo'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setLocalEditando({ id: item.id, nome: item.nome, ativo: item.ativo });
+                                      setModalLocalAberto(true);
+                                    }}
+                                    className="text-gray-400 hover:text-brand-blue-light transition-colors"
+                                    title="Editar"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!window.confirm(`Tem certeza que deseja excluir o local "${item.nome}"?`)) return;
+                                      try {
+                                        await deletarLocal(item.id);
+                                        mostrar('sucesso', 'Local excluído com sucesso!');
+                                      } catch (err: any) {
+                                        mostrar('erro', 'Erro ao excluir local: ' + err.message);
+                                      }
+                                    }}
+                                    className="text-gray-400 hover:text-red-500 transition-colors"
+                                    title="Excluir"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Profissionais */}
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-gray-400">
+                      Instrutores de Tiro e Psicólogos credenciados.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfissionalEditando({ nome: '', tipo: 'Tiro', locaisIds: [], ativo: true });
+                        setModalProfissionalAberto(true);
+                      }}
+                      className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5 font-bold"
+                    >
+                      <Plus size={14} />
+                      Novo Profissional
+                    </button>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto border border-brand-dark-5 rounded-xl scrollbar-thin scrollbar-thumb-slate-800">
+                    {profissionais.length === 0 ? (
+                      <div className="p-8 text-center text-xs text-gray-500 font-bold uppercase">
+                        Nenhum profissional cadastrado.
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-brand-dark-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider border-b border-brand-dark-5">
+                            <th className="p-3">Nome</th>
+                            <th className="p-3">Especialidade</th>
+                            <th className="p-3">Locais Atendidos</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-brand-dark-5">
+                          {profissionais.map(item => {
+                            const nomesLocais = item.locaisIds
+                              .map(id => locais.find(l => l.id === id)?.nome)
+                              .filter(Boolean)
+                              .join(', ');
+
+                            return (
+                              <tr key={item.id} className="hover:bg-brand-dark-4 transition-colors">
+                                <td className="p-3 text-xs text-white font-medium uppercase">{item.nome}</td>
+                                <td className="p-3 text-xs text-white uppercase font-semibold">
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${item.tipo === 'Psicológico' ? 'bg-purple-500/20 text-purple-400' : 'bg-orange-500/20 text-orange-400'}`}>
+                                    {item.tipo === 'Psicológico' ? 'Psicologia' : 'Armamento/Tiro'}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-xs text-gray-400 max-w-[200px] truncate uppercase font-medium" title={nomesLocais}>
+                                  {nomesLocais || <span className="italic text-gray-600">Nenhum vinculado</span>}
+                                </td>
+                                <td className="p-3 text-xs">
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${item.ativo ? 'bg-brand-green/10 text-brand-green border border-brand-green/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                                    {item.ativo ? 'Ativo' : 'Inativo'}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-right">
+                                  <div className="flex gap-2 justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setProfissionalEditando({
+                                          id: item.id,
+                                          nome: item.nome,
+                                          tipo: item.tipo,
+                                          locaisIds: item.locaisIds,
+                                          ativo: item.ativo
+                                        });
+                                        setModalProfissionalAberto(true);
+                                      }}
+                                      className="text-gray-400 hover:text-brand-blue-light transition-colors"
+                                      title="Editar"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!window.confirm(`Tem certeza que deseja excluir o profissional "${item.nome}"?`)) return;
+                                        try {
+                                          await deletarProfissional(item.id);
+                                          mostrar('sucesso', 'Profissional excluído com sucesso!');
+                                        } catch (err: any) {
+                                          mostrar('erro', 'Erro ao excluir profissional: ' + err.message);
+                                        }
+                                      }}
+                                      className="text-gray-400 hover:text-red-500 transition-colors"
+                                      title="Excluir"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Otimização de Armazenamento (Banco -> Storage) ── */}
       {!isCac && (
         <div className="card space-y-4 mb-5">
@@ -2367,7 +2626,218 @@ export function Configuracoes() {
         </div>
       )}
 
+      {/* Modal para Adicionar/Editar Local */}
+      {modalLocalAberto && localEditando && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setModalLocalAberto(false)} />
+          <div className="card w-full max-w-md shadow-2xl relative z-10 animate-scale-up border border-brand-dark-5 bg-brand-dark-2">
+            <button 
+              onClick={() => setModalLocalAberto(false)} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <Plus size={20} className="rotate-45" />
+            </button>
+
+            <h2 className="text-xl font-bold text-white mb-6">
+              {localEditando.id ? 'Editar Local' : 'Novo Local'}
+            </h2>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!localEditando.nome.trim()) return;
+                try {
+                  if (localEditando.id) {
+                    await atualizarLocal(localEditando.id, { nome: localEditando.nome.trim(), ativo: localEditando.ativo });
+                    mostrar('sucesso', 'Local atualizado com sucesso!');
+                  } else {
+                    await criarLocal({ nome: localEditando.nome.trim(), ativo: localEditando.ativo });
+                    mostrar('sucesso', 'Local cadastrado com sucesso!');
+                  }
+                  setModalLocalAberto(false);
+                } catch (err: any) {
+                  mostrar('erro', err.message || 'Erro ao salvar local.');
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">Nome do Local</label>
+                <input 
+                  type="text" 
+                  className="input uppercase font-bold" 
+                  placeholder="Ex: CLUBE PRO TIRO, CLINICA METRA"
+                  value={localEditando.nome}
+                  onChange={e => setLocalEditando({ ...localEditando, nome: e.target.value })}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLocalEditando({ ...localEditando, ativo: !localEditando.ativo })}
+                  className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  {localEditando.ativo ? <CheckSquare size={16} className="text-brand-blue" /> : <Square size={16} />}
+                  Local Ativo
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setModalLocalAberto(false)} 
+                  className="btn-ghost flex-1"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary flex-1 font-bold"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Adicionar/Editar Profissional */}
+      {modalProfissionalAberto && profissionalEditando && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setModalProfissionalAberto(false)} />
+          <div className="card w-full max-w-lg shadow-2xl relative z-10 animate-scale-up border border-brand-dark-5 bg-brand-dark-2">
+            <button 
+              onClick={() => setModalProfissionalAberto(false)} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <Plus size={20} className="rotate-45" />
+            </button>
+
+            <h2 className="text-xl font-bold text-white mb-6">
+              {profissionalEditando.id ? 'Editar Profissional' : 'Novo Profissional'}
+            </h2>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!profissionalEditando.nome.trim()) return;
+                try {
+                  if (profissionalEditando.id) {
+                    await atualizarProfissional(profissionalEditando.id, {
+                      nome: profissionalEditando.nome.trim(),
+                      tipo: profissionalEditando.tipo,
+                      locaisIds: profissionalEditando.locaisIds,
+                      ativo: profissionalEditando.ativo
+                    });
+                    mostrar('sucesso', 'Profissional atualizado com sucesso!');
+                  } else {
+                    await criarProfissional({
+                      nome: profissionalEditando.nome.trim(),
+                      tipo: profissionalEditando.tipo,
+                      locaisIds: profissionalEditando.locaisIds,
+                      ativo: profissionalEditando.ativo
+                    });
+                    mostrar('sucesso', 'Profissional cadastrado com sucesso!');
+                  }
+                  setModalProfissionalAberto(false);
+                } catch (err: any) {
+                  mostrar('erro', err.message || 'Erro ao salvar profissional.');
+                }
+              }} 
+              className="space-y-4"
+            >
+              <div>
+                <label className="label">Nome Completo</label>
+                <input 
+                  type="text" 
+                  className="input uppercase font-bold" 
+                  placeholder="Ex: KEOMA MARQUES, MILLENA QUELUZ"
+                  value={profissionalEditando.nome}
+                  onChange={e => setProfissionalEditando({ ...profissionalEditando, nome: e.target.value })}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="label">Especialidade / Tipo de Laudo</label>
+                <select
+                  className="input bg-brand-dark-3"
+                  value={profissionalEditando.tipo}
+                  onChange={e => setProfissionalEditando({ ...profissionalEditando, tipo: e.target.value as any })}
+                  required
+                >
+                  <option value="Tiro">Armamento e Tiro (Instrutor)</option>
+                  <option value="Psicológico">Aptidão Psicologia (Psicólogo(a))</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label mb-2">Vincular Locais de Atendimento</label>
+                {locais.length === 0 ? (
+                  <p className="text-xs text-yellow-400 italic">Cadastre locais de atendimento primeiro para poder vinculá-los ao profissional.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-brand-dark-5 rounded-lg bg-brand-dark-3">
+                    {locais.map(loc => {
+                      const isChecked = profissionalEditando.locaisIds.includes(loc.id);
+                      return (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          onClick={() => {
+                            const newLocaisIds = isChecked
+                              ? profissionalEditando.locaisIds.filter(id => id !== loc.id)
+                              : [...profissionalEditando.locaisIds, loc.id];
+                            setProfissionalEditando({ ...profissionalEditando, locaisIds: newLocaisIds });
+                          }}
+                          className="flex items-center gap-2 text-left text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+                        >
+                          {isChecked ? <CheckSquare size={14} className="text-brand-blue shrink-0" /> : <Square size={14} className="shrink-0" />}
+                          <span className="truncate uppercase">{loc.nome}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProfissionalEditando({ ...profissionalEditando, ativo: !profissionalEditando.ativo })}
+                  className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  {profissionalEditando.ativo ? <CheckSquare size={16} className="text-brand-blue" /> : <Square size={16} />}
+                  Profissional Ativo
+                </button>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setModalProfissionalAberto(false)} 
+                  className="btn-ghost flex-1"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary flex-1 font-bold"
+                >
+                  Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <Notificacao {...notif} onFechar={fechar} />
     </div>
   );
 }
+

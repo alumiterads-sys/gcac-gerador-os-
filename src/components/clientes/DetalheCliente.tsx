@@ -1477,7 +1477,7 @@ function HistoryList({ items, emptyMsg }: { items: any[], emptyMsg: string }) {
                     return (
                       <span 
                         key={idx} 
-                        className={`px-1.5 py-0.5 rounded text-[9px] border font-semibold uppercase tracking-wider whitespace-nowrap flex items-center gap-1 ${badgeClass}`}
+                        className={`px-1.5 py-0.5 rounded text-[9px] border font-semibold uppercase tracking-wider flex items-center flex-wrap gap-1 whitespace-normal break-words max-w-full ${badgeClass}`}
                         title={statusExec}
                       >
                         {icon && <span>{icon}</span>}
