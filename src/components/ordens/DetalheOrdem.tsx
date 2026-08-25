@@ -110,12 +110,12 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   }, [clienteDaOS, ordem.id, ordem.senhaGov, ordem.nomeCliente, ordem.contato, ordem.endereco, ordem.filiadoProTiro, ordem.clubeFiliado, sincronizarComPerfil]);
 
   React.useEffect(() => {
-    if (modalConclusaoAberto && clienteDaOS) {
+    if (clienteDaOS) {
       buscarArmas(clienteDaOS.id, clienteDaOS.empresaId)
         .then(setArmasCliente)
         .catch(err => console.error('[DetalheOrdem] Erro ao buscar armas:', err));
     }
-  }, [modalConclusaoAberto, clienteDaOS, buscarArmas]);
+  }, [clienteDaOS, buscarArmas]);
 
   React.useEffect(() => {
     if (modalConclusaoAberto && servicoConclusao) {
@@ -198,7 +198,26 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       const icon = s.statusExecucao === 'Concluído' ? '✅' : '🔹';
       msg += `${icon} *${s.nome}*\n`;
       msg += `   Valor: _${formatarMoeda(s.valor || 0)}_\n`;
-      msg += `   Status: _${s.statusExecucao || 'Não Iniciado'}_\n`;
+      
+      const nomeUpper = (s.nome || '').toUpperCase();
+      const isGuiaTrafego = nomeUpper.includes('GUIA DE TRÁFEGO') || nomeUpper.includes('GUIA DE TRAFEGO') || nomeUpper.includes('GT');
+      
+      if (isGuiaTrafego) {
+        let armaInfo = '';
+        if (s.armaId) {
+          const arma = armasCliente.find(a => a.id === s.armaId);
+          if (arma) {
+            armaInfo = `${arma.fabricante} ${arma.modelo} (${arma.calibre}) - Série: ${arma.numeroSerie}`;
+          }
+        }
+        if (!armaInfo && s.armaModelo) {
+          armaInfo = s.armaModelo;
+        }
+        if (armaInfo) {
+          msg += `   Arma: _${armaInfo}_\n`;
+        }
+      }
+
       if (s.detalhes && s.detalhes.trim()) {
         msg += `   Obs: _${s.detalhes.trim()}_\n`;
       }
@@ -207,9 +226,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       msg += `\n`;
     });
     
-    msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n`;
-    if (ordem.status !== 'Pago') msg += `💳 *Status Pagamento:* ${ordem.status}\n\n`;
-    
+    msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n\n`;
     msg += `Qualquer dúvida, estamos à disposição!`;
     
     setMensagemWhatsApp(msg);
