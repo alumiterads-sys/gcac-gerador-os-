@@ -1024,14 +1024,14 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                                         onClick={async () => {
                                           const val = (outroClubeTexto[serv.id] || '').trim().toUpperCase();
                                           if (!val) {
-                                            mostrar('Por favor, digite o nome do clube.', 'erro');
+                                            mostrar('erro', 'Por favor, digite o nome do clube.');
                                             return;
                                           }
                                           setSalvandoClube(prev => ({ ...prev, [serv.id]: true }));
                                           try {
                                             await criarOpcaoArma('clube', val);
                                             atualizarGtCamposServico(serv.id, serv.gtTipo, val);
-                                            mostrar('Novo clube salvo e selecionado com sucesso!', 'sucesso');
+                                            mostrar('sucesso', 'Novo clube salvo e selecionado com sucesso!');
                                             setOutroClubeTexto(prev => {
                                               const copy = { ...prev };
                                               delete copy[serv.id];
@@ -1040,7 +1040,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                                           } catch (err: any) {
                                             if (err.message && err.message.includes('já está cadastrado')) {
                                               atualizarGtCamposServico(serv.id, serv.gtTipo, val);
-                                              mostrar('Clube já cadastrado, selecionado com sucesso!', 'sucesso');
+                                              mostrar('sucesso', 'Clube já cadastrado, selecionado com sucesso!');
                                               setOutroClubeTexto(prev => {
                                                 const copy = { ...prev };
                                                 delete copy[serv.id];
@@ -1048,7 +1048,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                                               });
                                             } else {
                                               console.error('Erro ao salvar clube:', err);
-                                              mostrar(err.message || 'Erro ao salvar o clube.', 'erro');
+                                              mostrar('erro', err.message || 'Erro ao salvar o clube.');
                                             }
                                           } finally {
                                             setSalvandoClube(prev => ({ ...prev, [serv.id]: false }));

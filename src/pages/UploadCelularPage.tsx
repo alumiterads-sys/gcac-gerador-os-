@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Camera, CheckCircle2, AlertTriangle, Loader2, Upload, RotateCcw, X, Plus } from 'lucide-react';
+import { Camera, CheckCircle2, AlertTriangle, Loader2, Upload, RotateCcw, X } from 'lucide-react';
 import { supabase } from '../db/supabase';
 
 export function UploadCelularPage() {
@@ -272,7 +272,7 @@ export function UploadCelularPage() {
                       onClick={handleCameraClick}
                       className="btn-ghost flex-1 flex items-center justify-center gap-2 py-2.5 border border-brand-blue/30 text-brand-blue-light hover:bg-brand-blue/10 rounded-xl text-xs font-bold uppercase tracking-wider"
                     >
-                      <Plus size={14} /> Tirar Mais
+                      <Camera size={14} /> Tirar Mais
                     </button>
                     
                     <button
