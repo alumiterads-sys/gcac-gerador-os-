@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Camera, CheckCircle2, AlertTriangle, Loader2, Upload, RotateCcw, X } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { supabase } from '../db/supabase';
 
 export function UploadCelularPage() {
@@ -102,7 +103,6 @@ export function UploadCelularPage() {
         mimeType = fotos[0].type;
       } else {
         // Unificar as fotos em um único arquivo PDF usando jsPDF
-        const { jsPDF } = await import('jspdf');
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'px',
@@ -134,7 +134,6 @@ export function UploadCelularPage() {
 
           await new Promise<void>((resolve) => {
             const img = new Image();
-            img.src = dataUrl;
             img.onload = () => {
               const imgWidth = img.width;
               const imgHeight = img.height;
@@ -160,6 +159,8 @@ export function UploadCelularPage() {
               doc.addImage(dataUrl, format, 0, 0, pageWidth, pageHeight);
               resolve();
             };
+            // Definir o src DEPOIS de assinar onload/onerror para evitar que o evento dispare antes de ser ouvido no mobile
+            img.src = dataUrl;
           });
         }
 
