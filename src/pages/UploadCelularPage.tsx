@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Camera, CheckCircle2, AlertTriangle, Loader2, Upload, RotateCcw } from 'lucide-react';
+import { Camera, CheckCircle2, AlertTriangle, Loader2, Upload, RotateCcw, X, Plus } from 'lucide-react';
 import { supabase } from '../db/supabase';
 
 export function UploadCelularPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [status, setStatus] = useState<'carregando' | 'preparado' | 'enviando' | 'sucesso' | 'erro'>('carregando');
-  const [foto, setFoto] = useState<File | null>(null);
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotos, setFotos] = useState<File[]>([]);
+  const [fotosPreview, setFotosPreview] = useState<string[]>([]);
   const [erroMsg, setErroMsg] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,38 +51,130 @@ export function UploadCelularPage() {
     verificarSessao();
   }, [sessionId]);
 
+  useEffect(() => {
+    return () => {
+      // Limpar URLs de preview criadas ao desmontar
+      fotosPreview.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [fotosPreview]);
+
   const handleCameraClick = () => {
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFoto(file);
-      const url = URL.createObjectURL(file);
-      setFotoPreview(url);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files);
+      setFotos(prev => [...prev, ...newFiles]);
+
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setFotosPreview(prev => [...prev, ...newPreviews]);
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleLimparFoto = () => {
-    setFoto(null);
-    setFotoPreview(null);
+  const handleRemoverFoto = (index: number) => {
+    URL.revokeObjectURL(fotosPreview[index]);
+    setFotos(prev => prev.filter((_, i) => i !== index));
+    setFotosPreview(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLimparFotos = () => {
+    fotosPreview.forEach(url => URL.revokeObjectURL(url));
+    setFotos([]);
+    setFotosPreview([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleEnviar = async () => {
-    if (!foto || !sessionId) return;
+    if (fotos.length === 0 || !sessionId) return;
     setStatus('enviando');
 
     try {
-      const ext = foto.name.split('.').pop() || 'jpg';
+      let fileToUpload: File | Blob;
+      let ext: string;
+      let mimeType: string;
+
+      if (fotos.length === 1) {
+        fileToUpload = fotos[0];
+        ext = fotos[0].name.split('.').pop() || 'jpg';
+        mimeType = fotos[0].type;
+      } else {
+        // Unificar as fotos em um único arquivo PDF usando jsPDF
+        const { jsPDF } = await import('jspdf');
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: 'a4'
+        });
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        for (let i = 0; i < fotos.length; i++) {
+          const file = fotos[i];
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
+          if (i > 0) {
+            doc.addPage();
+          }
+
+          let format = 'JPEG';
+          if (file.type === 'image/png') {
+            format = 'PNG';
+          } else if (file.type === 'image/webp') {
+            format = 'WEBP';
+          }
+
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.src = dataUrl;
+            img.onload = () => {
+              const imgWidth = img.width;
+              const imgHeight = img.height;
+              const ratio = imgWidth / imgHeight;
+              const pageRatio = pageWidth / pageHeight;
+
+              let width = pageWidth;
+              let height = pageHeight;
+
+              if (ratio > pageRatio) {
+                height = pageWidth / ratio;
+              } else {
+                width = pageHeight * ratio;
+              }
+
+              const x = (pageWidth - width) / 2;
+              const y = (pageHeight - height) / 2;
+
+              doc.addImage(dataUrl, format, x, y, width, height);
+              resolve();
+            };
+            img.onerror = () => {
+              doc.addImage(dataUrl, format, 0, 0, pageWidth, pageHeight);
+              resolve();
+            };
+          });
+        }
+
+        fileToUpload = doc.output('blob');
+        ext = 'pdf';
+        mimeType = 'application/pdf';
+      }
+
       const storagePath = `temp-uploads/${sessionId}.${ext}`;
 
       // 1. Upload do arquivo para a pasta temp-uploads do bucket documentos-clientes
       const { error: uploadError } = await supabase.storage
         .from('documentos-clientes')
-        .upload(storagePath, foto, {
-          contentType: foto.type,
+        .upload(storagePath, fileToUpload, {
+          contentType: mimeType,
           upsert: true
         });
 
@@ -110,7 +202,7 @@ export function UploadCelularPage() {
     } catch (err: any) {
       console.error('Erro ao enviar foto:', err);
       setStatus('preparado');
-      alert('Falha ao enviar foto: ' + (err.message || 'Erro desconhecido'));
+      alert('Falha ao enviar: ' + (err.message || 'Erro desconhecido'));
     }
   };
 
@@ -132,7 +224,7 @@ export function UploadCelularPage() {
 
         {status === 'preparado' && (
           <div className="space-y-6">
-            {!fotoPreview ? (
+            {fotosPreview.length === 0 ? (
               <div className="space-y-4 py-8">
                 <p className="text-sm text-gray-300">Tire uma foto nítida e legível do documento físico:</p>
                 
@@ -147,8 +239,22 @@ export function UploadCelularPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="relative rounded-lg overflow-hidden border border-brand-dark-5 bg-brand-dark-4 max-h-[320px] flex items-center justify-center">
-                  <img src={fotoPreview} alt="Preview do documento" className="max-h-[320px] object-contain w-full" />
+                <div className="grid grid-cols-2 gap-3 max-h-[360px] overflow-y-auto p-1">
+                  {fotosPreview.map((url, index) => (
+                    <div key={url} className="relative rounded-lg overflow-hidden border border-brand-dark-5 bg-brand-dark-4 aspect-[3/4] flex items-center justify-center">
+                      <img src={url} alt={`Foto ${index + 1}`} className="object-contain w-full h-full" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoverFoto(index)}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-md"
+                      >
+                        <X size={14} />
+                      </button>
+                      <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-brand-dark-2/80 text-[10px] font-bold text-gray-300">
+                        {index + 1}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -157,15 +263,26 @@ export function UploadCelularPage() {
                     onClick={handleEnviar}
                     className="btn-primary w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold uppercase text-xs tracking-wider"
                   >
-                    <Upload size={16} /> Enviar Foto
+                    <Upload size={16} /> Enviar {fotos.length} {fotos.length === 1 ? 'Foto' : 'Fotos'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleLimparFoto}
-                    className="btn-ghost w-full flex items-center justify-center gap-2 py-3 border border-brand-dark-5 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-400"
-                  >
-                    <RotateCcw size={16} /> Tirar Outra
-                  </button>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCameraClick}
+                      className="btn-ghost flex-1 flex items-center justify-center gap-2 py-2.5 border border-brand-blue/30 text-brand-blue-light hover:bg-brand-blue/10 rounded-xl text-xs font-bold uppercase tracking-wider"
+                    >
+                      <Plus size={14} /> Tirar Mais
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={handleLimparFotos}
+                      className="btn-ghost flex-1 flex items-center justify-center gap-2 py-2.5 border border-brand-dark-5 rounded-xl text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-red-400 hover:border-red-400/30"
+                    >
+                      <RotateCcw size={14} /> Limpar Tudo
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

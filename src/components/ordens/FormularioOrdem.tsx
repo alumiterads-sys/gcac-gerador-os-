@@ -151,7 +151,7 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const { servicos } = useServicos();
   const { 
     clientes, criarCliente, atualizarCliente, buscarClientePorNomeExato, 
-    clubesRegistrados, buscarArmas, salvarArma 
+    clubesRegistrados, buscarArmas, salvarArma, criarOpcaoArma
   } = useClientes();
   const { estado: notif, mostrar, fechar } = useNotificacao();
   const { usuario } = useAuth();
@@ -166,6 +166,8 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
   const [novasArmas, setNovasArmas] = useState<any[]>([]);
   const [modalArmaAberto, setModalArmaAberto] = useState(false);
   const [servicoIndexParaArma, setServicoIndexParaArma] = useState<number | null>(null);
+  const [outroClubeTexto, setOutroClubeTexto] = useState<Record<string, string>>({});
+  const [salvandoClube, setSalvandoClube] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const carregarUsuarios = async () => {
@@ -1008,17 +1010,56 @@ export function FormularioOrdem({ ordemExistente }: FormularioOrdemProps) {
                                   </select>
 
                                   {serv.gtDestino === 'OUTRO' && (
-                                    <input
-                                      type="text"
-                                      className="w-full mt-2 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-white uppercase"
-                                      placeholder="Digite o nome do clube..."
-                                      onBlur={e => {
-                                        const val = e.target.value.trim().toUpperCase();
-                                        if (val) {
-                                          atualizarGtCamposServico(serv.id, serv.gtTipo, val);
-                                        }
-                                      }}
-                                    />
+                                    <div className="flex gap-2 mt-2">
+                                      <input
+                                        type="text"
+                                        className="flex-1 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-2.5 py-1.5 text-xs text-white uppercase outline-none"
+                                        placeholder="Digite o nome do clube..."
+                                        value={outroClubeTexto[serv.id] || ''}
+                                        onChange={e => setOutroClubeTexto(prev => ({ ...prev, [serv.id]: e.target.value }))}
+                                      />
+                                      <button
+                                        type="button"
+                                        disabled={salvandoClube[serv.id]}
+                                        onClick={async () => {
+                                          const val = (outroClubeTexto[serv.id] || '').trim().toUpperCase();
+                                          if (!val) {
+                                            mostrar('Por favor, digite o nome do clube.', 'erro');
+                                            return;
+                                          }
+                                          setSalvandoClube(prev => ({ ...prev, [serv.id]: true }));
+                                          try {
+                                            await criarOpcaoArma('clube', val);
+                                            atualizarGtCamposServico(serv.id, serv.gtTipo, val);
+                                            mostrar('Novo clube salvo e selecionado com sucesso!', 'sucesso');
+                                            setOutroClubeTexto(prev => {
+                                              const copy = { ...prev };
+                                              delete copy[serv.id];
+                                              return copy;
+                                            });
+                                          } catch (err: any) {
+                                            if (err.message && err.message.includes('já está cadastrado')) {
+                                              atualizarGtCamposServico(serv.id, serv.gtTipo, val);
+                                              mostrar('Clube já cadastrado, selecionado com sucesso!', 'sucesso');
+                                              setOutroClubeTexto(prev => {
+                                                const copy = { ...prev };
+                                                delete copy[serv.id];
+                                                return copy;
+                                              });
+                                            } else {
+                                              console.error('Erro ao salvar clube:', err);
+                                              mostrar(err.message || 'Erro ao salvar o clube.', 'erro');
+                                            }
+                                          } finally {
+                                            setSalvandoClube(prev => ({ ...prev, [serv.id]: false }));
+                                          }
+                                        }}
+                                        className="px-3 py-1.5 bg-brand-green hover:bg-brand-green/80 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-all flex items-center gap-1 flex-shrink-0"
+                                      >
+                                        <Save size={12} />
+                                        {salvandoClube[serv.id] ? 'Salvando...' : 'Salvar'}
+                                      </button>
+                                    </div>
                                   )}
                                 </>
                               )}
