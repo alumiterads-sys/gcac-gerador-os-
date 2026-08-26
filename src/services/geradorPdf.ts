@@ -151,7 +151,14 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
     // Calcula linhas do bloco de detalhe e altura final
     doc.setFontSize(9.5);
     const linhasDetalhe = serv.detalhes ? doc.splitTextToSize(serv.detalhes, largura - 34) : [];
-    const alturaBloco = 8 + alturaNome + (linhasDetalhe.length * 4.5) + (serv.protocolo ? 6 : 0);
+    
+    let alturaBloco = 8 + alturaNome + (linhasDetalhe.length * 4.5);
+    if (serv.armaModelo) {
+      alturaBloco += 6;
+    }
+    if (serv.protocolo) {
+      alturaBloco += 6;
+    }
 
     // Quebra de página se não couber o bloco inteiro
     if (y + alturaBloco > 275) {
@@ -183,14 +190,27 @@ export async function gerarPdfBlob(ordem: OrdemDeServico): Promise<Blob> {
       doc.setTextColor('#444444');
       doc.text(linhasDetalhe, 17, y + 6 + alturaNome);
     }
+
+    let textY = y + 6 + alturaNome;
+    if (serv.detalhes && serv.detalhes.trim()) {
+      textY += (linhasDetalhe.length * 4.5);
+    }
+
+    // Imprimir Arma se houver
+    if (serv.armaModelo) {
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor('#D97706'); // Laranja/Amber para destaque
+      doc.text(`ARMA: ${serv.armaModelo.toUpperCase()}`, 17, textY + 2);
+      textY += 6;
+    }
     
     // Imprimir Protocolo se houver
     if (serv.protocolo) {
-      const offsetProt = (serv.detalhes && serv.detalhes.trim()) ? (linhasDetalhe.length * 4.5 + 2) : 2;
       doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(AZUL);
-      doc.text(`PROTOCOLO: ${serv.protocolo}`, 17, y + 6 + alturaNome + offsetProt);
+      doc.text(`PROTOCOLO: ${serv.protocolo}`, 17, textY + 2);
     }
     
     y += alturaBloco + 2; // espaçamento de um card pro outro
