@@ -84,3 +84,46 @@ export async function parseGtPdf(file: File): Promise<GtData> {
 
   return data;
 }
+
+export interface CrafData {
+  vencimento?: string;
+  rawText?: string;
+}
+
+export async function parseCrafPdf(file: File): Promise<CrafData> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+  let rawText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+    rawText += pageText + '\n';
+  }
+
+  const data: CrafData = { rawText };
+
+  // Normalizar texto para busca (Remover acentos e colocar em caixa alta)
+  const text = rawText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  
+  console.log('CRAF Parser - Texto extraído:', text);
+
+  // Procure por datas de validade / vencimento no texto do CRAF
+  // O CRAF costuma ter: "VALIDO ATE DD/MM/AAAA" ou "VALIDADE: DD/MM/AAAA"
+  const validadeRegex = /(?:VALIDO ATE|VALIDADE|VENCIMENTO):?\s*(\d{2}\/\d{2}\/\d{4})/;
+  const matchVal = text.match(validadeRegex);
+  if (matchVal) {
+    const [d, m, y] = matchVal[1].split('/');
+    data.vencimento = `${y}-${m}-${d}`;
+  } else {
+    // Fallback: Pega a última data encontrada no PDF
+    const dates = text.match(/\d{2}\/\d{2}\/\d{4}/g);
+    if (dates && dates.length > 0) {
+      const [d, m, y] = dates[dates.length - 1].split('/');
+      data.vencimento = `${y}-${m}-${d}`;
+    }
+  }
+
+  return data;
+}

@@ -17,7 +17,7 @@ import { formatarMoeda, formatarData, formatarDataHora, formatarNumeroOS, classe
 import { ModalEscolhaWhatsApp } from '../common/ModalEscolhaWhatsApp';
 import { Modal } from '../common/Modal';
 import { visualizarDocumentoBase64, fileToBase64, uploadBase64File } from '../../utils/fileUtils';
-import { parseGtPdf } from '../../services/gtParserService';
+import { parseGtPdf, parseCrafPdf } from '../../services/gtParserService';
 
 interface DetalheOrdemProps {
   ordem: OrdemDeServico;
@@ -51,10 +51,11 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   const [novoProtocolo, setNovoProtocolo] = useState('');
 
   const [modalConclusaoAberto, setModalConclusaoAberto] = useState(false);
-  const [servicoConclusao, setServicoConclusao] = useState<{ id: string; nome: string; exigeGt: boolean } | null>(null);
+  const [servicoConclusao, setServicoConclusao] = useState<{ id: string; nome: string; exigeGt: boolean; exigeCraf: boolean } | null>(null);
   const [conclusaoArquivo, setConclusaoArquivo] = useState<string | null>(null);
   const [salvarNoPerfilCac, setSalvarNoPerfilCac] = useState(false);
   const [vencimentoGt, setVencimentoGt] = useState('');
+  const [vencimentoCraf, setVencimentoCraf] = useState('');
   const [destinoGt, setDestinoGt] = useState('');
   const [tipoGt, setTipoGt] = useState<'Treino' | 'Caça' | 'Manutenção' | 'Transferência' | 'Outro'>('Treino');
   const [salvandoConclusao, setSalvandoConclusao] = useState(false);
@@ -250,6 +251,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
     if (novoStatus === 'Concluído') {
       const serv = ordem.servicos.find(s => s.id === servicoId);
       const isGuia = serv?.nome.toUpperCase().includes('GUIA') || serv?.nome.toUpperCase().includes('GT');
+      const isCraf = serv?.nome.toUpperCase().includes('CRAF') || serv?.nome.toUpperCase().includes('REGISTRO');
       
       let defaultTipo: 'Treino' | 'Caça' | 'Manutenção' | 'Transferência' | 'Outro' = 'Treino';
       if (serv?.gtTipo) {
@@ -264,11 +266,13 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       setServicoConclusao({
         id: servicoId,
         nome: serv?.nome || '',
-        exigeGt: !!isGuia
+        exigeGt: !!isGuia,
+        exigeCraf: !!isCraf
       });
       setConclusaoArquivo(null);
       setSalvarNoPerfilCac(false);
       setVencimentoGt('');
+      setVencimentoCraf('');
       setDestinoGt('');
       setTipoGt(defaultTipo);
       setModalConclusaoAberto(true);
@@ -321,6 +325,22 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           console.warn('Erro ao ler PDF de Guia:', parseErr);
         }
       }
+
+      if (file.type === 'application/pdf' && servicoConclusao?.exigeCraf) {
+        mostrar('info', 'Analisando arquivo PDF do CRAF...');
+        try {
+          const parsed = await parseCrafPdf(file);
+          if (parsed) {
+            if (parsed.vencimento) {
+              setVencimentoCraf(parsed.vencimento);
+            }
+            setSalvarNoPerfilCac(true);
+            mostrar('sucesso', 'Data de vencimento extraída com sucesso do PDF do CRAF!');
+          }
+        } catch (parseErr) {
+          console.warn('Erro ao ler PDF de CRAF:', parseErr);
+        }
+      }
     } catch (err) {
       console.error(err);
       mostrar('erro', 'Erro ao ler arquivo.');
@@ -347,7 +367,7 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
       let targetArmaId = serv?.armaId;
       let targetArmaModelo = serv?.armaModelo;
       
-      if (servicoConclusao.exigeGt && salvarNoPerfilCac && armaSelecionadaId) {
+      if ((servicoConclusao.exigeGt || servicoConclusao.exigeCraf) && salvarNoPerfilCac && armaSelecionadaId) {
         targetArmaId = armaSelecionadaId;
         const arma = armasCliente.find(a => a.id === armaSelecionadaId);
         if (arma) {
@@ -361,8 +381,8 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
         'Concluído', 
         undefined, 
         finalFileUrl,
-        servicoConclusao.exigeGt && salvarNoPerfilCac ? targetArmaId : undefined,
-        servicoConclusao.exigeGt && salvarNoPerfilCac ? targetArmaModelo : undefined
+        (servicoConclusao.exigeGt || servicoConclusao.exigeCraf) && salvarNoPerfilCac ? targetArmaId : undefined,
+        (servicoConclusao.exigeGt || servicoConclusao.exigeCraf) && salvarNoPerfilCac ? targetArmaModelo : undefined
       );
 
       if (servicoConclusao.exigeGt && salvarNoPerfilCac && targetArmaId) {
@@ -373,6 +393,17 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
           destino: destinoGt.toUpperCase(),
           arquivoUrl: finalFileUrl || undefined
         });
+      }
+
+      if (servicoConclusao.exigeCraf && salvarNoPerfilCac && targetArmaId && clienteDaOS) {
+        const arma = armasCliente.find(a => a.id === targetArmaId);
+        if (arma) {
+          await salvarArma({
+            ...arma,
+            vencimentoCraf: vencimentoCraf || undefined,
+            crafUrl: finalFileUrl || arma.crafUrl || undefined
+          }, clienteDaOS.empresaId);
+        }
       }
 
       setModalConclusaoAberto(false);
@@ -1257,6 +1288,64 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
               </div>
             )}
 
+            {servicoConclusao.exigeCraf && (
+              <div className="bg-brand-dark-3 p-4 rounded-xl border border-brand-dark-5 space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={salvarNoPerfilCac}
+                    onChange={e => setSalvarNoPerfilCac(e.target.checked)}
+                    className="checkbox checkbox-primary"
+                  />
+                  <div>
+                    <span className="font-bold text-white text-xs">Registrar/Atualizar CRAF no perfil do cliente</span>
+                    <p className="text-[10px] text-gray-500">Isso salvará esta arma e seu documento CRAF diretamente no perfil do cliente.</p>
+                  </div>
+                </label>
+
+                {salvarNoPerfilCac && (
+                  <div className="space-y-3 pt-2 border-t border-brand-dark-5/50 animate-scale-up">
+                    <div>
+                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Armamento do CRAF</label>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 bg-brand-dark-4 border border-brand-dark-5 focus:border-brand-blue/50 rounded-lg px-3 py-2 text-xs text-gray-200 outline-none transition-colors"
+                          value={armaSelecionadaId}
+                          onChange={e => setArmaSelecionadaId(e.target.value)}
+                          required={salvarNoPerfilCac}
+                        >
+                          <option value="">Selecione uma arma...</option>
+                          {armasCliente.map(a => (
+                            <option key={a.id} value={a.id}>
+                              {a.fabricante} {a.modelo} ({a.calibre}) - SÉRIE: {a.numeroSerie}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setModalArmaAberto(true)}
+                          className="px-3 py-2 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue-light border border-brand-blue/30 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
+                        >
+                          + Cadastrar
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="label text-[10px] font-bold uppercase tracking-wider text-gray-400">Data de Vencimento do CRAF</label>
+                      <input
+                        type="date"
+                        className="input text-xs"
+                        value={vencimentoCraf}
+                        onChange={e => setVencimentoCraf(e.target.value)}
+                        required={salvarNoPerfilCac}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 w-full pt-4 border-t border-brand-dark-5">
               <button
                 type="button"
@@ -1271,7 +1360,13 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
               <button
                 type="button"
                 onClick={confirmarConclusao}
-                disabled={salvandoConclusao || (salvarNoPerfilCac && (!vencimentoGt || !destinoGt || !armaSelecionadaId))}
+                disabled={
+                  salvandoConclusao ||
+                  (salvarNoPerfilCac && (
+                    (servicoConclusao.exigeGt && (!vencimentoGt || !destinoGt || !armaSelecionadaId)) ||
+                    (servicoConclusao.exigeCraf && (!vencimentoCraf || !armaSelecionadaId))
+                  ))
+                }
                 className="btn-primary flex-1 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-2"
               >
                 {salvandoConclusao ? 'Processando...' : 'Confirmar Conclusão'}
