@@ -1,9 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Printer, Share2, Receipt, 
-  Calendar, User, CheckCircle, FileText, 
-  ChevronRight, Trash2, Mail, Phone, MapPin, List
+  ArrowLeft, Printer, Share2, CheckCircle, FileText, 
+  Trash2, List
 } from 'lucide-react';
 import { Recibo } from '../../types';
 import { formatarMoeda, formatarData } from '../../utils/formatters';
@@ -19,7 +18,7 @@ interface DetalheReciboProps {
   recibo: Recibo;
 }
 
-export function DetalheRecibo({ recibo }: DetalheReciboProps) {
+export function DetalheRecibo({ recibo: reciboOriginal }: DetalheReciboProps) {
   const navigate = useNavigate();
   const { deletarRecibo } = useRecibos();
   const { ordens } = useOrdens();
@@ -31,7 +30,25 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
   const [modalWhatsAppAberto, setModalWhatsAppAberto] = React.useState(false);
   const [mensagemWhatsApp, setMensagemWhatsApp] = React.useState('');
 
-  const ordemVinculada = ordens.find(o => o.id === recibo.ordemId);
+  const ordemVinculada = ordens.find(o => o.id === reciboOriginal.ordemId);
+
+  const recibo = React.useMemo(() => {
+    if (!ordemVinculada) return reciboOriginal;
+    
+    return {
+      ...reciboOriginal,
+      servicos: reciboOriginal.servicos.map(s => {
+        const sOS = ordemVinculada.servicos.find(
+          osS => osS.nome.trim().toUpperCase() === s.nome.trim().toUpperCase()
+        );
+        return {
+          ...s,
+          armaModelo: s.armaModelo || sOS?.armaModelo,
+          protocolo: s.protocolo || sOS?.protocolo
+        };
+      })
+    };
+  }, [reciboOriginal, ordemVinculada]);
 
   const handleBaixarPdf = async () => {
     setGerandoPdf(true);
