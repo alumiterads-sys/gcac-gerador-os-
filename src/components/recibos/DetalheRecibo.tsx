@@ -66,6 +66,12 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
     
     recibo.servicos.forEach(s => {
       msg += `🔹 *${s.nome}*\n`;
+      if (s.armaModelo) {
+        msg += `   Arma: _${s.armaModelo}_\n`;
+      }
+      if (s.protocolo) {
+        msg += `   📑 Prot: _${s.protocolo}_\n`;
+      }
     });
     
     msg += `\n📅 *Data:* ${formatarData(recibo.criadoEm)}\n`;
@@ -215,6 +221,16 @@ export function DetalheRecibo({ recibo }: DetalheReciboProps) {
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold uppercase">{servico.nome}</p>
                         {servico.detalhes && <p className="text-[10px] text-gray-500 font-medium italic mt-1">{servico.detalhes}</p>}
+                        {servico.armaModelo && (
+                          <p className="text-[10px] font-bold text-amber-600 print:text-amber-800 uppercase tracking-wider mt-1">
+                            ⚔️ Arma: {servico.armaModelo}
+                          </p>
+                        )}
+                        {servico.protocolo && (
+                          <p className="text-[10px] font-bold text-brand-blue-light print:text-blue-700 uppercase tracking-wider mt-1">
+                            📑 Protocolo: {servico.protocolo}
+                          </p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right font-black text-sm">{formatarMoeda(servico.valor)}</td>
                     </tr>

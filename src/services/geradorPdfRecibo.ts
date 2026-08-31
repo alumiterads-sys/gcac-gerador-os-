@@ -130,7 +130,19 @@ export async function gerarPdfReciboBlob(recibo: Recibo, numeroOS?: string | num
   doc.setTextColor(ESCURO_BRAND);
   recibo.servicos.forEach((s) => {
     // --- LOGICA DE QUEBRA DE PAGINA ---
-    const alturaNecessaria = 12 + (s.detalhes ? (doc.splitTextToSize(s.detalhes, largura - 60).length * 4) : 0);
+    let alturaNecessaria = 12;
+    const linhasNome = doc.splitTextToSize(s.nome.toUpperCase(), largura - 60);
+    alturaNecessaria += linhasNome.length * 5;
+    if (s.detalhes) {
+      alturaNecessaria += doc.splitTextToSize(s.detalhes, largura - 60).length * 4 + 2;
+    }
+    if (s.armaModelo) {
+      alturaNecessaria += doc.splitTextToSize(`ARMA: ${s.armaModelo.toUpperCase()}`, largura - 60).length * 4 + 2;
+    }
+    if (s.protocolo) {
+      alturaNecessaria += doc.splitTextToSize(`PROTOCOLO: ${s.protocolo.toUpperCase()}`, largura - 60).length * 4 + 2;
+    }
+
     if (y + alturaNecessaria > 215) { // Aumentado de 195 para 215 para melhor aproveitamento de página
       doc.addPage();
       y = 25;
@@ -150,23 +162,49 @@ export async function gerarPdfReciboBlob(recibo: Recibo, numeroOS?: string | num
     doc.setTextColor(ESCURO_BRAND);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    const linhasNome = doc.splitTextToSize(s.nome.toUpperCase(), largura - 60);
-    doc.text(linhasNome, 18, y + 7);
-    const alturaNome = linhasNome.length * 5;
+    const linhasNomeReal = doc.splitTextToSize(s.nome.toUpperCase(), largura - 60);
+    doc.text(linhasNomeReal, 18, y + 7);
+    const alturaNome = linhasNomeReal.length * 5;
     
     // Valor à direita (alinhado com o topo do nome)
     doc.setFontSize(11);
     doc.text(formatarMoeda(s.valor), largura - 18, y + 7, { align: 'right' });
+
+    let yExtra = 0;
 
     if (s.detalhes) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(CINZA_TEXTO);
       const detalhes = doc.splitTextToSize(s.detalhes, largura - 60);
-      doc.text(detalhes, 18, y + 6 + alturaNome);
-      y += alturaNome + (detalhes.length * 4) + 4; // Reduzido de 6 para 4
+      doc.text(detalhes, 18, y + 6 + alturaNome + yExtra);
+      yExtra += (detalhes.length * 4) + 2;
+    }
+
+    if (s.armaModelo) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor('#B45309'); // Cor âmbar/marrom para armas
+      const textoArma = `ARMA: ${s.armaModelo.toUpperCase()}`;
+      const linhasArma = doc.splitTextToSize(textoArma, largura - 60);
+      doc.text(linhasArma, 18, y + 6 + alturaNome + yExtra);
+      yExtra += (linhasArma.length * 4) + 2;
+    }
+
+    if (s.protocolo) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(AZUL_BRAND); // Cor azul da marca para protocolo
+      const textoProt = `PROTOCOLO: ${s.protocolo.toUpperCase()}`;
+      const linhasProt = doc.splitTextToSize(textoProt, largura - 60);
+      doc.text(linhasProt, 18, y + 6 + alturaNome + yExtra);
+      yExtra += (linhasProt.length * 4) + 2;
+    }
+
+    if (yExtra > 0) {
+      y += alturaNome + yExtra + 2;
     } else {
-      y += alturaNome + 2; // Reduzido de 4 para 2
+      y += alturaNome + 2;
     }
 
     doc.setDrawColor(LINHA_LEVE);

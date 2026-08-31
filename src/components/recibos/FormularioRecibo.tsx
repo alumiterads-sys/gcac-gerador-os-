@@ -109,7 +109,9 @@ export function FormularioRecibo() {
           id: uuidv4(),
           nome: s.nome,
           valor: s.valor || 0,
-          detalhes: s.detalhes
+          detalhes: s.detalhes,
+          armaModelo: s.armaModelo,
+          protocolo: s.protocolo
         })),
         valorTotal: os.valor,
         ordemId: os.id,

@@ -258,6 +258,8 @@ export interface Recibo {
     nome: string;
     valor: number;
     detalhes?: string;
+    armaModelo?: string;
+    protocolo?: string;
   }[];
   valorTotal: number;
   
