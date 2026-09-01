@@ -22,6 +22,7 @@ const STATUS_EXEC_FILTROS: { label: string; valor: StatusExecucaoServico }[] = [
   { label: 'Agd Documentos',      valor: 'Aguardando Documentos' },
   { label: 'Protocolado',         valor: 'Protocolado — Ag. PF' },
   { label: 'Concluídos',          valor: 'Concluído' },
+  { label: 'Cancelados',          valor: 'Cancelado / Não Executado' },
 ];
 
 export function ListaOrdens() {
@@ -394,7 +395,7 @@ export function ListaOrdens() {
                       const resumo = obterResumoExecucao(ordem.servicos);
                       if (!resumo) return null;
 
-                      if (resumo.tipo === 'unificado') {
+                      if (resumo.tipo === 'unificado' || resumo.tipo === 'parcial') {
                         return (
                           <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider shadow-sm ${resumo.classe}`}>
                             <span>{resumo.icone}</span>

@@ -37,7 +37,8 @@ export type StatusExecucaoServico =
   | 'Iniciado — Montando Processo'
   | 'Aguardando Documentos'
   | 'Protocolado — Ag. PF'
-  | 'Concluído';
+  | 'Concluído'
+  | 'Cancelado / Não Executado';
 
 export interface ServicoConfig {
   id: string;
@@ -411,6 +412,7 @@ export const STATUS_EXECUCAO_SERVICO: StatusExecucaoServico[] = [
   'Aguardando Documentos',
   'Protocolado — Ag. PF',
   'Concluído',
+  'Cancelado / Não Executado',
 ];
 
 export interface PagamentoItem {

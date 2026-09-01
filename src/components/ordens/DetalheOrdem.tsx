@@ -191,44 +191,80 @@ export function DetalheOrdem({ ordem }: DetalheOrdemProps) {
   };
 
   const handleWhatsApp = () => {
+    const servicos = ordem.servicos || [];
+    const concluidos = servicos.filter(s => s.statusExecucao === 'Concluído');
+    const cancelados = servicos.filter(s => s.statusExecucao === 'Cancelado / Não Executado');
+    const emAndamento = servicos.filter(s => s.statusExecucao !== 'Concluído' && s.statusExecucao !== 'Cancelado / Não Executado');
+
     let msg = `* GCAC | Despachante Bélico *\n_Ordem de Serviço ${formatarNumeroOS(ordem.numero)}_\n\n`;
-    msg += `Olá, *${ordem.nomeCliente}*!\n`;
-    msg += `Seguem os detalhes da sua O.S.:\n\n`;
-    
-    (ordem.servicos || []).forEach(s => {
-      const icon = s.statusExecucao === 'Concluído' ? '✅' : '🔹';
-      msg += `${icon} *${s.nome}*\n`;
-      msg += `   Valor: _${formatarMoeda(s.valor || 0)}_\n`;
-      
-      const nomeUpper = (s.nome || '').toUpperCase();
-      const isGuiaTrafego = nomeUpper.includes('GUIA DE TRÁFEGO') || nomeUpper.includes('GUIA DE TRAFEGO') || nomeUpper.includes('GT');
-      
-      if (isGuiaTrafego) {
-        let armaInfo = '';
-        if (s.armaId) {
-          const arma = armasCliente.find(a => a.id === s.armaId);
-          if (arma) {
-            armaInfo = `${arma.fabricante} ${arma.modelo} (${arma.calibre}) - Série: ${arma.numeroSerie}`;
+    msg += `Olá, *${ordem.nomeCliente}*! Tudo bem?\n\n`;
+
+    if (cancelados.length > 0 && emAndamento.length === 0) {
+      msg += `Como não conseguimos retorno para finalizar as últimas pendências, informamos que a sua Ordem de Serviço (${formatarNumeroOS(ordem.numero)}) foi finalizada no nosso sistema.\n\n`;
+      msg += `Segue o resumo do seu processo:\n\n`;
+
+      if (concluidos.length > 0) {
+        msg += `✅ *SERVIÇOS EXECUTADOS COM SUCESSO:*\n`;
+        concluidos.forEach(s => {
+          let armaInfo = '';
+          if (s.armaId) {
+            const arma = armasCliente.find(a => a.id === s.armaId);
+            if (arma) armaInfo = ` (${arma.fabricante} ${arma.modelo})`;
+          } else if (s.armaModelo) {
+            armaInfo = ` (${s.armaModelo})`;
           }
-        }
-        if (!armaInfo && s.armaModelo) {
-          armaInfo = s.armaModelo;
-        }
-        if (armaInfo) {
-          msg += `   Arma: _${armaInfo}_\n`;
-        }
+          const obs = s.detalhes?.trim() ? ` - _${s.detalhes.trim()}_` : '';
+          msg += `• ${s.nome}${armaInfo}${obs}\n`;
+        });
+        msg += `\n`;
       }
 
-      if (s.detalhes && s.detalhes.trim()) {
-        msg += `   Obs: _${s.detalhes.trim()}_\n`;
-      }
-      if (s.pagoGRU) msg += `   GRU: _Paga_\n`;
-      if (s.protocolo) msg += `   📑 Prot: _${s.protocolo}_\n`;
+      msg += `❌ *SERVIÇOS NÃO EXECUTADOS (Falta de retorno / Cancelado):*\n`;
+      cancelados.forEach(s => {
+        const obs = s.detalhes?.trim() ? ` - _${s.detalhes.trim()}_` : '';
+        msg += `• ${s.nome}${obs}\n`;
+      });
       msg += `\n`;
-    });
-    
-    msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n\n`;
-    msg += `Qualquer dúvida, estamos à disposição!`;
+
+      msg += `Agradecemos imensamente a confiança no nosso trabalho e continuamos à disposição caso decida retomar os serviços no futuro. Qualquer dúvida, é só chamar!\n`;
+    } else {
+      msg += `Seguem os detalhes da sua O.S.:\n\n`;
+      
+      servicos.forEach(s => {
+        const icon = s.statusExecucao === 'Concluído' ? '✅' : s.statusExecucao === 'Cancelado / Não Executado' ? '❌' : '🔹';
+        msg += `${icon} *${s.nome}*\n`;
+        msg += `   Valor: _${formatarMoeda(s.valor || 0)}_\n`;
+        
+        const nomeUpper = (s.nome || '').toUpperCase();
+        const isGuiaTrafego = nomeUpper.includes('GUIA DE TRÁFEGO') || nomeUpper.includes('GUIA DE TRAFEGO') || nomeUpper.includes('GT');
+        
+        if (isGuiaTrafego) {
+          let armaInfo = '';
+          if (s.armaId) {
+            const arma = armasCliente.find(a => a.id === s.armaId);
+            if (arma) {
+              armaInfo = `${arma.fabricante} ${arma.modelo} (${arma.calibre}) - Série: ${arma.numeroSerie}`;
+            }
+          }
+          if (!armaInfo && s.armaModelo) {
+            armaInfo = s.armaModelo;
+          }
+          if (armaInfo) {
+            msg += `   Arma: _${armaInfo}_\n`;
+          }
+        }
+
+        if (s.detalhes && s.detalhes.trim()) {
+          msg += `   Obs: _${s.detalhes.trim()}_\n`;
+        }
+        if (s.pagoGRU) msg += `   GRU: _Paga_\n`;
+        if (s.protocolo) msg += `   📑 Prot: _${s.protocolo}_\n`;
+        msg += `\n`;
+      });
+      
+      msg += `💰 *Valor Total:* ${formatarMoeda(ordem.valor)}\n\n`;
+      msg += `Qualquer dúvida, estamos à disposição!`;
+    }
     
     setMensagemWhatsApp(msg);
     setModalWhatsAppAberto(true);

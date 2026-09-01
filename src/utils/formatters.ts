@@ -87,6 +87,7 @@ export function classeStatusExecucao(status?: StatusExecucaoServico): string {
     case 'Aguardando Documentos':         return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
     case 'Protocolado — Ag. PF':          return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
     case 'Concluído':                    return 'bg-green-500/20 text-green-300 border-green-500/30';
+    case 'Cancelado / Não Executado':    return 'bg-red-500/20 text-red-300 border-red-500/30';
     default:                              return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
   }
 }
@@ -98,6 +99,7 @@ export function iconeStatusExecucao(status?: StatusExecucaoServico): string {
     case 'Aguardando Documentos':         return '📄';
     case 'Protocolado — Ag. PF':          return '📤';
     case 'Concluído':                    return '✅';
+    case 'Cancelado / Não Executado':    return '❌';
     default:                              return '⏳';
   }
 }
@@ -114,6 +116,9 @@ export function hoje(): string {
 export function calcularProgressoServicos(servicos: { statusExecucao?: StatusExecucaoServico }[]): number {
   if (!servicos || servicos.length === 0) return 0;
   
+  const servicosAtivos = servicos.filter(s => s.statusExecucao !== 'Cancelado / Não Executado');
+  if (servicosAtivos.length === 0) return 100;
+
   const pesos: Record<string, number> = {
     'Não Iniciado': 0,
     'Iniciado — Montando Processo': 25,
@@ -122,20 +127,21 @@ export function calcularProgressoServicos(servicos: { statusExecucao?: StatusExe
     'Concluído': 100,
   };
 
-  const soma = servicos.reduce((acc, s) => acc + (pesos[s.statusExecucao || 'Não Iniciado'] || 0), 0);
-  return Math.round(soma / servicos.length);
+  const soma = servicosAtivos.reduce((acc, s) => acc + (pesos[s.statusExecucao || 'Não Iniciado'] || 0), 0);
+  return Math.round(soma / servicosAtivos.length);
 }
 
 export function obterResumoExecucao(servicos: { statusExecucao?: StatusExecucaoServico }[]) {
   if (!servicos || servicos.length === 0) return null;
 
+  const total = servicos.length;
   const statuses = servicos.map(s => s.statusExecucao || 'Não Iniciado');
   const todosIguais = statuses.every(s => s === statuses[0]);
   const statusUnico = statuses[0] as StatusExecucaoServico;
 
   if (todosIguais) {
     return {
-      texto: servicos.length === 1 ? statusUnico : `${servicos.length} Serviços: ${statusUnico}`,
+      texto: total === 1 ? statusUnico : `${total} Serviços: ${statusUnico}`,
       classe: classeStatusExecucao(statusUnico),
       icone: iconeStatusExecucao(statusUnico),
       tipo: 'unificado' as const,
@@ -144,10 +150,25 @@ export function obterResumoExecucao(servicos: { statusExecucao?: StatusExecucaoS
   }
 
   const concluidos = servicos.filter(s => s.statusExecucao === 'Concluído').length;
+  const cancelados = servicos.filter(s => s.statusExecucao === 'Cancelado / Não Executado').length;
+  const pendentes = total - concluidos - cancelados;
   const progresso = calcularProgressoServicos(servicos);
 
+  // Caso todos estejam finalizados (mistura de Concluídos e Cancelados)
+  if (pendentes === 0 && concluidos > 0 && cancelados > 0) {
+    return {
+      texto: `${concluidos} Concluído${concluidos > 1 ? 's' : ''}, ${cancelados} Cancelado${cancelados > 1 ? 's' : ''}`,
+      classe: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      icone: '⚠️',
+      progresso: 100,
+      tipo: 'parcial' as const
+    };
+  }
+
   return {
-    texto: `${concluidos}/${servicos.length} Concluídos`,
+    texto: cancelados > 0 
+      ? `${concluidos}/${total - cancelados} Concluídos (${cancelados} cancelado${cancelados > 1 ? 's' : ''})`
+      : `${concluidos}/${total} Concluídos`,
     progresso,
     tipo: 'misto' as const
   };
@@ -155,7 +176,12 @@ export function obterResumoExecucao(servicos: { statusExecucao?: StatusExecucaoS
 
 export function isOrdemConcluida(o: { status: StatusOS, servicos?: { statusExecucao?: StatusExecucaoServico }[] }): boolean {
   const financeiraConcluida = o.status === 'Pago' || o.status === 'Gratuidade';
-  const execucaoConcluida = (o.servicos || []).every((s: any) => s.statusExecucao === 'Concluído');
+  const servicos = o.servicos || [];
+  if (servicos.length === 0) return financeiraConcluida;
+  
+  const execucaoConcluida = servicos.every((s: any) => 
+    s.statusExecucao === 'Concluído' || s.statusExecucao === 'Cancelado / Não Executado'
+  );
   return financeiraConcluida && execucaoConcluida;
 }
 

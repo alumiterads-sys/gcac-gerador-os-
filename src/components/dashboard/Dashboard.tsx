@@ -226,7 +226,7 @@ export function Dashboard() {
             <span className="text-xs text-brand-metal font-medium uppercase tracking-wider">Status de Execução</span>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {STATUS_EXECUCAO_SERVICO.map(status => (
               <div 
                 key={status} 
@@ -239,12 +239,14 @@ export function Dashboard() {
                 </div>
                 <p className="text-[10px] font-bold text-gray-500 uppercase truncate" title={status}>
                   {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
-                   status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                   status === 'Protocolado — Ag. PF' ? 'Protocolado' : 
+                   status === 'Cancelado / Não Executado' ? 'Cancelados' : status}
                 </p>
                 <div className="w-full h-1 bg-brand-dark-5 rounded-full mt-1 overflow-hidden">
                   <div 
                     className={`h-full opacity-50 ${
                       status === 'Concluído' ? 'bg-brand-green' : 
+                      status === 'Cancelado / Não Executado' ? 'bg-red-500' :
                       status === 'Não Iniciado' ? 'bg-gray-500' :
                       'bg-brand-blue'
                     }`}

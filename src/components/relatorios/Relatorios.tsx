@@ -314,7 +314,7 @@ export function Relatorios() {
   }, [ordensFiltradas]);
 
   const execStatusCounts = useMemo(() => {
-    const counts = { 'Não Iniciado': 0, 'Iniciado — Montando Processo': 0, 'Aguardando Documentos': 0, 'Protocolado — Ag. PF': 0, Concluído: 0 };
+    const counts = { 'Não Iniciado': 0, 'Iniciado — Montando Processo': 0, 'Aguardando Documentos': 0, 'Protocolado — Ag. PF': 0, Concluído: 0, 'Cancelado / Não Executado': 0 };
     ordensFiltradas.forEach(o => {
       o.servicos?.forEach(s => {
         const stat = s.statusExecucao || 'Não Iniciado';
@@ -693,6 +693,7 @@ export function Relatorios() {
         ['Serviços: Aguardando Documentos', execStatusCounts['Aguardando Documentos']],
         ['Serviços: Protocolado', execStatusCounts['Protocolado — Ag. PF']],
         ['Serviços: Concluído', execStatusCounts.Concluído],
+        ['Serviços: Cancelado / Não Executado', execStatusCounts['Cancelado / Não Executado']],
       ];
       const wsRes = XLSX.utils.aoa_to_sheet(resumoOS);
       XLSX.utils.book_append_sheet(wb, wsRes, 'Resumo OS');
@@ -1732,12 +1733,13 @@ export function Relatorios() {
 
             <div className="card bg-brand-dark-3/30 border-brand-dark-5 p-4 sm:p-5">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider print-section-title">Status de Execução dos Serviços</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {Object.entries(execStatusCounts).map(([status, count]) => (
                   <div key={status} className="bg-brand-dark-4/50 border border-brand-dark-5/50 rounded-xl p-3 text-center print:border-gray-300 print:bg-gray-50">
                     <p className="text-gray-500 text-[9px] font-black uppercase tracking-tight truncate" title={status}>
                       {status === 'Iniciado — Montando Processo' ? 'Iniciado' : 
-                       status === 'Protocolado — Ag. PF' ? 'Protocolado' : status}
+                       status === 'Protocolado — Ag. PF' ? 'Protocolado' : 
+                       status === 'Cancelado / Não Executado' ? 'Cancelado' : status}
                     </p>
                     <h4 className="text-lg font-black text-white mt-1 print:text-black">{count}</h4>
                   </div>
